@@ -2,10 +2,11 @@
   "name": "eshmagan",
   "version": "1.0.0",
   "description": "BS Project",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "type": "module",
+"scripts": {
+  "start": "node backend/server.js",
+  "dev": "nodemon backend/server.js"
+},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MateoBitar/EshMagan.git"
@@ -13,7 +14,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/MateoBitar/EshMagan/issues"
   },
