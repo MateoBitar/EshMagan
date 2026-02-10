@@ -4,7 +4,7 @@ SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SET check_function_bodies = false;
 
--- FIX: Ensures PostgreSQL can find the PostGIS geography type
+-- Ensures PostgreSQL can find the PostGIS geography type
 SELECT pg_catalog.set_config('search_path', 'public, pg_catalog', false);
 
 -- 2. ENABLE EXTENSION
@@ -42,7 +42,7 @@ CREATE TABLE public.admin (
     admin_lname character varying NOT NULL
 );
 
--- MunicipalityDetails (FK to Users, region_name must be UNIQUE for FK link later)
+-- MunicipalityDetails (FK to Users)
 CREATE TABLE public.municipalitydetails (
     municipality_id character varying PRIMARY KEY REFERENCES public.users(user_id) ON DELETE CASCADE,
     municipality_name character varying NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE public.residentdetails (
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
 
--- ResponderDetails (FK to Users and MunicipalityDetails region_name)
+-- ResponderDetails (FK to Users)
 CREATE TABLE public.responderdetails (
     responder_id character varying PRIMARY KEY REFERENCES public.users(user_id) ON DELETE CASCADE,
     unit_nb character varying NOT NULL,
