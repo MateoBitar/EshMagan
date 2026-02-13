@@ -4,8 +4,6 @@ const { Pool } = pkg;
 
 import { DATABASE_URL } from "./env.js";
 
-console.log("DATABASE_URL:", DATABASE_URL); // <-- add this
-
 const pool = new Pool({
     connectionString: DATABASE_URL,
 });
