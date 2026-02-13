@@ -82,7 +82,7 @@ CREATE TABLE public.firerespondassignments (
     assignment_id character varying PRIMARY KEY,
     assigned_at timestamp without time zone,
     assignment_status character varying,
-    fire_id character varying REFERENCES public.fireevent(fire_id) ON DELETE CASCADE,
+    fire_id character varying REFERENCES public.fireevents(fire_id) ON DELETE CASCADE,
     responder_id character varying REFERENCES public.responderdetails(responder_id) ON DELETE CASCADE
 );
 
@@ -94,7 +94,7 @@ CREATE TABLE public.alerts (
     alert_message text NOT NULL,
     expires_at timestamp without time zone,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    fire_id character varying REFERENCES public.fireevent(fire_id) ON DELETE CASCADE,
+    fire_id character varying REFERENCES public.fireevents(fire_id) ON DELETE CASCADE,
     CONSTRAINT alert_alert_type_check CHECK (((alert_type)::text = ANY ((ARRAY['FireAlert'::character varying, 'EvacuationAlert'::character varying, 'PredictionAlert'::character varying])::text[]))),
     CONSTRAINT alert_target_role_check CHECK (((target_role)::text = ANY ((ARRAY['Resident'::character varying, 'Responder'::character varying, 'Municipality'::character varying, 'Admin'::character varying])::text[])))
 );
@@ -110,7 +110,7 @@ CREATE TABLE public.evacuationroutes (
     estimated_time interval,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    fire_id character varying REFERENCES public.fireevent(fire_id) ON DELETE CASCADE
+    fire_id character varying REFERENCES public.fireevents(fire_id) ON DELETE CASCADE
 );
 
 -- Notification (FK to FireEvents and Users)
@@ -121,7 +121,7 @@ CREATE TABLE public.notifications (
     notification_status character varying,
     expires_at timestamp without time zone,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    fire_id character varying REFERENCES public.fireevent(fire_id) ON DELETE SET NULL,
+    fire_id character varying REFERENCES public.fireevents(fire_id) ON DELETE SET NULL,
     user_id character varying REFERENCES public.users(user_id) ON DELETE CASCADE,
     CONSTRAINT notification_notification_status_check CHECK (((notification_status)::text = ANY ((ARRAY['Sent'::character varying, 'Delivered'::character varying, 'Failed'::character varying])::text[]))),
     CONSTRAINT notification_target_role_check CHECK (((target_role)::text = ANY ((ARRAY['Resident'::character varying, 'Responder'::character varying, 'Municipality'::character varying, 'Admin'::character varying])::text[])))
