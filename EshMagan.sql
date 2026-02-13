@@ -11,7 +11,7 @@ SELECT pg_catalog.set_config('search_path', 'public, pg_catalog', false);
 -- Must be done before creating any tables with geometry/geography types
 CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
 
--- 3. CORE TABLES (No Dependencies in the diagram)
+-- 3. CORE TABLES
 CREATE TABLE public.users (
     user_id character varying PRIMARY KEY,
     user_email character varying UNIQUE,
@@ -22,7 +22,7 @@ CREATE TABLE public.users (
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE public.fireevent (
+CREATE TABLE public.fireevents (
     fire_id character varying PRIMARY KEY,
     fire_source character varying CHECK (fire_source IN ('Infrared', 'Responder', 'Prediction', 'Weather')),
     fire_location public.geography(Point, 4326),
@@ -36,7 +36,7 @@ CREATE TABLE public.fireevent (
 -- 4. DEPENDENT TABLES (With Foreign Keys defined by diagram)
 
 -- Admin (FK to Users)
-CREATE TABLE public.admin (
+CREATE TABLE public.admins (
     admin_id character varying PRIMARY KEY REFERENCES public.users(user_id) ON DELETE CASCADE,
     admin_fname character varying NOT NULL,
     admin_lname character varying NOT NULL
@@ -77,8 +77,8 @@ CREATE TABLE public.responderdetails (
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
 
--- FireRespondAssignment (FK to FireEvent and ResponderDetails)
-CREATE TABLE public.firerespondassignment (
+-- FireRespondAssignment (FK to FireEvents and ResponderDetails)
+CREATE TABLE public.firerespondassignments (
     assignment_id character varying PRIMARY KEY,
     assigned_at timestamp without time zone,
     assignment_status character varying,
@@ -86,8 +86,8 @@ CREATE TABLE public.firerespondassignment (
     responder_id character varying REFERENCES public.responderdetails(responder_id) ON DELETE CASCADE
 );
 
--- Alert (FK to FireEvent)
-CREATE TABLE public.alert (
+-- Alert (FK to FireEvents)
+CREATE TABLE public.alerts (
     alert_id character varying PRIMARY KEY,
     alert_type character varying,
     target_role character varying,
@@ -99,8 +99,8 @@ CREATE TABLE public.alert (
     CONSTRAINT alert_target_role_check CHECK (((target_role)::text = ANY ((ARRAY['Resident'::character varying, 'Responder'::character varying, 'Municipality'::character varying, 'Admin'::character varying])::text[])))
 );
 
--- EvacuationRoute (FK to FireEvent)
-CREATE TABLE public.evacuationroute (
+-- EvacuationRoute (FK to FireEvents)
+CREATE TABLE public.evacuationroutes (
     route_id character varying PRIMARY KEY,
     route_status character varying,
     route_priority integer,
@@ -113,8 +113,8 @@ CREATE TABLE public.evacuationroute (
     fire_id character varying REFERENCES public.fireevent(fire_id) ON DELETE CASCADE
 );
 
--- Notification (FK to FireEvent and Users)
-CREATE TABLE public.notification (
+-- Notification (FK to FireEvents and Users)
+CREATE TABLE public.notifications (
     notification_id character varying PRIMARY KEY,
     target_role character varying,
     notification_message text NOT NULL,
