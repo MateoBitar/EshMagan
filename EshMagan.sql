@@ -33,7 +33,7 @@ CREATE TABLE public.fireevents (
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. DEPENDENT TABLES (With Foreign Keys defined by diagram)
+-- 4. DEPENDENT TABLES
 
 -- Admin (FK to Users)
 CREATE TABLE public.admins (
