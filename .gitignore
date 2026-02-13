@@ -1,2 +1,2 @@
 # Ignore environment variable files
-backend/.env
+backend\.env
