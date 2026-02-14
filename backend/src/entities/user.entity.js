@@ -2,7 +2,6 @@
 
 // This entity represents a system user, storing their credentials, role, and contact details.
 export class User {
-    static ROLES = ['Resident', 'Responder', 'Municipality', 'Admin'];
 
     constructor({ user_id, user_email, user_password, user_phone, user_role, isactive, created_at, updated_at }) {
 
