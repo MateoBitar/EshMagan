@@ -18,7 +18,7 @@ export class AdminRepository {
                         VALUES ($1, $2, $3) RETURNING admin_id, admin_fname, admin_lname`;
         const adminValues = [createdUser.user_id, admin_fname, admin_lname];
         const { rows: adminRows } = await pool.query(adminSql, adminValues);
-        
+
         return new Admin({ ...adminRows[0], user: createdUser });
     }
 
@@ -191,33 +191,8 @@ export class AdminRepository {
     }
 
     async deactivateAdmin(admin_id) {
-        const sql = `WITH updating AS (
-                        UPDATE users
-                        SET isactive = false
-                        WHERE user_id = $1 AND isactive = true
-                        RETURNING user_id, user_email, user_phone, user_role, isactive
-                    )
-                    SELECT admin_id, admin_fname, admin_lname,
-                            user_email, user_phone, user_role, isactive
-                    FROM admins
-                    JOIN updating ON admins.admin_id = updating.user_id;`;
-        const { rows } = await pool.query(sql, [admin_id]);
-        if (rows.length === 0) {
-            return null; // Admin not found or already inactive
-        }
-        const row = rows[0];
-
-        return new Admin({
-            admin_id: row.admin_id,
-            admin_fname: row.admin_fname,
-            admin_lname: row.admin_lname,
-            user: new User({
-                user_id: row.admin_id,
-                user_email: row.user_email,
-                user_phone: row.user_phone,
-                user_role: row.user_role,
-                isactive: row.isactive
-            })
-        });
+        const userRepository = new UserRepository();
+        const result = await userRepository.deactivateUser(admin_id);
+        return result ? true : false;
     }
 }
