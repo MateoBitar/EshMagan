@@ -15,7 +15,7 @@ export class AdminRepository {
 
         // Step 2: Create the admin with the user_id
         const adminSql = `INSERT INTO admins (admin_id, admin_fname, admin_lname)
-            VALUES ($1, $2, $3) RETURNING admin_id, admin_fname, admin_lname`;
+                        VALUES ($1, $2, $3) RETURNING admin_id, admin_fname, admin_lname`;
         const adminValues = [createdUser.user_id, admin_fname, admin_lname];
         const { rows: adminRows } = await pool.query(adminSql, adminValues);
         return new Admin({ ...adminRows[0], user: createdUser });
@@ -23,8 +23,8 @@ export class AdminRepository {
 
     async getAllAdmins() {
         const sql = `SELECT admin_id, admin_fname, admin_lname, user_email,
-            user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
-            WHERE isactive = true`;
+                    user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
+                    WHERE isactive = true`;
         const { rows } = await pool.query(sql);
         if (rows.length === 0) {
             return []; // No admins found or none are active
@@ -45,8 +45,8 @@ export class AdminRepository {
 
     async getAdminById(admin_id) {
         const sql = `SELECT admin_id, admin_fname, admin_lname, user_email,
-            user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
-            WHERE admin_id = $1 AND isactive = true`;
+                    user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
+                    WHERE admin_id = $1 AND isactive = true`;
         const { rows } = await pool.query(sql, [admin_id]);
         if (rows.length === 0) {
             return null; // Admin not found or not active
@@ -68,8 +68,8 @@ export class AdminRepository {
 
     async getAdminByFName(admin_fname) {
         const sql = `SELECT admin_id, admin_fname, admin_lname, user_email,
-            user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
-            WHERE admin_fname = $1 AND isactive = true`;
+                    user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
+                    WHERE admin_fname = $1 AND isactive = true`;
         const { rows } = await pool.query(sql, [admin_fname]);
         if (rows.length === 0) {
             return null; // Admin not found or not active
@@ -91,8 +91,8 @@ export class AdminRepository {
 
     async getAdminByLName(admin_lname) {
         const sql = `SELECT admin_id, admin_fname, admin_lname, user_email,
-            user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
-            WHERE admin_lname = $1 AND isactive = true`;
+                    user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
+                    WHERE admin_lname = $1 AND isactive = true`;
         const { rows } = await pool.query(sql, [admin_lname]);
         if (rows.length === 0) {
             return null; // Admin not found or not active
@@ -114,8 +114,8 @@ export class AdminRepository {
 
     async getAdminByEmail(user_email) {
         const sql = `SELECT admin_id, admin_fname, admin_lname, user_email,
-            user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
-            WHERE user_email = $1 AND isactive = true`;
+                    user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
+                    WHERE user_email = $1 AND isactive = true`;
         const { rows } = await pool.query(sql, [user_email]);
         if (rows.length === 0) {
             return null; // Admin not found or not active
@@ -137,8 +137,8 @@ export class AdminRepository {
 
     async getAdminByPhone(user_phone) {
         const sql = `SELECT admin_id, admin_fname, admin_lname, user_email,
-            user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
-            WHERE user_phone = $1 AND isactive = true`;
+                    user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
+                    WHERE user_phone = $1 AND isactive = true`;
         const { rows } = await pool.query(sql, [user_phone]);
         if (rows.length === 0) {
             return null; // Admin not found or not active
@@ -160,8 +160,8 @@ export class AdminRepository {
 
     async getAdminByCreationDate(created_at) {
         const sql = `SELECT admin_id, admin_fname, admin_lname, user_email,
-            user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
-            WHERE created_at >= $1::date
+                    user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
+                    WHERE created_at >= $1::date
                     AND created_at < ($1::date + interval '1 day')
                     AND isactive = true`;
         const { rows } = await pool.query(sql, [created_at]);
