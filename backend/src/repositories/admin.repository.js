@@ -22,5 +22,44 @@ export class AdminRepository {
         return new Admin({ ...adminRows[0], user: createdUser });
     }
 
-    async getAllAdmins() {}
+    async getAllAdmins() {
+        const sql = `SELECT admin_id, admin_fname, admin_lname, user_email,
+            user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id`;
+        const { rows } = await pool.query(sql);
+        return rows.map(row => new Admin({
+            admin_id: row.admin_id,
+            admin_fname: row.admin_fname,
+            admin_lname: row.admin_lname,
+            user: new User({
+                user_id: row.admin_id,
+                user_email: row.user_email,
+                user_phone: row.user_phone,
+                user_role: row.user_role,
+                isactive: row.isactive
+            })
+        }));
+    }
+
+    async getAdminById(admin_id) {
+        const sql = `SELECT admin_id, admin_fname, admin_lname, user_email,
+            user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
+            WHERE admin_id = $1`;
+        const { rows } = await pool.query(sql, [admin_id]);
+        if (rows.length === 0) {
+            return null; // Admin not found
+        }
+        const row = rows[0];
+        return new Admin({
+            admin_id: row.admin_id,
+            admin_fname: row.admin_fname,
+            admin_lname: row.admin_lname,
+            user: new User({
+                user_id: row.admin_id,
+                user_email: row.user_email,
+                user_phone: row.user_phone,
+                user_role: row.user_role,
+                isactive: row.isactive
+            })
+        });
+    }
 }
