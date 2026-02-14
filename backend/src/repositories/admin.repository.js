@@ -18,6 +18,7 @@ export class AdminRepository {
                         VALUES ($1, $2, $3) RETURNING admin_id, admin_fname, admin_lname`;
         const adminValues = [createdUser.user_id, admin_fname, admin_lname];
         const { rows: adminRows } = await pool.query(adminSql, adminValues);
+        
         return new Admin({ ...adminRows[0], user: createdUser });
     }
 
@@ -29,6 +30,7 @@ export class AdminRepository {
         if (rows.length === 0) {
             return []; // No admins found or none are active
         }
+
         return rows.map(row => new Admin({
             admin_id: row.admin_id,
             admin_fname: row.admin_fname,
@@ -52,6 +54,7 @@ export class AdminRepository {
             return null; // Admin not found or not active
         }
         const row = rows[0];
+
         return new Admin({
             admin_id: row.admin_id,
             admin_fname: row.admin_fname,
@@ -75,6 +78,7 @@ export class AdminRepository {
             return null; // Admin not found or not active
         }
         const row = rows[0];
+
         return new Admin({
             admin_id: row.admin_id,
             admin_fname: row.admin_fname,
@@ -98,6 +102,7 @@ export class AdminRepository {
             return null; // Admin not found or not active
         }
         const row = rows[0];
+
         return new Admin({
             admin_id: row.admin_id,
             admin_fname: row.admin_fname,
@@ -121,6 +126,7 @@ export class AdminRepository {
             return null; // Admin not found or not active
         }
         const row = rows[0];
+
         return new Admin({
             admin_id: row.admin_id,
             admin_fname: row.admin_fname,
@@ -144,6 +150,7 @@ export class AdminRepository {
             return null; // Admin not found or not active
         }
         const row = rows[0];
+
         return new Admin({
             admin_id: row.admin_id,
             admin_fname: row.admin_fname,
@@ -168,6 +175,7 @@ export class AdminRepository {
         if (rows.length === 0) {
             return []; // No admins found or none are active
         }
+
         return rows.map(row => new Admin({
             admin_id: row.admin_id,
             admin_fname: row.admin_fname,
@@ -198,6 +206,7 @@ export class AdminRepository {
             return null; // Admin not found or already inactive
         }
         const row = rows[0];
+
         return new Admin({
             admin_id: row.admin_id,
             admin_fname: row.admin_fname,
