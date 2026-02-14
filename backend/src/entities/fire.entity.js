@@ -7,7 +7,7 @@ export class FireEvent {
 
         this.fire_id = fire_id;
         this.fire_source = fire_source;
-        this.fire_location = fire_location;     // PostGIS geography point
+        this.fire_location = fire_location;  // PostGIS geography point
         this.fire_severitylevel = fire_severitylevel;
         this.is_extinguished = is_extinguished;
         this.is_verified = is_verified;
