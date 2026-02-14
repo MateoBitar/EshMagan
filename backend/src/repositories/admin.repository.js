@@ -22,9 +22,10 @@ export class AdminRepository {
         return new Admin({ ...adminRows[0], user: createdUser });
     }
 
-    async getAllAdmins() {
+    async getAllActiveAdmins() {
         const sql = `SELECT admin_id, admin_fname, admin_lname, user_email,
-            user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id`;
+            user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
+            WHERE isactive = true`;
         const { rows } = await pool.query(sql);
         return rows.map(row => new Admin({
             admin_id: row.admin_id,
@@ -40,10 +41,29 @@ export class AdminRepository {
         }));
     }
 
-    async getAdminById(admin_id) {
+    async getAllInactiveAdmins() {
         const sql = `SELECT admin_id, admin_fname, admin_lname, user_email,
             user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
-            WHERE admin_id = $1`;
+            WHERE isactive = false`;
+        const { rows } = await pool.query(sql);
+        return rows.map(row => new Admin({
+            admin_id: row.admin_id,
+            admin_fname: row.admin_fname,
+            admin_lname: row.admin_lname,
+            user: new User({
+                user_id: row.admin_id,
+                user_email: row.user_email,
+                user_phone: row.user_phone,
+                user_role: row.user_role,
+                isactive: row.isactive
+            })
+        }));
+    }
+
+    async getActiveAdminById(admin_id) {
+        const sql = `SELECT admin_id, admin_fname, admin_lname, user_email,
+            user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
+            WHERE admin_id = $1 AND isactive = true`;
         const { rows } = await pool.query(sql, [admin_id]);
         if (rows.length === 0) {
             return null; // Admin not found
@@ -62,4 +82,55 @@ export class AdminRepository {
             })
         });
     }
+
+    async getInactiveAdminById(admin_id) {
+        const sql = `SELECT admin_id, admin_fname, admin_lname, user_email,
+            user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
+            WHERE admin_id = $1 AND isactive = false`;
+        const { rows } = await pool.query(sql, [admin_id]);
+        if (rows.length === 0) {
+            return null; // Admin not found
+        }
+        const row = rows[0];
+        return new Admin({
+            admin_id: row.admin_id,
+            admin_fname: row.admin_fname,
+            admin_lname: row.admin_lname,
+            user: new User({
+                user_id: row.admin_id,
+                user_email: row.user_email,
+                user_phone: row.user_phone,
+                user_role: row.user_role,
+                isactive: row.isactive
+            })
+        });
+    }
+
+    async getActiveAdminByFName(admin_fname) {
+        const sql = `SELECT admin_id, admin_fname, admin_lname, user_email,
+            user_phone, user_role, isactive FROM admins JOIN users ON admins.admin_id = users.user_id
+            WHERE admin_fname = $1 AND isactive = true`;
+        const { rows } = await pool.query(sql, [admin_fname]);
+        return rows.map(row => new Admin({}));
+    }
+
+    async getInactiveAdminByFName(admin_fname) {}
+
+    async getActiveAdminByLName(admin_lname) {}
+
+    async getInactiveAdminByLName(admin_lname) {}
+
+    async getActiveAdminByEmail(user_email) {}
+
+    async getInactiveAdminByEmail(user_email) {}
+
+    async getActiveAdminByPhone(user_phone) {}
+
+    async getInactiveAdminByPhone(user_phone) {}
+
+    async getActiveAdminByCreationDate(created_at) {}
+
+    async getInactiveAdminByCreationDate(created_at) {}
+
+    async deactivateAdmin(admin_id) {}
 }
