@@ -19,6 +19,7 @@ export class AlertRepository {
             VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id`;
         const alertValues = [alert_type, target_role, alert_message, expires_at, fire_id];
         const { rows: alertRows } = await pool.query(alertSql, alertValues);
+
         return new Alert(alertRows[0]);
     }
 
@@ -29,6 +30,7 @@ export class AlertRepository {
         if (rows.length === 0) {
             return []; // No alerts found
         }
+        
         return rows.map(row => new Alert(row));
     }
 
@@ -39,6 +41,7 @@ export class AlertRepository {
         if (rows.length === 0) {
             return null; // Alert not found or expired
         }
+
         return new Alert(rows[0]);
     }
 
@@ -49,6 +52,7 @@ export class AlertRepository {
         if (rows.length === 0) {
             return []; // No alerts found for this type
         }
+
         return rows.map(row => new Alert(row));
     }
 
@@ -59,6 +63,7 @@ export class AlertRepository {
         if (rows.length === 0) {
             return []; // No alerts found for this target role
         }
+
         return rows.map(row => new Alert(row));
     }
 
@@ -69,6 +74,7 @@ export class AlertRepository {
         if (rows.length === 0) {
             return []; // No alerts expiring by this time
         }
+
         return rows.map(row => new Alert(row));
     }
 
@@ -79,6 +85,7 @@ export class AlertRepository {
         if (rows.length === 0) {
             return []; // No alerts found for this fire_id
         }
+
         return rows.map(row => new Alert(row));
     }
 
@@ -88,18 +95,21 @@ export class AlertRepository {
         if (rows.length === 0) {
             return false; // Alert not found
         }
+
         return true; // Alert deleted successfully
     }
 
     async deleteExpiredAlerts() {
         const sql = `DELETE FROM alerts WHERE expires_at <= NOW() RETURNING alert_id`;
         const { rows } = await pool.query(sql);
+
         return rows.length > 0; // Returns true if any expired alerts were deleted
     }
 
     async deleteAlertsByFireId(fire_id) {
         const sql = `DELETE FROM alerts WHERE fire_id = $1 RETURNING alert_id`;
         const { rows } = await pool.query(sql, [fire_id]);
+        
         return rows.length > 0; // Return true if any alerts were deleted
     }
 }
