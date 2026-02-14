@@ -2,9 +2,6 @@
 
 // This entity represents a notification sent to a user regarding a possible fire incident.
 export class Notification {
-    static TARGET_ROLES = ['Resident', 'Responder', 'Municipality', 'Admin'];  // Roles that can receive notifications
-    static STATUSES = ['Sent', 'Delivered', 'Failed'];                         // Possible statuses for a notification
-
     constructor({notification_id, target_role, notification_message, notification_status, expires_at,
             created_at, fire_id, user_id}) {
 

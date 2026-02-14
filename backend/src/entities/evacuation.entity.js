@@ -2,8 +2,6 @@
 
 // This entity represents an evacuation route generated for a fire incident.
 export class Evacuation {
-    static STATUSES = ['Open', 'Closed', 'InProgress'];  // Possible statuses for an evacuation route
-
     constructor({route_id, route_status, route_priority, route_path, safe_zone, distance_km, 
             estimated_time, created_at, updated_at, fire_id}) {
 
