@@ -1,3 +1,5 @@
+// src/repositories/admin.repository.js
+
 import { pool } from '../config/db.js';
 import { Admin } from '../entities/Admin.js';
 import { User } from '../entities/User.js';
