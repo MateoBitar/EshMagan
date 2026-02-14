@@ -2,8 +2,8 @@
 
 // This entity represents a system user, storing their credentials, role, and contact details.
 export class User {
-
-    constructor({ user_id, user_email, user_password, user_phone, user_role, isactive, created_at, updated_at }) {
+    constructor({ user_id, user_email, user_password, user_phone, user_role, isactive,
+            created_at, updated_at }) {
 
         this.user_id = user_id;
         this.user_email = user_email;

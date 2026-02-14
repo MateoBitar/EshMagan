@@ -2,7 +2,6 @@
 
 // This entity represents the assignment of a responder unit to a specific fire event.
 export class FireAssignment {
-
     constructor({ assignment_id, assigned_at, assignment_status, fire_id, responder_id }) {
         
         this.assignment_id = assignment_id;

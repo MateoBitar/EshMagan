@@ -2,9 +2,8 @@
 
 // This entity represents a fire incident detected or reported in the system.
 export class FireEvent {
-    static SOURCES = ['Infrared','Responder','Prediction','Weather'];
-
-    constructor({ fire_id, fire_source, fire_location, fire_severitylevel, is_extinguished, is_verified, created_at, updated_at }) {
+    constructor({ fire_id, fire_source, fire_location, fire_severitylevel, is_extinguished,
+            is_verified, created_at, updated_at }) {
 
         this.fire_id = fire_id;
         this.fire_source = fire_source;
