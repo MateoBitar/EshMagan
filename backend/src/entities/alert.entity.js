@@ -16,4 +16,3 @@ export class Alert {
         this.fire_id = fire_id;
     }
 }
-
