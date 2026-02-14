@@ -31,7 +31,7 @@ CREATE TABLE public.fireevents (
     is_extinguished boolean DEFAULT false,
     is_verified boolean DEFAULT false,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+    updated_at timestamp without time zone
 );
 
 -- 4. DEPENDENT TABLES
@@ -50,7 +50,7 @@ CREATE TABLE public.municipalitydetails (
     region_name character varying NOT NULL UNIQUE,
     municipality_code character varying,
     municipality_location public.geography(Point, 4326),
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+    updated_at timestamp without time zone
 );
 
 -- ResidentDetails (FK to Users)
@@ -64,7 +64,7 @@ CREATE TABLE public.residentdetails (
     home_location public.geography(Point, 4326),
     work_location public.geography(Point, 4326),
     last_known_location public.geography(Point, 4326),
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+    updated_at timestamp without time zone
 );
 
 -- ResponderDetails (FK to Users)
@@ -75,7 +75,7 @@ CREATE TABLE public.responderdetails (
     assigned_region character varying,
     responder_status character varying CHECK (responder_status IN ('Active', 'Standby', 'Unavailable')),
     last_known_location public.geography(Point, 4326),
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+    updated_at timestamp without time zone
 );
 
 -- FireRespondAssignment (FK to FireEvents and ResponderDetails)
@@ -110,7 +110,7 @@ CREATE TABLE public.evacuationroutes (
     distance_km numeric,
     estimated_time interval,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone,
     fire_id character varying REFERENCES public.fireevents(fire_id) ON DELETE CASCADE
 );
 
