@@ -42,22 +42,23 @@ export class MunicipalityRepository {
             const location = JSON.parse(row.municipality_location);
 
             return new Municipality({
-            municipality_id: row.municipality_id,
-            municipality_name: row.municipality_name,
-            region_name: row.region_name,
-            municipality_code: row.municipality_code,
-            municipality_location: {
-                longitude: location.coordinates[0],
-                latitude: location.coordinates[1]
-            },
-            user: new User({
-                user_id: row.municipality_id,
-                user_email: row.user_email,
-                user_phone: row.user_phone,
-                user_role: row.user_role,
-                isactive: row.isactive
-            })
-        })});
+                municipality_id: row.municipality_id,
+                municipality_name: row.municipality_name,
+                region_name: row.region_name,
+                municipality_code: row.municipality_code,
+                municipality_location: {
+                    longitude: location.coordinates[0],
+                    latitude: location.coordinates[1]
+                },
+                user: new User({
+                    user_id: row.municipality_id,
+                    user_email: row.user_email,
+                    user_phone: row.user_phone,
+                    user_role: row.user_role,
+                    isactive: row.isactive
+                })
+            });
+        });
     }
 
     async getMunicipalityById(municipality_id) {
@@ -92,35 +93,37 @@ export class MunicipalityRepository {
         });
     }
 
-    async getMunicipalityByName(municipality_name) {
+    async getMunicipalitiesByName(municipality_name) {
         const sql = `SELECT municipality_id, municipality_name, region_name, municipality_code,
                     ST_AsGeoJSON(municipality_location) AS municipality_location, user_email,
                     user_phone, user_role, isactive FROM municipalitydetails
                     JOIN users ON municipalitydetails.municipality_id = users.user_id
-                    WHERE municipality_name = $1 AND isactive = true`;
-        const { rows } = await pool.query(sql, [municipality_name]);
+                    WHERE municipality_name ILIKE $1 AND isactive = true`;
+        const { rows } = await pool.query(sql, [`%${municipality_name}%`]);
         if (rows.length === 0) {
-            return null; // Municipality not found or not active
+            return []; // No municipalities found or not active
         }
-        const row = rows[0];
-        const location = JSON.parse(row.municipality_location);
+        
+        return rows.map(row => {
+            const location = JSON.parse(row.municipality_location);
 
-        return new Municipality({
-            municipality_id: row.municipality_id,
-            municipality_name: row.municipality_name,
-            region_name: row.region_name,
-            municipality_code: row.municipality_code,
-            municipality_location: {
-                longitude: location.coordinates[0],
-                latitude: location.coordinates[1]
-            },
-            user: new User({
-                user_id: row.municipality_id,
-                user_email: row.user_email,
-                user_phone: row.user_phone,
-                user_role: row.user_role,
-                isactive: row.isactive
-            })
+            return new Municipality({
+                municipality_id: row.municipality_id,
+                municipality_name: row.municipality_name,
+                region_name: row.region_name,
+                municipality_code: row.municipality_code,
+                municipality_location: {
+                    longitude: location.coordinates[0],
+                    latitude: location.coordinates[1]
+                },
+                user: new User({
+                    user_id: row.municipality_id,
+                    user_email: row.user_email,
+                    user_phone: row.user_phone,
+                    user_role: row.user_role,
+                    isactive: row.isactive
+                })
+            });
         });
     }
 
@@ -228,38 +231,6 @@ export class MunicipalityRepository {
                     JOIN users ON municipalitydetails.municipality_id = users.user_id
                     WHERE user_phone = $1 AND isactive = true`;
         const { rows } = await pool.query(sql, [user_phone]);
-        if (rows.length === 0) {
-            return null; // Municipality not found or not active
-        }
-        const row = rows[0];
-        const location = JSON.parse(row.municipality_location);
-
-        return new Municipality({
-            municipality_id: row.municipality_id,
-            municipality_name: row.municipality_name,
-            region_name: row.region_name,
-            municipality_code: row.municipality_code,
-            municipality_location: {
-                longitude: location.coordinates[0],
-                latitude: location.coordinates[1]
-            },
-            user: new User({
-                user_id: row.municipality_id,
-                user_email: row.user_email,
-                user_phone: row.user_phone,
-                user_role: row.user_role,
-                isactive: row.isactive
-            })
-        });
-    }
-
-    async getMunicipalityByCreationDate(created_at) {
-        const sql = `SELECT municipality_id, municipality_name, region_name, municipality_code,
-                    ST_AsGeoJSON(municipality_location) AS municipality_location, user_email,
-                    user_phone, user_role, isactive FROM municipalitydetails
-                    JOIN users ON municipalitydetails.municipality_id = users.user_id
-                    WHERE users.created_at::date = $1 AND isactive = true`;
-        const { rows } = await pool.query(sql, [created_at]);
         if (rows.length === 0) {
             return null; // Municipality not found or not active
         }
