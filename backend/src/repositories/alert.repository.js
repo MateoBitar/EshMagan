@@ -2,15 +2,16 @@
 
 import { pool } from '../config/db.js';
 import { Alert } from '../entities/alert.entity.js';
+import { FireRepository } from './fire.repository.js';
 
 export class AlertRepository {
     async createAlert(data) {
         const { alert_type, target_role, alert_message, expires_at, fire_id } = data;
 
         // Step 1: Validate fire_id exists
-        const fireSql = `SELECT * FROM fireevents WHERE fire_id = $1`;
-        const fireResult = await pool.query(fireSql, [fire_id]);
-        if (fireResult.rows.length === 0) {
+        const fireRepository = new FireRepository();
+        const fire = await fireRepository.getFireById(fire_id);
+        if (!fire) {
             throw new Error('Fire incident not found for the given fire_id');
         }
 
@@ -109,7 +110,7 @@ export class AlertRepository {
     async deleteAlertsByFireId(fire_id) {
         const sql = `DELETE FROM alerts WHERE fire_id = $1 RETURNING alert_id`;
         const { rows } = await pool.query(sql, [fire_id]);
-        
+
         return rows.length > 0; // Return true if any alerts were deleted
     }
 }

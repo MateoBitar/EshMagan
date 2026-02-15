@@ -106,7 +106,7 @@ CREATE TABLE public.evacuationroutes (
     route_status character varying,
     route_priority integer,
     route_path public.geography(LineString, 4326),
-    safe_zone public.geography(Point, 4326),
+    safe_zone public.geography(Polygon, 4326),
     distance_km numeric,
     estimated_time interval,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,

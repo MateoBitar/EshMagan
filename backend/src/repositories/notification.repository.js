@@ -2,22 +2,24 @@
 
 import { pool } from '../config/db.js';
 import { Notification } from '../entities/notification.entity.js';
+import { FireRepository } from './fire.repository.js';
+import { UserRepository } from './user.repository.js';
 
 export class NotificationRepository {
     async createNotification(data) {
         const { target_role, notification_message, notification_status, expires_at, fire_id, user_id } = data;
         
         // Step 1: Validate user_id exists
-        const userSql = `SELECT * FROM users WHERE user_id = $1`;
-        const userResult = await pool.query(userSql, [user_id]);
-        if (userResult.rows.length === 0) {
+        const userRepository = new UserRepository();
+        const user = await userRepository.getUserById(user_id);
+        if (!user) {
             throw new Error('User not found for the given user_id');
         }
 
         // Step 2: Validate fire_id exists
-        const fireSql = `SELECT * FROM fireevents WHERE fire_id = $1`;
-        const fireResult = await pool.query(fireSql, [fire_id]);
-        if (fireResult.rows.length === 0) {
+        const fireRepository = new FireRepository();
+        const fire = await fireRepository.getFireById(fire_id);
+        if (!fire) {
             throw new Error('Fire incident not found for the given fire_id');
         }
 
@@ -146,7 +148,7 @@ export class NotificationRepository {
     async deleteNotificationsByFireId(fire_id) {
         const sql = `DELETE FROM notifications WHERE fire_id = $1 RETURNING notification_id`;
         const { rows } = await pool.query(sql, [fire_id]);
-        
+
         return rows.length > 0; // Returns true if any notifications were deleted
     }
 }
