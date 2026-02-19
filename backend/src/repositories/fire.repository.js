@@ -86,35 +86,6 @@ export class FireRepository {
         })); 
     }
 
-    async updateFireStatus(fire_id, fire_status) { 
-        // Updates extinguished status of a fire 
-        const sql = `UPDATE fireevents SET is_extinguished=$2, updated_at=NOW() 
-                    WHERE fire_id=$1 RETURNING fire_id, fire_source, ST_AsText(fire_location) as fire_location,
-                    fire_severitylevel, is_extinguished, is_verified, created_at, updated_at`; 
-        const { rows } = await pool.query(sql, [fire_id, fire_status]); 
-        if (rows.length === 0) {
-            return []; // No fire found 
-        }
-
-        return rows.map(row => new FireEvent({
-            fire_id: row.fire_id, 
-            fire_source: row.fire_source, 
-            fire_location: row.fire_location, 
-            fire_severitylevel: row.fire_severitylevel, 
-            is_extinguished: row.is_extinguished, 
-            is_verified: row.is_verified, 
-            created_at: row.created_at, 
-            updated_at: row.updated_at 
-        })); 
-    }
-
-    async deleteFire(fire_id) { 
-        // Deletes a fire event record 
-        const sql = `DELETE FROM fireevents WHERE fire_id=$1`; 
-        await pool.query(sql, [fire_id]); 
-        return true;
-    }
-
     async getActiveFires() {
         // Retrieves all fires that are not extinguished
         const sql = `SELECT fire_id, fire_source, ST_AsText(fire_location) as fire_location, 
@@ -220,13 +191,6 @@ export class FireRepository {
         return rows.map(row => new FireEvent(row));
     }
 
-    async countFiresByStatus(fire_status) {
-        // Counts fires by verification status
-        const sql = `SELECT COUNT(*) FROM fireevents WHERE is_verified=$1`;
-        const { rows } = await pool.query(sql, [fire_status]);
-        return parseInt(rows[0].count, 10);
-    }
-
     async getFireStatistics(startDate, endDate) {
         // Retrieves fire statistics (total fires, extinguished, active) between two dates
         const sql = `SELECT 
@@ -236,5 +200,41 @@ export class FireRepository {
                      FROM fireevents WHERE created_at BETWEEN $1 AND $2`;
         const { rows } = await pool.query(sql, [startDate, endDate]);
         return rows[0];
+    }
+
+    async updateFireStatus(fire_id, fire_status) { 
+        // Updates extinguished status of a fire 
+        const sql = `UPDATE fireevents SET is_extinguished=$2, updated_at=NOW() 
+                    WHERE fire_id=$1 RETURNING fire_id, fire_source, ST_AsText(fire_location) as fire_location,
+                    fire_severitylevel, is_extinguished, is_verified, created_at, updated_at`; 
+        const { rows } = await pool.query(sql, [fire_id, fire_status]); 
+        if (rows.length === 0) {
+            return []; // No fire found 
+        }
+
+        return rows.map(row => new FireEvent({
+            fire_id: row.fire_id, 
+            fire_source: row.fire_source, 
+            fire_location: row.fire_location, 
+            fire_severitylevel: row.fire_severitylevel, 
+            is_extinguished: row.is_extinguished, 
+            is_verified: row.is_verified, 
+            created_at: row.created_at, 
+            updated_at: row.updated_at 
+        })); 
+    }
+
+    async deleteFire(fire_id) {
+        // Deletes a fire event record 
+        const sql = `DELETE FROM fireevents WHERE fire_id=$1`; 
+        await pool.query(sql, [fire_id]); 
+        return true;
+    }
+
+    async countFiresByStatus(fire_status) {
+        // Counts fires by verification status
+        const sql = `SELECT COUNT(*) FROM fireevents WHERE is_verified=$1`;
+        const { rows } = await pool.query(sql, [fire_status]);
+        return parseInt(rows[0].count, 10);
     }
 }

@@ -100,6 +100,45 @@ export class UserRepository {
         }));  
     }
 
+    async getUsersByRole(user_role) {
+        // Retrieves all users by a specific role
+        const sql = `SELECT user_id, user_email, user_phone, user_role,
+                    isactive, created_at, updated_at FROM users 
+                    WHERE user_role=$1`;
+        const { rows } = await pool.query(sql, [user_role]);
+        if (rows.length === 0) {
+                return null; // User not found
+        }
+
+        return rows.map(row => new User(row));
+    }
+
+    async getActiveUsers() {
+        // Retrieves all active users
+        const sql = `SELECT user_id, user_email, user_phone, user_role, 
+                    isactive, created_at, updated_at FROM users 
+                    WHERE isactive=true`;
+        const { rows } = await pool.query(sql);
+        if (rows.length === 0) {
+                return null; // User not found
+        }
+
+        return rows.map(row => new User(row));
+    }
+
+    async getInActiveUsers() {
+        // Retrieves all inactive users
+        const sql = `SELECT user_id, user_email, user_phone, user_role,
+                    isactive, created_at, updated_at FROM users 
+                    WHERE isactive=false`;
+        const { rows } = await pool.query(sql);
+        if (rows.length === 0) {
+                return null; // User not found
+        }
+        
+        return rows.map(row => new User(row));
+    }
+
     async updateUser(user_id, updates) { 
         // Updates a user's details (email, phone, role, status)
         const sql = `UPDATE users SET user_email=$2, user_phone=$3,
@@ -148,7 +187,7 @@ export class UserRepository {
     return result.rowCount > 0;
     }
 
-    async listUsers(filters={}, pagination={limit:10, offset:0}) { 
+    async filterUsers(filters={}, pagination={limit:10, offset:0}) { 
         // Retrieves all users with optional filters and pagination 
         let sql = `SELECT user_id, user_email, user_phone, user_role,
                 isactive, created_at, updated_at FROM users WHERE 1=1`; 
@@ -181,44 +220,5 @@ export class UserRepository {
         const { rows } = await pool.query(sql, values);
 
         return parseInt(rows[0].count, 10);
-    }
-
-    async getUsersByRole(user_role) {
-        // Retrieves all users by a specific role
-        const sql = `SELECT user_id, user_email, user_phone, user_role,
-                    isactive, created_at, updated_at FROM users 
-                    WHERE user_role=$1`;
-        const { rows } = await pool.query(sql, [user_role]);
-        if (rows.length === 0) {
-                return null; // User not found
-        }
-
-        return rows.map(row => new User(row));
-    }
-
-    async getActiveUsers() {
-        // Retrieves all active users
-        const sql = `SELECT user_id, user_email, user_phone, user_role, 
-                    isactive, created_at, updated_at FROM users 
-                    WHERE isactive=true`;
-        const { rows } = await pool.query(sql);
-        if (rows.length === 0) {
-                return null; // User not found
-        }
-
-        return rows.map(row => new User(row));
-    }
-
-    async getInActiveUsers() {
-        // Retrieves all inactive users
-        const sql = `SELECT user_id, user_email, user_phone, user_role,
-                    isactive, created_at, updated_at FROM users 
-                    WHERE isactive=false`;
-        const { rows } = await pool.query(sql);
-        if (rows.length === 0) {
-                return null; // User not found
-        }
-        
-        return rows.map(row => new User(row));
     }
 }
