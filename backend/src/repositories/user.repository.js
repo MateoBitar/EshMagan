@@ -200,7 +200,7 @@ export class UserRepository {
             values.push(filters.isactive); 
             sql += ` AND isactive=$${values.length}`; 
         } 
-        sql += ` LIMIT ${pagination.limit} OFFSET ${pagination.offset}`; 
+        sql += `LIMIT ${pagination.limit} OFFSET ${pagination.offset}`; 
         const { rows } = await pool.query(sql, values); 
         
         return rows.map(row => new User(row)); 
