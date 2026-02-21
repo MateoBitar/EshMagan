@@ -48,10 +48,10 @@ export class UserRepository {
         `; 
         const { rows } = await pool.query(sql, [user_id]); 
         if (rows.length === 0) {
-            return []; // No users found
+            return null; // No users found
         }
                 
-        return rows.map(row => User.fromEntity(row));
+        return User.fromEntity(rows[0]);
     }
 
     async getUserByEmail(user_email) { 
@@ -64,10 +64,10 @@ export class UserRepository {
         `; 
         const { rows } = await pool.query(sql, [user_email]); 
         if (rows.length === 0) {
-            return []; // No users found
+            return null; // No users found
         }
                 
-        return rows.map(row => User.fromEntity(row));
+        return User.fromEntity(rows[0]);
     }
 
     async getUserByPhone(user_phone) { 
@@ -80,10 +80,10 @@ export class UserRepository {
         `;
         const { rows } = await pool.query(sql, [user_phone]); 
         if (rows.length === 0) {
-            return []; // No users found
+            return null; // No users found
         }
                 
-        return rows.map(row => User.fromEntity(row));
+        return User.fromEntity(rows[0]);
     }
 
     async getUsersByRole(user_role) {
@@ -146,7 +146,7 @@ export class UserRepository {
             return null;
         }
 
-        return rows.map(row => User.fromEntity(row));
+        return User.fromEntity(rows[0]);
     }
 
     async updateUser(user_id, data) {
@@ -176,7 +176,7 @@ export class UserRepository {
         fields.push(`updated_at = NOW()`);
 
         // Only run update if there are fields to change
-        if (fields.length > 0) {
+        if (fields.length > 1) {
             const sql = `
                 UPDATE users
                 SET ${fields.join(', ')}
@@ -187,15 +187,14 @@ export class UserRepository {
 
             const { rows } = await pool.query(sql, values);
             if (rows.length === 0) {
-                return []; // No users found
+                return null; // No user found
             }
                 
-            return rows.map(row => User.fromEntity(row));
+            return User.fromEntity(rows[0]);
         }
 
         return null; // nothing to update
     }
-
     
     async updateUserRole(user_id, user_role) {
         const fields = [];
@@ -223,15 +222,14 @@ export class UserRepository {
 
             const { rows } = await pool.query(sql, values);
             if (rows.length === 0) {
-                return []; // No users found
+                return null; // No user found
             }
                 
-            return rows.map(row => User.fromEntity(row));
+            return User.fromEntity(rows[0]);
         }
 
         return null; // nothing to update
     }
-
 
     async updateUserStatus(user_id, user_status) {
         const fields = [];
@@ -259,15 +257,35 @@ export class UserRepository {
 
             const { rows } = await pool.query(sql, values);
             if (rows.length === 0) {
-                return []; // No users found
+                return null; // No user found
             }
                 
-            return rows.map(row => User.fromEntity(row));
+            return User.fromEntity(rows[0]);
         }
 
         return null; // nothing to update
     }
 
+<<<<<<< Updated upstream
+=======
+    async updateLastLogin(user_id) {
+        // Updates the last login timestamp for a user
+        const sql = `
+            UPDATE users
+            SET last_login = NOW(), updated_at = NOW()
+            WHERE user_id = $1
+            RETURNING user_id, user_email, user_password, user_phone, user_role, isactive, created_at, updated_at, last_login
+        `;
+        const { rows } = await pool.query(sql, [user_id]);
+
+        if (rows.length === 0) {
+            return null;
+        }
+
+        return User.fromEntity(rows[0]);
+    }
+
+>>>>>>> Stashed changes
     async deactivateUser(user_id) {
         const fields = [];
         const values = [];
@@ -291,12 +309,11 @@ export class UserRepository {
         // Step 3: Execute query
         const { rows } = await pool.query(sql, values);
         if (rows.length === 0) {
-                return []; // No users found
+                return false; // No user found
             }
                 
-        return rows.map(row => User.fromEntity(row));
+        return true;
     }
-
 
     async filterUsers(filters = {}, pagination = { limit: 10, offset: 0 }) {
         const conditions = [];
@@ -328,9 +345,8 @@ export class UserRepository {
         const { rows: userRows } = await pool.query(sql, values);
 
         // Step 4: Return entities 
-        return rows.map(row => User.fromEntity(row));
+        return userRows.map(row => User.fromEntity(row));
     }
-
 
     async countUsers(filters = {}) {
         const conditions = [];
