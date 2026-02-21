@@ -121,6 +121,27 @@ export class MunicipalityRepository {
         });
     }
 
+    async getMunicipalityByRegion(region_name) {
+        const sql = `
+        SELECT municipality_id, municipality_name, region_name, municipality_code, municipality_location,
+               user_id, user_email, user_phone, user_role, isactive
+        FROM municipalities
+        JOIN users ON municipalities.municipality_id = users.user_id
+        WHERE region_name = $1 AND isactive = true
+    `;
+        const { rows } = await pool.query(sql, [region_name]);
+        if (rows.length === 0) return [];
+
+        return rows.map(row => Municipality.fromEntity({
+            municipality_id: row.municipality_id,
+            municipality_name: row.municipality_name,
+            region_name: row.region_name,
+            municipality_code: row.municipality_code,
+            municipality_location: row.municipality_location,
+            user: User.fromEntity(row)
+        }));
+    }
+
     async getMunicipalityByCode(municipality_code) {
         const sql = `
             SELECT municipality_id, municipality_name, region_name, municipality_code,
