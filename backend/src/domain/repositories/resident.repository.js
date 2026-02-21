@@ -473,7 +473,7 @@ export class ResidentRepository {
             const sql = `
             UPDATE residentdetails
             SET ${fields.join(', ')}
-            WHERE resident_id = $${idx} AND isactive = true
+            WHERE resident_id = $${idx}
             RETURNING resident_id, resident_fname, resident_lname, resident_dob,
                       resident_idnb, resident_idpic,
                       ST_AsGeoJSON(home_location) AS home_location,

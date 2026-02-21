@@ -128,79 +128,81 @@ export class ResponderRepository {
         });
     }
 
-    async getResponderByUnitNb(unit_nb) {
+    async getRespondersByUnitNb(unit_nb) {
         const sql = `
-            SELECT responder_id, unit_nb,
-                   ST_AsGeoJSON(unit_location) AS unit_location,
-                   assigned_region, responder_status,
-                   ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
-            FROM responderdetails
-            JOIN users ON responderdetails.responder_id = users.user_id
-            WHERE unit_nb = $1 AND isactive = true
-        `;
+        SELECT responder_id, unit_nb,
+               ST_AsGeoJSON(unit_location) AS unit_location,
+               assigned_region, responder_status,
+               ST_AsGeoJSON(last_known_location) AS last_known_location,
+               user_id, user_email, user_phone, user_role, isactive
+        FROM responderdetails
+        JOIN users ON responderdetails.responder_id = users.user_id
+        WHERE unit_nb = $1 AND isactive = true
+    `;
         const { rows } = await pool.query(sql, [unit_nb]);
-        if (rows.length === 0) return null;
+        if (rows.length === 0) return [];
 
-        const row = rows[0];
-        const unitLoc = JSON.parse(row.unit_location);
-        const lastLoc = JSON.parse(row.last_known_location);
+        return rows.map(row => {
+            const unitLoc = JSON.parse(row.unit_location);
+            const lastLoc = JSON.parse(row.last_known_location);
 
-        return Responder.fromEntity({
-            responder_id: row.responder_id,
-            unit_nb: row.unit_nb,
-            unit_location: {
-                latitude: unitLoc.coordinates[1],
-                longitude: unitLoc.coordinates[0]
-            },
-            assigned_region: row.assigned_region,
-            responder_status: row.responder_status,
-            last_known_location: {
-                latitude: lastLoc.coordinates[1],
-                longitude: lastLoc.coordinates[0]
-            },
-            user: User.fromEntity(row)
+            return Responder.fromEntity({
+                responder_id: row.responder_id,
+                unit_nb: row.unit_nb,
+                unit_location: {
+                    latitude: unitLoc.coordinates[1],
+                    longitude: unitLoc.coordinates[0]
+                },
+                assigned_region: row.assigned_region,
+                responder_status: row.responder_status,
+                last_known_location: {
+                    latitude: lastLoc.coordinates[1],
+                    longitude: lastLoc.coordinates[0]
+                },
+                user: User.fromEntity(row)
+            });
         });
     }
 
-    async getResponderByUnitLocation(unit_location) {
+    async getRespondersByUnitLocation(unit_location) {
         const sql = `
-            SELECT responder_id, unit_nb,
-                   ST_AsGeoJSON(unit_location) AS unit_location,
-                   assigned_region, responder_status,
-                   ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
-            FROM responderdetails
-            JOIN users ON responderdetails.responder_id = users.user_id
-            WHERE ST_DWithin(unit_location, ST_GeomFromText($1, 4326)::geography, 1000)
-              AND isactive = true
-        `;
+        SELECT responder_id, unit_nb,
+               ST_AsGeoJSON(unit_location) AS unit_location,
+               assigned_region, responder_status,
+               ST_AsGeoJSON(last_known_location) AS last_known_location,
+               user_id, user_email, user_phone, user_role, isactive
+        FROM responderdetails
+        JOIN users ON responderdetails.responder_id = users.user_id
+        WHERE ST_DWithin(unit_location, ST_GeomFromText($1, 4326)::geography, 1000)
+          AND isactive = true
+    `;
         const locationWKT = `POINT(${unit_location.longitude} ${unit_location.latitude})`;
         const { rows } = await pool.query(sql, [locationWKT]);
-        if (rows.length === 0) return null;
+        if (rows.length === 0) return [];
 
-        const row = rows[0];
-        const unitLoc = JSON.parse(row.unit_location);
-        const lastLoc = JSON.parse(row.last_known_location);
+        return rows.map(row => {
+            const unitLoc = JSON.parse(row.unit_location);
+            const lastLoc = JSON.parse(row.last_known_location);
 
-        return Responder.fromEntity({
-            responder_id: row.responder_id,
-            unit_nb: row.unit_nb,
-            unit_location: {
-                latitude: unitLoc.coordinates[1],
-                longitude: unitLoc.coordinates[0]
-            },
-            assigned_region: row.assigned_region,
-            responder_status: row.responder_status,
-            last_known_location: {
-                latitude: lastLoc.coordinates[1],
-                longitude: lastLoc.coordinates[0]
-            },
-            user: User.fromEntity(row)
+            return Responder.fromEntity({
+                responder_id: row.responder_id,
+                unit_nb: row.unit_nb,
+                unit_location: {
+                    latitude: unitLoc.coordinates[1],
+                    longitude: unitLoc.coordinates[0]
+                },
+                assigned_region: row.assigned_region,
+                responder_status: row.responder_status,
+                last_known_location: {
+                    latitude: lastLoc.coordinates[1],
+                    longitude: lastLoc.coordinates[0]
+                },
+                user: User.fromEntity(row)
+            });
         });
     }
 
-    async getResponderByAssignedRegion(assigned_region) {
+    async getRespondersByAssignedRegion(assigned_region) {
         const sql = `
         SELECT responder_id, unit_nb,
                ST_AsGeoJSON(unit_location) AS unit_location,
@@ -236,7 +238,7 @@ export class ResponderRepository {
         });
     }
 
-    async getResponderByResponderStatus(responder_status) {
+    async getRespondersByResponderStatus(responder_status) {
         const sql = `
         SELECT responder_id, unit_nb,
                ST_AsGeoJSON(unit_location) AS unit_location,
@@ -418,7 +420,7 @@ export class ResponderRepository {
             const sql = `
             UPDATE responderdetails
             SET ${fields.join(', ')}
-            WHERE responder_id = $${idx} AND isactive = true
+            WHERE responder_id = $${idx}
             RETURNING responder_id, unit_nb,
                       ST_AsGeoJSON(unit_location) AS unit_location,
                       assigned_region, responder_status,
