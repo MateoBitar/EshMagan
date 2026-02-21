@@ -12,6 +12,8 @@ export class UserService {
             // User-specific checks
             if (!data.user_email) throw new Error("Missing required field: User Email");
             if (!data.user_password) throw new Error("Missing required field: User Password");
+            if (!data.user_phone) throw new Error("Missing required field: User Phone");
+            if (!data.user_role) throw new Error("Missing required field: User Role");
 
             // Step 1: Build User entity
             const user = new User({
