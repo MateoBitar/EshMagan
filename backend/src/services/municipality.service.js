@@ -67,7 +67,7 @@ export class MunicipalityService {
         try {
             // Fetch municipalities by name (partial match)
             const municipalities = await this.municipalityRepository.getMunicipalitiesByName(municipality_name);
-            if (!municipalities || municipalities.length === 0) return [];
+            if (!municipalities || municipalities.length === 0) return []; // None found or inactive
             return municipalities.map(m => m.toDTO());
         } catch (err) {
             throw new Error(`Failed to fetch municipalities by name: ${err.message}`);
@@ -78,7 +78,7 @@ export class MunicipalityService {
         try {
             // Fetch municipalities by region
             const municipalities = await this.municipalityRepository.getMunicipalityByRegion(region_name);
-            if (!municipalities || municipalities.length === 0) return [];
+            if (!municipalities || municipalities.length === 0) return []; // None found or inactive
             return municipalities.map(m => m.toDTO());
         } catch (err) {
             throw new Error(`Failed to fetch municipalities by region: ${err.message}`);
