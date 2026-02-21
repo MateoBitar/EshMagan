@@ -20,7 +20,8 @@ export class EvacuationRepository {
             INSERT INTO evacuationroutes 
             (route_status, route_priority, route_path, safe_zone, distance_km, estimated_time, created_at, fire_id)
             VALUES ($1, $2, ST_GeogFromText($3), ST_GeogFromText($4), $5, $6, NOW(), $7)
-            RETURNING route_id, route_status, route_priority, route_path, safe_zone, distance_km, estimated_time, created_at, fire_id
+            RETURNING route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path, 
+            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, fire_id
         `;
 
         // route_path and safe_zone must be WKT strings like 'LINESTRING(...)' and 'POLYGON(...)'
