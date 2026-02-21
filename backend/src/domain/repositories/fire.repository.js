@@ -178,6 +178,24 @@ export class FireRepository {
         return rows[0]; 
     }
 
+    async getFireByLocationAndTime(lat, lng, startDate, endDate, radiusMeters = 1000) {
+        // Retrieves fires near a location within a time range
+        const sql = `
+            SELECT fire_id, fire_source, ST_AsText(fire_location) AS fire_location,
+                fire_severitylevel, is_extinguished, is_verified, created_at, updated_at
+            FROM fireevents
+            WHERE ST_DWithin(fire_location, ST_MakePoint($1,$2)::geography, $3)
+            AND created_at BETWEEN $4 AND $5
+        `;
+        const { rows } = await pool.query(sql, [lng, lat, radiusMeters, startDate, endDate]);
+
+        if (rows.length === 0) {
+            return [];
+        }
+
+        return rows.map(row => FireEvent.fromEntity(row));
+    }
+
     async updateFire(fire_id, data) {
         const fields = [];
         const values = [];
@@ -260,6 +278,44 @@ export class FireRepository {
         }
 
         return null; // nothing to update
+    }
+
+    async updateFireSeverity(fire_id, severityLevel) {
+        // Updates the severity level of a fire
+        const sql = `
+            UPDATE fireevents
+            SET fire_severitylevel = $2,
+                updated_at = NOW()
+            WHERE fire_id = $1
+            RETURNING fire_id, fire_source, ST_AsText(fire_location) AS fire_location,
+                    fire_severitylevel, is_extinguished, is_verified, created_at, updated_at
+        `;
+        const { rows } = await pool.query(sql, [fire_id, severityLevel]);
+
+        if (rows.length === 0) {
+            return null;
+        }
+
+        return FireEvent.fromEntity(rows[0]);
+    }
+
+    async updateFireSpreadPrediction(fire_id, spreadPrediction) {
+        // Updates the spread prediction field for a fire
+        const sql = `
+            UPDATE fireevents
+            SET spread_prediction = $2,
+                updated_at = NOW()
+            WHERE fire_id = $1
+            RETURNING fire_id, fire_source, ST_AsText(fire_location) AS fire_location,
+                    fire_severitylevel, is_extinguished, is_verified, spread_prediction, created_at, updated_at
+        `;
+        const { rows } = await pool.query(sql, [fire_id, spreadPrediction]);
+
+        if (rows.length === 0) {
+            return null;
+        }
+
+        return FireEvent.fromEntity(rows[0]);
     }
 
     async deleteFire(fire_id) {

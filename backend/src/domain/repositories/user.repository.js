@@ -133,6 +133,22 @@ export class UserRepository {
         return rows.map(row => User.fromEntity(row));
     }
 
+    async getUserByEmailAndActive(user_email) { 
+        // Retrieves a user by email only if active 
+        const sql = `
+            SELECT user_id, user_email, user_password, user_phone,
+                   user_role, isactive, created_at, updated_at 
+            FROM users 
+            WHERE user_email = $1 AND isactive = true 
+        `; 
+        const { rows } = await pool.query(sql, [user_email]); 
+        if (rows.length === 0) {
+            return null;
+        }
+
+        return rows.map(row => User.fromEntity(row));
+    }
+
     async updateUser(user_id, data) {
         const fields = [];
         const values = [];
@@ -252,6 +268,22 @@ export class UserRepository {
         return null; // nothing to update
     }
 
+    async updateLastLogin(user_id) {
+        // Updates the last login timestamp for a user
+        const sql = `
+            UPDATE users
+            SET last_login = NOW(), updated_at = NOW()
+            WHERE user_id = $1
+            RETURNING user_id, user_email, user_password, user_phone, user_role, isactive, created_at, updated_at, last_login
+        `;
+        const { rows } = await pool.query(sql, [user_id]);
+
+        if (rows.length === 0) {
+            return null;
+        }
+
+        return rows.map(row => User.fromEntity(row));
+    }
 
     async deactivateUser(user_id) {
         const fields = [];

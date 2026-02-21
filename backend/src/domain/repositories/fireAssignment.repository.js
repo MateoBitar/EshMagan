@@ -33,6 +33,7 @@ export class FireAssignmentRepository {
     }
 
     async getAssignmentById(assignment_id) {
+        // Retrieves a fire assignment by its ID
         const sql = `
             SELECT assignment_id, assigned_at, assignment_status, fire_id, responder_id
             FROM firerespondassignments 
@@ -47,6 +48,7 @@ export class FireAssignmentRepository {
     }
 
     async getAssignmentsByFireId(fire_id) {
+        // Retrieves all assignments for a specific fire incident
         const sql = `
             SELECT assignment_id, assigned_at, assignment_status, fire_id, responder_id
             FROM firerespondassignments 
@@ -74,6 +76,41 @@ export class FireAssignmentRepository {
         }
 
         return rows.map(row => FireAssignment.fromEntity(row)); 
+    }
+
+    async getActiveAssignments() {
+        // Retrieves all active assignments (status = 'active')
+        const sql = `
+            SELECT assignment_id, assigned_at, assignment_status, fire_id, responder_id
+            FROM firerespondassignments
+            WHERE assignment_status = 'active'
+            ORDER BY assigned_at DESC
+        `;
+        const { rows } = await pool.query(sql);
+
+        if (rows.length === 0) {
+            return [];
+        }
+
+        return rows.map(row => FireAssignment.fromEntity(row));
+    }
+
+    async updateAssignmentStatus(assignment_id, status) {
+        // Updates the status of a fire assignment
+        const sql = `
+            UPDATE firerespondassignments
+            SET assignment_status = $2,
+                assigned_at = NOW()
+            WHERE assignment_id = $1
+            RETURNING assignment_id, assigned_at, assignment_status, fire_id, responder_id
+        `;
+        const { rows } = await pool.query(sql, [assignment_id, status]);
+
+        if (rows.length === 0) {
+            return null;
+        }
+
+        return FireAssignment.fromEntity(rows[0]);
     }
 
     async deleteAssignment(assignment_id) {
@@ -116,6 +153,30 @@ export class FireAssignmentRepository {
         }
 
         const { rows } = await pool.query(sql, values);
+        return parseInt(rows[0].count, 10);
+    }
+
+    async countAssignmentsByFire(fire_id) {
+        // Counts assignments for a specific fire
+        const sql = `
+            SELECT COUNT(*) 
+            FROM firerespondassignments 
+            WHERE fire_id = $1
+        `;
+        const { rows } = await pool.query(sql, [fire_id]);
+
+        return parseInt(rows[0].count, 10);
+    }
+
+    async countAssignmentsByResponder(responder_id) {
+        // Counts assignments for a specific responder
+        const sql = `
+            SELECT COUNT(*) 
+            FROM firerespondassignments 
+            WHERE responder_id = $1
+        `;
+        const { rows } = await pool.query(sql, [responder_id]);
+
         return parseInt(rows[0].count, 10);
     }
 }
