@@ -17,10 +17,12 @@ export class NotificationRepository {
         }
 
         // Step 2: Validate fire_id exists
-        const fireRepository = new FireRepository();
-        const fire = await fireRepository.getFireById(fire_id);
-        if (!fire) {
-            throw new Error('Fire incident not found for the given fire_id');
+        if (fire_id) { // fire_id is nullable, only validate if provided
+            const fireRepository = new FireRepository();
+            const fire = await fireRepository.getFireById(fire_id);
+            if (!fire) {
+                throw new Error('Fire incident not found for the given fire_id');
+            }
         }
 
         // Step 3: Insert the notification
@@ -30,7 +32,7 @@ export class NotificationRepository {
         const notificationValues = [target_role, notification_message, notification_status, expires_at, fire_id, user_id];
         const { rows: notificationRows } = await pool.query(notificationSql, notificationValues);
 
-        return new Notification(notificationRows[0]);
+        return Notification.fromEntity(notificationRows[0]);
     }
 
     async getAllNotifications() {
@@ -41,7 +43,7 @@ export class NotificationRepository {
             return []; // No notifications found
         }
 
-        return rows.map(row => new Notification(row));
+        return rows.map(row => Notification.fromEntity(row));
     }
 
     async getNotificationById(notification_id) {
@@ -52,7 +54,7 @@ export class NotificationRepository {
             return null; // Notification not found or expired
         }
 
-        return new Notification(rows[0]);
+        return Notification.fromEntity(rows[0]);
     }
 
     async getNotificationsByTargetRole(target_role) {
@@ -63,7 +65,7 @@ export class NotificationRepository {
             return []; // No notifications found for this target role
         }
 
-        return rows.map(row => new Notification(row));
+        return rows.map(row => Notification.fromEntity(row));
     }
 
     async getNotificationsByStatus(notification_status) {
@@ -74,7 +76,7 @@ export class NotificationRepository {
             return []; // No notifications found for this status
         }
 
-        return rows.map(row => new Notification(row));
+        return rows.map(row => Notification.fromEntity(row));
     }
 
     async getNotificationsByExpiration(expires_at) {
@@ -85,7 +87,7 @@ export class NotificationRepository {
             return []; // No notifications expiring by this time
         }
 
-        return rows.map(row => new Notification(row));
+        return rows.map(row => Notification.fromEntity(row));
     }
 
     async getNotificationsByFireId(fire_id) {
@@ -96,7 +98,7 @@ export class NotificationRepository {
             return []; // No notifications found for this fire_id
         }
 
-        return rows.map(row => new Notification(row));
+        return rows.map(row => Notification.fromEntity(row));
     }
 
     async getNotificationsByUserId(user_id) {
@@ -107,7 +109,7 @@ export class NotificationRepository {
             return []; // No notifications found for this user_id
         }
 
-        return rows.map(row => new Notification(row));
+        return rows.map(row => Notification.fromEntity(row));
     }
 
     async updateNotificationStatus(notification_id, new_status) {
@@ -118,7 +120,7 @@ export class NotificationRepository {
             return null; // Notification not found
         }
 
-        return new Notification(rows[0]);
+        return Notification.fromEntity(rows[0]);
     }
 
     async deleteNotification(notification_id) {

@@ -21,7 +21,7 @@ export class AlertRepository {
         const alertValues = [alert_type, target_role, alert_message, expires_at, fire_id];
         const { rows: alertRows } = await pool.query(alertSql, alertValues);
 
-        return new Alert(alertRows[0]);
+        return Alert.fromEntity(alertRows[0]);
     }
 
     async getAllAlerts() {
@@ -32,7 +32,7 @@ export class AlertRepository {
             return []; // No alerts found
         }
         
-        return rows.map(row => new Alert(row));
+        return rows.map(row => Alert.fromEntity(row));
     }
 
     async getAlertById(alert_id) {
@@ -43,7 +43,7 @@ export class AlertRepository {
             return null; // Alert not found or expired
         }
 
-        return new Alert(rows[0]);
+        return Alert.fromEntity(rows[0]);
     }
 
     async getAlertsByAlertType(alert_type) {
@@ -54,7 +54,7 @@ export class AlertRepository {
             return []; // No alerts found for this type
         }
 
-        return rows.map(row => new Alert(row));
+        return rows.map(row => Alert.fromEntity(row));
     }
 
     async getAlertsByTargetRole(target_role) {
@@ -65,7 +65,7 @@ export class AlertRepository {
             return []; // No alerts found for this target role
         }
 
-        return rows.map(row => new Alert(row));
+        return rows.map(row => Alert.fromEntity(row));
     }
 
     async getAlertsByExpiration(expires_at) {
@@ -76,7 +76,7 @@ export class AlertRepository {
             return []; // No alerts expiring by this time
         }
 
-        return rows.map(row => new Alert(row));
+        return rows.map(row => Alert.fromEntity(row));
     }
 
     async getAlertsByFireId(fire_id) {
@@ -87,7 +87,7 @@ export class AlertRepository {
             return []; // No alerts found for this fire_id
         }
 
-        return rows.map(row => new Alert(row));
+        return rows.map(row => Alert.fromEntity(row));
     }
 
     async deleteAlert(alert_id) {

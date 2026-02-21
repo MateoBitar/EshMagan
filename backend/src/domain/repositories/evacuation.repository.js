@@ -27,7 +27,7 @@ export class EvacuationRepository {
         const evacuationValues = [route_status, route_priority, route_path, safe_zone, distance_km, estimated_time, fire_id];
         const { rows: evacuationRows } = await pool.query(evacuationSql, evacuationValues);
 
-        return new Evacuation(evacuationRows[0]);
+        return Evacuation.fromEntity(evacuationRows[0]);
     }
 
     async getAllEvacuations() {
@@ -40,7 +40,7 @@ export class EvacuationRepository {
             return []; // No evacuation routes found
         }
 
-        return rows.map(row => new Evacuation(row));
+        return rows.map(row => Evacuation.fromEntity(row));
     }
 
     async getEvacuationById(route_id) {
@@ -54,7 +54,7 @@ export class EvacuationRepository {
             return null; // Evacuation route not found
         }
 
-        return new Evacuation(rows[0]);
+        return Evacuation.fromEntity(rows[0]);
     }
 
     async getEvacuationsByStatus(route_status) {
@@ -68,7 +68,7 @@ export class EvacuationRepository {
             return []; // No evacuation routes found for this status
         }
 
-        return rows.map(row => new Evacuation(row));
+        return rows.map(row => Evacuation.fromEntity(row));
     }
 
     async getEvacuationsByPriority(route_priority) {
@@ -82,7 +82,7 @@ export class EvacuationRepository {
             return []; // No evacuation routes found for this priority
         }
 
-        return rows.map(row => new Evacuation(row));
+        return rows.map(row => Evacuation.fromEntity(row));
     }
 
     async getEvacuationsByZone(safe_zone) {
@@ -97,7 +97,7 @@ export class EvacuationRepository {
             return []; // No evacuation routes found near this safe zone
         }
 
-        return rows.map(row => new Evacuation(row));
+        return rows.map(row => Evacuation.fromEntity(row));
     }
 
     async getEvacuationsByFireId(fire_id) {
@@ -111,7 +111,7 @@ export class EvacuationRepository {
             return []; // No evacuation routes found for this fire_id
         }
 
-        return rows.map(row => new Evacuation(row));
+        return rows.map(row => Evacuation.fromEntity(row));
     }
 
     async getNearestEvacuation(latitude, longitude) {
@@ -128,7 +128,7 @@ export class EvacuationRepository {
             return null; // No evacuation routes found
         }
 
-        return new Evacuation(rows[0]);
+        return Evacuation.fromEntity(rows[0]);
     }
 
     async updateEvacuationStatus(route_id, new_status) {
@@ -140,7 +140,7 @@ export class EvacuationRepository {
             return null; // Evacuation route not found
         }
 
-        return new Evacuation(rows[0]);
+        return Evacuation.fromEntity(rows[0]);
     }
 
     async updateEvacuationPriority(route_id, new_priority) {
@@ -152,7 +152,7 @@ export class EvacuationRepository {
             return null; // Evacuation route not found
         }
         
-        return new Evacuation(rows[0]);
+        return Evacuation.fromEntity(rows[0]);
     }
 
     async updateEvacuationGeometry(route_id, new_route_path, new_safe_zone) {
@@ -164,7 +164,7 @@ export class EvacuationRepository {
             return null; // Evacuation route not found
         }
 
-        return new Evacuation(rows[0]);
+        return Evacuation.fromEntity(rows[0]);
     }
 
     async deleteEvacuation(route_id) {

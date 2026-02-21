@@ -2,15 +2,19 @@
 
 import { pool } from '../../config/db.js';
 import { User } from '../entities/user.entity.js';
+import { generateUserId } from '../../utils/id.utils.js';
 
 export class UserRepository {
     async createUser(data) {
+        // Generate sequential role-prefixed ID (R000001, P000001, M000001, A000001)
+        const user_id = await generateUserId(data.user_role);
+
         // Creates a new user record in the database
         const userSql = `INSERT INTO users (user_id, user_email, user_password,
                         user_phone, user_role, isactive, created_at, updated_at)
                         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) 
                         RETURNING *;`;
-        const userValues = [data.user_id, data.user_email, data.user_password, data.user_phone, data.user_role, true];
+        const userValues = [user_id, data.user_email, data.user_password, data.user_phone, data.user_role, true];
         const { rows } = await pool.query(userSql, userValues);
 
         return rows[0] ? new User(rows[0]) : null; 
@@ -200,7 +204,7 @@ export class UserRepository {
             values.push(filters.isactive); 
             sql += ` AND isactive=$${values.length}`; 
         } 
-        sql += `LIMIT ${pagination.limit} OFFSET ${pagination.offset}`; 
+        sql += ` LIMIT ${pagination.limit} OFFSET ${pagination.offset}`; 
         const { rows } = await pool.query(sql, values); 
         
         return rows.map(row => new User(row)); 

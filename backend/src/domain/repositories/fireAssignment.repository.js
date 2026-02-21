@@ -6,13 +6,12 @@ import { FireAssignment } from '../entities/fireAssignment.entity.js';
 export class FireAssignmentRepository { 
     async createAssignment(data) { 
         // Creates a new fire assignment record 
-        const fireAssignmentSql = `INSERT INTO firerespondassignments (assignment_id,
-                    assigned_at, assignment_status, fire_id, responder_id)
-                    VALUES ($1,$2,$3,$4,$5) RETURNING assignment_id, assigned_at,
-                    assignment_status, fire_id, responder_id`;
-        const fireAssignmentValues = [data.assignment_id, data.assigned_at, data.assignment_status,
-            data.fire_id, data.responder_id]; 
-        const { rows } = await pool.query(fireAssignmentSql, fireAssignmentValues); 
+        const fireAssignmentSql = `INSERT INTO firerespondassignments (assignment_status, fire_id, responder_id, assigned_at) 
+        VALUES ($1,$2,$3,NOW()) RETURNING assignment_id, assigned_at,
+        assignment_status, fire_id, responder_id`;
+        const fireAssignmentValues = [data.assignment_status, data.fire_id, data.responder_id]; 
+        const { rows } = await pool.query(fireAssignmentSql, fireAssignmentValues);
+
         if (rows.length === 0) {
             return []; // No fire found 
         }
@@ -36,6 +35,22 @@ export class FireAssignmentRepository {
             fire_id: row.fire_id,
             responder_id: row.responder_id 
         })); 
+    }
+
+    async getAssignmentById(assignment_id) {
+        const sql = `SELECT assignment_id, assigned_at, assignment_status, fire_id, responder_id
+                    FROM firerespondassignments WHERE assignment_id = $1`;
+        const { rows } = await pool.query(sql, [assignment_id]);
+        if (rows.length === 0) return null;
+        return FireAssignment.fromEntity(rows[0]);
+    }
+
+    async getAssignmentsByFireId(fire_id) {
+        const sql = `SELECT assignment_id, assigned_at, assignment_status, fire_id, responder_id
+                    FROM firerespondassignments WHERE fire_id = $1 ORDER BY assigned_at DESC`;
+        const { rows } = await pool.query(sql, [fire_id]);
+        if (rows.length === 0) return [];
+        return rows.map(row => FireAssignment.fromEntity(row));
     }
 
     async getAssignmentsByResponderId(responder_id) { 

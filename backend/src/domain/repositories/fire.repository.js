@@ -6,12 +6,12 @@ import { FireEvent } from '../entities/fire.entity.js';
 export class FireRepository { 
     async createFire(data) { 
         // Creates a new fire event record 
-        const fireSql = `INSERT INTO fireevents (fire_id, fire_source, fire_location, fire_severitylevel,
+        const fireSql = `INSERT INTO fireevents (fire_source, fire_location, fire_severitylevel,
                     is_extinguished, is_verified, created_at, updated_at) 
-                    VALUES ($1,$2,ST_GeogFromText($3),$4,$5,$6,NOW(),NOW()) 
+                    VALUES ($1,ST_GeogFromText($2),$3,$4,$5,NOW(),NOW()) 
                     RETURNING fire_id, fire_source, ST_AsText(fire_location) as fire_location, fire_severitylevel,
                     is_extinguished, is_verified, created_at, updated_at`; 
-        const fireValues = [data.fire_id, data.fire_source, data.fire_location, data.fire_severitylevel, data.is_extinguished, data.is_verified];
+        const fireValues = [data.fire_source, data.fire_location, data.fire_severitylevel, data.is_extinguished, data.is_verified];
         const { rows } = await pool.query(fireSql, fireValues); 
         
         return rows[0] ? new FireEvent(rows[0]) : null; 

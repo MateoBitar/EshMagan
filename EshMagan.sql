@@ -8,10 +8,23 @@ SET check_function_bodies = false;
 SELECT pg_catalog.set_config('search_path', 'public, pg_catalog', false);
 
 -- 2. ENABLE EXTENSION
--- Must be done before creating any tables with geometry/geography types
 CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
 
--- 3. CORE TABLES
+-- 3. SEQUENCES FOR ROLE-BASED USER IDs
+CREATE SEQUENCE resident_seq START 1;
+CREATE SEQUENCE responder_seq START 1;
+CREATE SEQUENCE municipality_seq START 1;
+CREATE SEQUENCE admin_seq START 1;
+
+-- 4. SEQUENCES FOR OTHER TABLES
+CREATE SEQUENCE fire_seq START 1;
+CREATE SEQUENCE alert_seq START 1;
+CREATE SEQUENCE evacuation_seq START 1;
+CREATE SEQUENCE assignment_seq START 1;
+CREATE SEQUENCE notification_seq START 1;
+
+-- 5. CORE TABLES
+
 CREATE TABLE public.users (
     user_id character varying PRIMARY KEY,
     user_email character varying UNIQUE,
@@ -19,12 +32,12 @@ CREATE TABLE public.users (
     user_phone character varying,
     user_role character varying CHECK (user_role IN ('Resident', 'Responder', 'Municipality', 'Admin')),
     isactive boolean DEFAULT true,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp without time zone
 );
 
 CREATE TABLE public.fireevents (
-    fire_id character varying PRIMARY KEY,
+    fire_id character varying PRIMARY KEY DEFAULT 'F' || LPAD(nextval('fire_seq')::TEXT, 6, '0'),
     fire_source character varying CHECK (fire_source IN ('Infrared', 'Responder', 'Prediction', 'Weather')),
     fire_location public.geography(Point, 4326),
     fire_severitylevel integer,
@@ -34,7 +47,7 @@ CREATE TABLE public.fireevents (
     updated_at timestamp without time zone
 );
 
--- 4. DEPENDENT TABLES
+-- 6. DEPENDENT TABLES
 
 -- Admin (FK to Users)
 CREATE TABLE public.admins (
@@ -80,16 +93,16 @@ CREATE TABLE public.responderdetails (
 
 -- FireRespondAssignment (FK to FireEvents and ResponderDetails)
 CREATE TABLE public.firerespondassignments (
-    assignment_id character varying PRIMARY KEY,
-    assigned_at timestamp without time zone,
-    assignment_status character varying,
+    assignment_id character varying PRIMARY KEY DEFAULT 'S' || LPAD(nextval('assignment_seq')::TEXT, 6, '0'),
+    assigned_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    assignment_status character varying CHECK (assignment_status IN ('Assigned', 'EnRoute', 'OnScene', 'Completed', 'Cancelled')),
     fire_id character varying REFERENCES public.fireevents(fire_id) ON DELETE CASCADE,
     responder_id character varying REFERENCES public.responderdetails(responder_id) ON DELETE CASCADE
 );
 
 -- Alert (FK to FireEvents)
 CREATE TABLE public.alerts (
-    alert_id character varying PRIMARY KEY,
+    alert_id character varying PRIMARY KEY DEFAULT 'L' || LPAD(nextval('alert_seq')::TEXT, 6, '0'),
     alert_type character varying,
     target_role character varying,
     alert_message text NOT NULL,
@@ -102,7 +115,7 @@ CREATE TABLE public.alerts (
 
 -- EvacuationRoute (FK to FireEvents)
 CREATE TABLE public.evacuationroutes (
-    route_id character varying PRIMARY KEY,
+    route_id character varying PRIMARY KEY DEFAULT 'E' || LPAD(nextval('evacuation_seq')::TEXT, 6, '0'),
     route_status character varying,
     route_priority integer,
     route_path public.geography(LineString, 4326),
@@ -116,7 +129,7 @@ CREATE TABLE public.evacuationroutes (
 
 -- Notification (FK to FireEvents and Users)
 CREATE TABLE public.notifications (
-    notification_id character varying PRIMARY KEY,
+    notification_id character varying PRIMARY KEY DEFAULT 'N' || LPAD(nextval('notification_seq')::TEXT, 6, '0'),
     target_role character varying,
     notification_message text NOT NULL,
     notification_status character varying,
