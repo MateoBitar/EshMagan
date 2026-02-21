@@ -151,17 +151,6 @@ export class UserService {
         }
     }
 
-    async updateLastLogin(user_id) {
-        try {
-            // Update user's last login timestamp
-            const updatedUser = await this.userRepository.updateLastLogin(user_id);
-            if (!updatedUser) return null; // Not found or inactive
-            return updatedUser.toDTO();
-        } catch (err) {
-            throw new Error(`Failed to update last login: ${err.message}`);
-        }
-    }
-
     async deactivateUser(user_id) {
         try {
             // Deactivate user (soft delete)

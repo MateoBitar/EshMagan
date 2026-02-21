@@ -6,6 +6,9 @@ import { municipalityTypeDefs } from './municipality.schema.js';
 import { residentTypeDefs } from './resident.schema.js';
 import { responderTypeDefs } from './responder.schema.js';
 import { evacuationTypeDefs } from './evacuation.schema.js';
+import { userTypeDefs } from './user.schema.js';
+import { fireTypeDefs } from './fire.schema.js';
+import { fireAssignmentTypeDefs } from './fireAssignment.schema.js';
 
 // Root types must exist so that "extend type Query/Mutation" in each schema works
 export const rootTypeDefs = gql`
@@ -21,4 +24,7 @@ export const typeDefs = [
   residentTypeDefs,
   responderTypeDefs,
   evacuationTypeDefs,
+  userTypeDefs,
+  fireTypeDefs,
+  fireAssignmentTypeDefs,
 ];
