@@ -415,8 +415,8 @@ export class ResponderRepository {
         // Update timestamp
         fields.push(`updated_at = NOW()`);
 
-        // Only run responder update if there are fields to change
-        if (fields.length > 0) {
+        // Only run responder update if there are fields to change and not just updated_at
+        if (fields.length > 1) {
             const sql = `
             UPDATE responderdetails
             SET ${fields.join(', ')}

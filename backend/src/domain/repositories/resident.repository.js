@@ -468,8 +468,8 @@ export class ResidentRepository {
         // Update timestamp
         fields.push(`updated_at = NOW()`);
 
-        // Only run resident update if there are fields to change
-        if (fields.length > 0) {
+        // Only run resident update if there are fields to change and not just updated_at
+        if (fields.length > 1) {
             const sql = `
             UPDATE residentdetails
             SET ${fields.join(', ')}
