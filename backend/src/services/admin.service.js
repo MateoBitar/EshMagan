@@ -100,7 +100,7 @@ export class AdminService {
 
     async getAdminsByCreationDate(created_at) {
         try {
-            const admins = await this.adminRepository.getAdminByCreationDate(created_at);
+            const admins = await this.adminRepository.getAdminsByCreationDate(created_at);
             if (!admins || admins.length === 0) return []; // Admins not found or inactive
             return admins.map(admin => admin.toDTO());
         } catch (err) {
