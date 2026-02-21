@@ -48,6 +48,63 @@ export class AdminService {
     }
 
     async getAdminById(admin_id) {
+        try {
+            const admin = await this.adminRepository.getAdminById(admin_id);
+            if (!admin) return null; // Not found or inactive
+            // Expose safe outward-facing data
+            return admin.toDTO();
+        } catch (err) {
+            throw new Error(`Failed to fetch admin by ID: ${err.message}`);
+        }
+    }
 
+    async getAdminByFName(admin_fname) {
+        try {
+            const admin = await this.adminRepository.getAdminByFName(admin_fname);
+            if (!admin) return null; // Not found or inactive
+            return admin.toDTO();
+        } catch (err) {
+            throw new Error(`Failed to fetch admin by first name: ${err.message}`);
+        }
+    }
+
+    async getAdminByLName(admin_lname) {
+        try {
+            const admin = await this.adminRepository.getAdminByLName(admin_lname);
+            if (!admin) return null; // Not found or inactive
+            return admin.toDTO();
+        } catch (err) {
+            throw new Error(`Failed to fetch admin by last name: ${err.message}`);
+        }
+    }
+
+    async getAdminByEmail(user_email) {
+        try {
+            const admin = await this.adminRepository.getAdminByEmail(user_email);
+            if (!admin) return null; // Not found or inactive
+            return admin.toDTO();
+        } catch (err) {
+            throw new Error(`Failed to fetch admin by email: ${err.message}`);
+        }
+    }
+
+    async getAdminByPhone(user_phone) {
+        try {
+            const admin = await this.adminRepository.getAdminByPhone(user_phone);
+            if (!admin) return null; // Not found or inactive
+            return admin.toDTO();
+        } catch (err) {
+            throw new Error(`Failed to fetch admin by phone: ${err.message}`);
+        }
+    }
+
+    async getAdminsByCreationDate(created_at) {
+        try {
+            const admins = await this.adminRepository.getAdminByCreationDate(created_at);
+            if (!admins || admins.length === 0) return [];
+            return admins.map(admin => admin.toDTO());
+        } catch (err) {
+            throw new Error(`Failed to fetch admins by creation date: ${err.message}`);
+        }
     }
 }

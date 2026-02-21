@@ -147,7 +147,7 @@ export class AdminRepository {
         });
     }
 
-    async getAdminByCreationDate(created_at) {
+    async getAdminsByCreationDate(created_at) {
         const sql = `
             SELECT admin_id, admin_fname, admin_lname,
                    user_id, user_email, user_phone, user_role, isactive, created_at
