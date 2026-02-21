@@ -98,6 +98,8 @@ export class MunicipalityService {
 
     async getMunicipalityByLocation(municipality_location) {
         try {
+            if (!municipality_location?.latitude || !municipality_location?.longitude)
+                throw new Error("Missing required fields: Municipality Location latitude and longitude");
             // Fetch municipality by spatial location (within radius)
             const municipality = await this.municipalityRepository.getMunicipalityByLocation(municipality_location);
             if (!municipality) return null;

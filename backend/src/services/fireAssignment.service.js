@@ -65,7 +65,7 @@ export class FireAssignmentService {
         try {
             // Fetch all assignments associated with a specific responder ID
             const assignments = await this.fireAssignmentRepository.getAssignmentsByResponderId(responder_id);
-            if (!assignments) return []; // Not found
+            if (!assignments || assignments.length === 0) return []; // Not found
             return assignments.map(a => a.toDTO());
         } catch (err) {
             throw new Error(`Failed to fetch assignments by responder ID: ${err.message}`);
@@ -76,6 +76,7 @@ export class FireAssignmentService {
         try {
             // Fetch all active assignments (e.g., those with status 'active')
             const assignments = await this.fireAssignmentRepository.getActiveAssignments();
+            if (!assignments || assignments.length === 0) return []; // Not found
             return assignments.map(a => a.toDTO());
         } catch (err) {
             throw new Error(`Failed to fetch active assignments: ${err.message}`);

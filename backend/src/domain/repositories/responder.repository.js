@@ -385,6 +385,55 @@ export class ResponderRepository {
         });
     }
 
+    // Get nearest available responder to a fire location
+    //
+    // fire_location is the raw WKT string as stored on the FireEvent entity
+    // (returned by ST_AsText from the DB). It can be either:
+    //   - POINT(lng lat)          → ignition source
+    //   - POLYGON((lng lat, ...)) → fire spread area from fireSpread.engine.js
+    //
+    // ST_Distance handles both correctly:
+    //   - POINT   → straight-line distance to the ignition point
+    //   - POLYGON → distance to the nearest edge of the polygon
+    async getNearestResponder(fire_location) {
+        const sql = `
+            SELECT responder_id, unit_nb,
+                   ST_AsGeoJSON(unit_location)       AS unit_location,
+                   assigned_region, responder_status,
+                   ST_AsGeoJSON(last_known_location) AS last_known_location,
+                   user_id, user_email, user_phone, user_role, isactive,
+                   ST_Distance(
+                       last_known_location::geography,
+                       ST_GeogFromText($1)
+                   ) AS distance_meters
+            FROM responderdetails
+            JOIN users ON responderdetails.responder_id = users.user_id
+            WHERE responder_status = 'available'
+              AND isactive = true
+            ORDER BY distance_meters ASC
+            LIMIT 1`;
+        const { rows } = await pool.query(sql, [fire_location]);
+        if (rows.length === 0) return null;
+
+        const row = rows[0];
+        // The coordinates come back as GeoJSON strings like:
+        //   - unit_location: {"type":"Point","coordinates":[lng, lat]}
+        //   - last_known_location: {"type":"Point","coordinates":[lng, lat]}
+        const unitLoc = JSON.parse(row.unit_location);
+        const lastLoc = JSON.parse(row.last_known_location);
+
+        return Responder.fromEntity({
+            responder_id: row.responder_id,
+            unit_nb:      row.unit_nb,
+            unit_location: { latitude: unitLoc.coordinates[1], longitude: unitLoc.coordinates[0] },
+            assigned_region:     row.assigned_region,
+            responder_status:    row.responder_status,
+            last_known_location: { latitude: lastLoc.coordinates[1], longitude: lastLoc.coordinates[0] },
+            distance_meters:     parseFloat(row.distance_meters),
+            user: User.fromEntity(row)
+        });
+    }
+
     async updateResponder(responder_id, data) {
         const fields = [];
         const values = [];
@@ -469,6 +518,41 @@ export class ResponderRepository {
             },
             user: User.fromEntity(row)
         });
+    }
+
+    // Wrapper for quick status updates
+    async updateResponderStatus(responder_id, responder_status) {
+        return this.updateResponder(responder_id, { responder_status });
+    }
+
+    // Called at high frequency from the gRPC GPS stream so it deliberately
+    // skips the full JOIN re-fetch that updateResponder() does. It updates
+    // a single column and returns only the bare coordinates + timestamp,
+    // which is all the gRPC handler needs to confirm the write.
+    async updateResponderLocation(responder_id, latitude, longitude) {
+        const sql = `
+            UPDATE responderdetails
+            SET last_known_location = ST_GeomFromText($1, 4326)::geography,
+                updated_at = NOW()
+            WHERE responder_id = $2
+            RETURNING responder_id,
+                      ST_AsGeoJSON(last_known_location) AS last_known_location,
+                      updated_at`;
+        const { rows } = await pool.query(sql, [
+            `POINT(${longitude} ${latitude})`,
+            responder_id
+        ]);
+        if (rows.length === 0) return null;
+
+        const loc = JSON.parse(rows[0].last_known_location);
+        return {
+            responder_id: rows[0].responder_id,
+            last_known_location: {
+                latitude:  loc.coordinates[1],
+                longitude: loc.coordinates[0]
+            },
+            updated_at: rows[0].updated_at
+        };
     }
 
     async deactivateResponder(responder_id) {

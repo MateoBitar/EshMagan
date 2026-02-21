@@ -46,10 +46,10 @@ export class FireRepository {
         `; 
         const { rows } = await pool.query(sql, [fire_id]);
         if (rows.length === 0) {
-            return []; // No fire events found
+            return null; // No fire event found
         }
                         
-        return rows.map(row => FireEvent.fromEntity(row));
+        return FireEvent.fromEntity(rows[0]);
     }
 
     async getActiveFires() {
@@ -227,7 +227,7 @@ export class FireRepository {
         fields.push(`updated_at = NOW()`);
 
         // Only run update if there are fields to change
-        if (fields.length > 0) {
+        if (fields.length > 1) {
             const sql = `
                 UPDATE fireevents
                 SET ${fields.join(', ')}
@@ -240,7 +240,7 @@ export class FireRepository {
             const { rows } = await pool.query(sql, values);
             if (rows.length === 0) return null;
 
-            return FireEvent.fromEntity({ ...rows[0] });
+            return FireEvent.fromEntity(rows[0]);
         }
 
         return null; // nothing to update
@@ -274,7 +274,7 @@ export class FireRepository {
             const { rows } = await pool.query(sql, values);
             if (rows.length === 0) return null;
 
-            return FireEvent.fromEntity({ ...rows[0] });
+            return FireEvent.fromEntity(rows[0]);
         }
 
         return null; // nothing to update

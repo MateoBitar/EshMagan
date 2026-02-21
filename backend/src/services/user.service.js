@@ -15,6 +15,9 @@ export class UserService {
             if (!data.user_phone) throw new Error("Missing required field: User Phone");
             if (!data.user_role) throw new Error("Missing required field: User Role");
 
+            const existing = await this.userRepository.getUserByEmail(data.user_email);
+            if (existing) throw new Error("A user with this email already exists");
+
             // Step 1: Build User entity
             const user = new User({
                 user_email: data.user_email,
@@ -80,7 +83,7 @@ export class UserService {
         try {
             // Fetch users by role
             const users = await this.userRepository.getUsersByRole(user_role);
-            if (!users) return []; // Not found or inactive
+            if (!users || users.length === 0) return []; // Not found or inactive
             return users.map(user => user.toDTO());
         } catch (err) {
             throw new Error(`Failed to fetch users by role: ${err.message}`);
@@ -91,6 +94,7 @@ export class UserService {
         try {
             // Fetch active users
             const users = await this.userRepository.getActiveUsers();
+            if (!users || users.length === 0) return []; // Not found or inactive
             return users.map(user => user.toDTO());
         } catch (err) {
             throw new Error(`Failed to fetch active users: ${err.message}`);
@@ -101,6 +105,7 @@ export class UserService {
         try {
             // Fetch inactive users
             const users = await this.userRepository.getInActiveUsers();
+            if (!users || users.length === 0) return []; // Not found or inactive
             return users.map(user => user.toDTO());
         } catch (err) {
             throw new Error(`Failed to fetch inactive users: ${err.message}`);
@@ -162,7 +167,7 @@ export class UserService {
         }
     }
 
-    async filterUsers(filters, pagination) {
+    async filterUsers(filters = {}, pagination = { limit: 10, offset: 0 }) {
         try {
             // Filter users based on criteria and pagination
             const users = await this.userRepository.filterUsers(filters, pagination);

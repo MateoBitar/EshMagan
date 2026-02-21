@@ -80,6 +80,8 @@ export class ResponderService {
 
     async getRespondersByUnitLocation(unit_location) {
         try {
+            if (!unit_location?.latitude || !unit_location?.longitude)
+                throw new Error("Missing required fields: Unit Location latitude and longitude");
             // Fetch responders by spatial unit location (within radius)
             const responders = await this.responderRepository.getRespondersByUnitLocation(unit_location);
             if (!responders || responders.length === 0) return []; // None found or inactive
@@ -113,6 +115,8 @@ export class ResponderService {
 
     async getRespondersByLastKnownLocation(last_known_location) {
         try {
+            if (!last_known_location?.latitude || !last_known_location?.longitude)
+                throw new Error("Missing required fields: Last Known Location latitude and longitude");
             // Fetch responders by spatial last known location (within radius)
             const responders = await this.responderRepository.getRespondersByLastKnownLocation(last_known_location);
             if (!responders || responders.length === 0) return []; // None found or inactive
@@ -144,6 +148,17 @@ export class ResponderService {
         }
     }
 
+    async getNearestResponder(fire_location) {
+        try {
+            if (!fire_location) throw new Error("Missing required field: Fire Location");
+            const responder = await this.responderRepository.getNearestResponder(fire_location);
+            if (!responder) return null;
+            return responder.toDTO();
+        } catch (err) {
+            throw new Error(`Failed to fetch nearest responder: ${err.message}`);
+        }
+    }
+
     async updateResponder(responder_id, data) {
         try {
             // Update responder fields (handled in repository)
@@ -152,6 +167,28 @@ export class ResponderService {
             return updatedResponder.toDTO();
         } catch (err) {
             throw new Error(`Failed to update responder: ${err.message}`);
+        }
+    }
+
+    async updateResponderStatus(responder_id, responder_status) {
+        try {
+            if (!responder_status) throw new Error("Missing required field: Responder Status");
+            const responder = await this.responderRepository.updateResponderStatus(responder_id, responder_status);
+            if (!responder) return null;
+            return responder.toDTO();
+        } catch (err) {
+            throw new Error(`Failed to update responder status: ${err.message}`);
+        }
+    }
+
+    async updateResponderLocation(responder_id, latitude, longitude) {
+        try {
+            if (latitude  === undefined || latitude  === null) throw new Error("Missing required field: Latitude");
+            if (longitude === undefined || longitude === null) throw new Error("Missing required field: Longitude");
+            // Returns bare { responder_id, last_known_location, updated_at } — not a full entity
+            return await this.responderRepository.updateResponderLocation(responder_id, latitude, longitude);
+        } catch (err) {
+            throw new Error(`Failed to update responder location: ${err.message}`);
         }
     }
 

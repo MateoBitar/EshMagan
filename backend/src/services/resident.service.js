@@ -106,6 +106,8 @@ export class ResidentService {
 
     async getResidentsByLastKnownLocation(last_known_location) {
         try {
+            if (!last_known_location?.latitude || !last_known_location?.longitude)
+                throw new Error("Missing required fields: Last Known Location latitude and longitude");
             // Fetch residents by spatial last known location (within radius)
             const residents = await this.residentRepository.getResidentsByLastKnownLocation(last_known_location);
             if (!residents || residents.length === 0) return []; // None found or inactive
