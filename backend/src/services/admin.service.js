@@ -47,4 +47,8 @@ export class AdminService {
             throw new Error(`Failed to fetch admins: ${err.message}`);
         }
     }
+
+    async getAdminById(admin_id) {
+        
+    }
 }

@@ -288,9 +288,9 @@ export class MunicipalityRepository {
         SELECT municipality_id, municipality_name, region_name, municipality_code,
                ST_AsGeoJSON(municipality_location) AS municipality_location,
                user_id, user_email, user_phone, user_role, isactive
-        FROM municipalitydetails m
-        JOIN users u ON m.municipality_id = u.user_id
-        WHERE m.municipality_id = $1 AND isactive = true
+        FROM municipalitydetails
+        JOIN users ON municipalitydetails.municipality_id = users.user_id
+        WHERE municipality_id = $1 AND isactive = true
     `;
         const { rows } = await pool.query(joinSql, [municipality_id]);
         if (rows.length === 0) return null;
