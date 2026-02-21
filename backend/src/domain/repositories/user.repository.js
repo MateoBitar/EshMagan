@@ -10,10 +10,11 @@ export class UserRepository {
         const user_id = await generateUserId(data.user_role);
         const { user_email, user_password, user_phone, user_role } = data;
 
-        const userSql = `INSERT INTO users (user_id, user_email, user_password,
-                        user_phone, user_role, isactive, created_at, updated_at)
-                        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) 
-                        RETURNING *;
+        const userSql = `
+                    INSERT INTO users (user_id, user_email, user_password,
+                                       user_phone, user_role, isactive, created_at, updated_at)
+                    VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) 
+                    RETURNING *;
         `;
         const userValues = [user_id, user_email, user_password, user_phone, user_role, true];
         const { rows: userRows } = await pool.query(userSql, userValues);
