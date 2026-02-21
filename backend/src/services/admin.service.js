@@ -107,4 +107,12 @@ export class AdminService {
             throw new Error(`Failed to fetch admins by creation date: ${err.message}`);
         }
     }
+
+    async deactivateAdmin(admin_id) {
+        try {
+            return await this.adminRepository.deactivateAdmin(admin_id);
+        } catch (err) {
+            throw new Error(`Failed to deactivate admin: ${err.message}`);
+        }
+    }
 }
