@@ -10,11 +10,11 @@ export class AdminService {
 
     async createAdmin(data) {
         try {
-            // Admin-specific checks
+            // Admin specific checks
             if (!data.admin_fname) throw new Error("Missing required field: Admin First Name");
             if (!data.admin_lname) throw new Error("Missing required field: Admin Last Name");
 
-            // Step 1: create user via UserService
+            // Step 1: Create User via UserService
             const user = await this.userService.createUser({
                 user_email: data.user_email,
                 user_password: data.user_password,
@@ -23,7 +23,7 @@ export class AdminService {
                 isactive: true
             });
 
-            // Step 2: create admin record linked to user_id
+            // Step 2: Create Admin record linked to user_id
             const admin = new Admin({
                 admin_id: user.user_id,
                 admin_fname: data.admin_fname,
@@ -31,7 +31,8 @@ export class AdminService {
                 user: user
             });
 
-            return await this.adminRepository.createAdmin(admin);
+            const createdAdmin = await this.adminRepository.createAdmin(admin);
+            return createdAdmin.toDTO();
         } catch (err) {
             throw new Error(`Failed to create admin: ${err.message}`);
         }
@@ -40,15 +41,13 @@ export class AdminService {
     async getAllAdmins() {
         try {
             const admins = await this.adminRepository.getAllAdmins();
-
-            // Hydrate each raw record into an Admin entity
-            return admins.map(raw => Admin.fromEntity(raw));
+            return admins.map(admin => admin.toDTO());
         } catch (err) {
             throw new Error(`Failed to fetch admins: ${err.message}`);
         }
     }
 
     async getAdminById(admin_id) {
-        
+
     }
 }
