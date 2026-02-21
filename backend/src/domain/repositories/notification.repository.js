@@ -26,9 +26,13 @@ export class NotificationRepository {
         }
 
         // Step 3: Insert the notification
-        const notificationSql = `INSERT INTO notifications (target_role, notification_message, notification_status, 
-            expires_at, fire_id, user_id, created_at) VALUES ($1, $2, $3, $4, $5, $6, NOW()) RETURNING 
-            notification_id, target_role, notification_message, notification_status, expires_at, created_at, fire_id, user_id`;
+        const notificationSql = `
+            INSERT INTO notifications (target_role, notification_message, notification_status, 
+            expires_at, fire_id, user_id, created_at) 
+            VALUES ($1, $2, $3, $4, $5, $6, NOW()) 
+            RETURNING notification_id, target_role, notification_message, notification_status,
+            expires_at, created_at, fire_id, user_id
+        `;
         const notificationValues = [target_role, notification_message, notification_status, expires_at, fire_id, user_id];
         const { rows: notificationRows } = await pool.query(notificationSql, notificationValues);
 
@@ -36,9 +40,15 @@ export class NotificationRepository {
     }
 
     async getAllNotifications() {
-        const sql = `SELECT notification_id, target_role, notification_message, notification_status, expires_at, created_at, fire_id, user_id
-            FROM notifications WHERE expires_at > NOW() ORDER BY created_at DESC`;
+        const sql = `
+            SELECT notification_id, target_role, notification_message, notification_status, 
+            expires_at, created_at, fire_id, user_id
+            FROM notifications 
+            WHERE expires_at > NOW() 
+            ORDER BY created_at DESC
+        `;
         const { rows } = await pool.query(sql);
+
         if (rows.length === 0) {
             return []; // No notifications found
         }
@@ -47,9 +57,14 @@ export class NotificationRepository {
     }
 
     async getNotificationById(notification_id) {
-        const sql = `SELECT notification_id, target_role, notification_message, notification_status, expires_at, created_at, fire_id, user_id
-            FROM notifications WHERE notification_id = $1 AND expires_at > NOW()`;
+        const sql = `
+            SELECT notification_id, target_role, notification_message, notification_status,
+            expires_at, created_at, fire_id, user_id
+            FROM notifications 
+            WHERE notification_id = $1 AND expires_at > NOW()
+        `;
         const { rows } = await pool.query(sql, [notification_id]);
+
         if (rows.length === 0) {
             return null; // Notification not found or expired
         }
@@ -58,9 +73,15 @@ export class NotificationRepository {
     }
 
     async getNotificationsByTargetRole(target_role) {
-        const sql = `SELECT notification_id, target_role, notification_message, notification_status, expires_at, created_at, fire_id, user_id
-            FROM notifications WHERE target_role = $1 AND expires_at > NOW() ORDER BY created_at DESC`;
+        const sql = `
+            SELECT notification_id, target_role, notification_message, notification_status,
+            expires_at, created_at, fire_id, user_id
+            FROM notifications 
+            WHERE target_role = $1 AND expires_at > NOW() 
+            ORDER BY created_at DESC
+        `;
         const { rows } = await pool.query(sql, [target_role]);
+
         if (rows.length === 0) {
             return []; // No notifications found for this target role
         }
@@ -69,9 +90,15 @@ export class NotificationRepository {
     }
 
     async getNotificationsByStatus(notification_status) {
-        const sql = `SELECT notification_id, target_role, notification_message, notification_status, expires_at, created_at, fire_id, user_id
-            FROM notifications WHERE notification_status = $1 AND expires_at > NOW() ORDER BY created_at DESC`;
+        const sql = `
+            SELECT notification_id, target_role, notification_message, notification_status,
+            expires_at, created_at, fire_id, user_id
+            FROM notifications 
+            WHERE notification_status = $1 AND expires_at > NOW()
+            ORDER BY created_at DESC
+        `;
         const { rows } = await pool.query(sql, [notification_status]);
+
         if (rows.length === 0) {
             return []; // No notifications found for this status
         }
@@ -80,9 +107,15 @@ export class NotificationRepository {
     }
 
     async getNotificationsByExpiration(expires_at) {
-        const sql = `SELECT notification_id, target_role, notification_message, notification_status, expires_at, created_at, fire_id, user_id
-            FROM notifications WHERE expires_at <= $1 ORDER BY expires_at ASC`;
+        const sql = `
+            SELECT notification_id, target_role, notification_message, notification_status,
+            expires_at, created_at, fire_id, user_id
+            FROM notifications 
+            WHERE expires_at <= $1 
+            ORDER BY expires_at ASC
+        `;
         const { rows } = await pool.query(sql, [expires_at]);
+
         if (rows.length ===0) {
             return []; // No notifications expiring by this time
         }
@@ -91,9 +124,15 @@ export class NotificationRepository {
     }
 
     async getNotificationsByFireId(fire_id) {
-        const sql = `SELECT notification_id, target_role, notification_message, notification_status, expires_at, created_at, fire_id, user_id
-            FROM notifications WHERE fire_id = $1 AND expires_at > NOW() ORDER BY created_at DESC`;
+        const sql = `
+            SELECT notification_id, target_role, notification_message, notification_status,
+            expires_at, created_at, fire_id, user_id
+            FROM notifications
+            WHERE fire_id = $1 AND expires_at > NOW()
+            ORDER BY created_at DESC
+        `;
         const { rows } = await pool.query(sql, [fire_id]);
+
         if (rows.length === 0) {
             return []; // No notifications found for this fire_id
         }
@@ -102,9 +141,15 @@ export class NotificationRepository {
     }
 
     async getNotificationsByUserId(user_id) {
-        const sql = `SELECT notification_id, target_role, notification_message, notification_status, expires_at, created_at, fire_id, user_id
-            FROM notifications WHERE user_id = $1 AND expires_at > NOW() ORDER BY created_at DESC`;
+        const sql = `
+            SELECT notification_id, target_role, notification_message, notification_status,
+            expires_at, created_at, fire_id, user_id
+            FROM notifications 
+            WHERE user_id = $1 AND expires_at > NOW() 
+            ORDER BY created_at DESC
+        `;
         const { rows } = await pool.query(sql, [user_id]);
+
         if (rows.length === 0) {
             return []; // No notifications found for this user_id
         }
@@ -113,9 +158,15 @@ export class NotificationRepository {
     }
 
     async updateNotificationStatus(notification_id, new_status) {
-        const sql = `UPDATE notifications SET notification_status = $1 WHERE notification_id = $2 RETURNING 
-            notification_id, target_role, notification_message, notification_status, expires_at, created_at, fire_id, user_id`;
+        const sql = `
+            UPDATE notifications 
+            SET notification_status = $1 
+            WHERE notification_id = $2 
+            RETURNING notification_id, target_role, notification_message, notification_status,
+            expires_at, created_at, fire_id, user_id
+        `;
         const { rows } = await pool.query(sql, [new_status, notification_id]);
+
         if (rows.length === 0) {
             return null; // Notification not found
         }
@@ -124,8 +175,13 @@ export class NotificationRepository {
     }
 
     async deleteNotification(notification_id) {
-        const sql = `DELETE FROM notifications WHERE notification_id = $1 RETURNING notification_id`;
+        const sql = `
+            DELETE FROM notifications 
+            WHERE notification_id = $1 
+            RETURNING notification_id
+        `;
         const { rows } = await pool.query(sql, [notification_id]);
+
         if (rows.length === 0) {
             return false; // Notification not found
         }
@@ -134,21 +190,33 @@ export class NotificationRepository {
     }
 
     async deleteExpiredNotifications() {
-        const sql = `DELETE FROM notifications WHERE expires_at <= NOW() RETURNING notification_id`;
+        const sql = `
+            DELETE FROM notifications 
+            WHERE expires_at <= NOW() 
+            RETURNING notification_id
+        `;
         const { rows } = await pool.query(sql);
 
         return rows.length > 0; // Returns true if any notifications were deleted
     }
 
     async deleteNonFailedNotifications() {
-        const sql = `DELETE FROM notifications WHERE notification_status != 'Failed' RETURNING notification_id`;
+        const sql = `
+            DELETE FROM notifications 
+            WHERE notification_status != 'Failed' 
+            RETURNING notification_id
+        `;
         const { rows } = await pool.query(sql);
 
         return rows.length > 0; // Returns true if any notifications were deleted
     }
 
     async deleteNotificationsByFireId(fire_id) {
-        const sql = `DELETE FROM notifications WHERE fire_id = $1 RETURNING notification_id`;
+        const sql = `
+            DELETE FROM notifications 
+            WHERE fire_id = $1 
+            RETURNING notification_id
+        `;
         const { rows } = await pool.query(sql, [fire_id]);
 
         return rows.length > 0; // Returns true if any notifications were deleted

@@ -33,10 +33,13 @@ export class EvacuationRepository {
 
     async getAllEvacuations() {
         const sql = `
-            SELECT route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path, ST_AsGeoJSON(safe_zone) AS safe_zone,
-            distance_km, estimated_time, created_at, updated_at, fire_id FROM evacuationroutes ORDER BY created_at DESC
+            SELECT route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path, 
+            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, updated_at, fire_id 
+            FROM evacuationroutes 
+            ORDER BY created_at DESC
         `;
         const { rows } = await pool.query(sql);
+
         if (rows.length === 0) {
             return []; // No evacuation routes found
         }
@@ -48,9 +51,11 @@ export class EvacuationRepository {
         const sql = `
             SELECT route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path, 
             ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, updated_at, fire_id
-            FROM evacuationroutes WHERE route_id = $1
+            FROM evacuationroutes 
+            WHERE route_id = $1
         `;
         const { rows } = await pool.query(sql, [route_id]);
+
         if (rows.length === 0) {
             return null; // Evacuation route not found
         }
@@ -62,9 +67,11 @@ export class EvacuationRepository {
         const sql = `
             SELECT route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path, 
             ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, updated_at, fire_id
-            FROM evacuationroutes WHERE route_status = $1
+            FROM evacuationroutes 
+            WHERE route_status = $1
         `;
         const { rows } = await pool.query(sql, [route_status]);
+
         if (rows.length === 0) {
             return []; // No evacuation routes found for this status
         }
@@ -76,9 +83,11 @@ export class EvacuationRepository {
         const sql = `
             SELECT route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path, 
             ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, updated_at, fire_id
-            FROM evacuationroutes WHERE route_priority = $1
+            FROM evacuationroutes 
+            WHERE route_priority = $1
         `;
         const { rows } = await pool.query(sql, [route_priority]);
+
         if (rows.length === 0) {
             return []; // No evacuation routes found for this priority
         }
@@ -94,6 +103,7 @@ export class EvacuationRepository {
             WHERE ST_DWithin(safe_zone::geography, ST_GeogFromText($1), 1000) -- Within 1km of the given safe_zone
         `;
         const { rows } = await pool.query(sql, [`POINT(${safe_zone.longitude} ${safe_zone.latitude})`]);
+
         if (rows.length === 0) {
             return []; // No evacuation routes found near this safe zone
         }
@@ -108,6 +118,7 @@ export class EvacuationRepository {
             FROM evacuationroutes WHERE fire_id = $1
         `;
         const { rows } = await pool.query(sql, [fire_id]);
+
         if (rows.length === 0) {
             return []; // No evacuation routes found for this fire_id
         }
@@ -125,6 +136,7 @@ export class EvacuationRepository {
             LIMIT 1
         `;
         const { rows } = await pool.query(sql, [`POINT(${longitude} ${latitude})`]);
+
         if (rows.length === 0) {
             return null; // No evacuation routes found
         }
@@ -133,10 +145,14 @@ export class EvacuationRepository {
     }
 
     async updateEvacuationStatus(route_id, new_status) {
-        const sql = `UPDATE evacuationroutes SET route_status = $1, updated_at = NOW() WHERE route_id = $2 RETURNING route_id,
-            route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path, ST_AsGeoJSON(safe_zone) AS safe_zone,
-            distance_km, estimated_time, created_at, updated_at, fire_id`;
+        const sql = `
+            UPDATE evacuationroutes SET route_status = $1, updated_at = NOW()
+            WHERE route_id = $2
+            RETURNING route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path,
+            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, updated_at, fire_id
+        `;
         const { rows } = await pool.query(sql, [new_status, route_id]);
+
         if (rows.length === 0) {
             return null; // Evacuation route not found
         }
@@ -145,10 +161,13 @@ export class EvacuationRepository {
     }
 
     async updateEvacuationPriority(route_id, new_priority) {
-        const sql = `UPDATE evacuationroutes SET route_priority = $1, updated_at = NOW() WHERE route_id = $2 RETURNING route_id,
-            route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path, ST_AsGeoJSON(safe_zone) AS safe_zone,
-            distance_km, estimated_time, created_at, updated_at, fire_id`;
+        const sql = `
+            UPDATE evacuationroutes SET route_priority = $1, updated_at = NOW()
+            WHERE route_id = $2 RETURNING route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path,
+            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, updated_at, fire_id
+        `;
         const { rows } = await pool.query(sql, [new_priority, route_id]);
+
         if (rows.length === 0) {
             return null; // Evacuation route not found
         }
@@ -157,10 +176,13 @@ export class EvacuationRepository {
     }
 
     async updateEvacuationGeometry(route_id, new_route_path, new_safe_zone) {
-        const sql = `UPDATE evacuationroutes SET route_path = ST_GeogFromText($1), safe_zone = ST_GeogFromText($2), updated_at = NOW() 
+        const sql = `
+            UPDATE evacuationroutes SET route_path = ST_GeogFromText($1), safe_zone = ST_GeogFromText($2), updated_at = NOW() 
             WHERE route_id = $3 RETURNING route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path,
-            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, updated_at, fire_id`;
+            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, updated_at, fire_id
+        `;
         const { rows } = await pool.query(sql, [new_route_path, new_safe_zone, route_id]);
+
         if (rows.length === 0) {
             return null; // Evacuation route not found
         }
@@ -169,8 +191,13 @@ export class EvacuationRepository {
     }
 
     async deleteEvacuation(route_id) {
-        const sql = `DELETE FROM evacuationroutes WHERE route_id = $1 RETURNING route_id`;
+        const sql = `
+            DELETE FROM evacuationroutes 
+            WHERE route_id = $1 
+            RETURNING route_id
+        `;
         const { rows } = await pool.query(sql, [route_id]);
+
         if (rows.length === 0) {
             return false; // Evacuation route not found
         }
@@ -179,8 +206,13 @@ export class EvacuationRepository {
     }
 
     async deleteEvacuationsByFireId(fire_id) {
-        const sql = `DELETE FROM evacuationroutes WHERE fire_id = $1 RETURNING route_id`;
+        const sql = `
+            DELETE FROM evacuationroutes 
+            WHERE fire_id = $1 
+            RETURNING route_id
+        `;
         const { rows } = await pool.query(sql, [fire_id]);
+
         if (rows.length === 0) {
             return false; // No evacuation routes found for this fire_id
         }

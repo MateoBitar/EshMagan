@@ -16,8 +16,11 @@ export class AlertRepository {
         }
 
         // Step 2: Insert the alert
-        const alertSql = `INSERT INTO alerts (alert_type, target_role, alert_message, expires_at, fire_id, created_at)
-            VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id`;
+        const alertSql = `
+            INSERT INTO alerts (alert_type, target_role, alert_message, expires_at, fire_id, created_at)
+            VALUES ($1, $2, $3, $4, $5, NOW()) 
+            RETURNING alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
+        `;
         const alertValues = [alert_type, target_role, alert_message, expires_at, fire_id];
         const { rows: alertRows } = await pool.query(alertSql, alertValues);
 
@@ -25,9 +28,13 @@ export class AlertRepository {
     }
 
     async getAllAlerts() {
-        const sql = `SELECT alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
-            FROM alerts WHERE expires_at > NOW() ORDER BY created_at DESC`;
+        const sql = `
+            SELECT alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
+            FROM alerts 
+            WHERE expires_at > NOW() ORDER BY created_at DESC
+        `;
         const { rows } = await pool.query(sql);
+
         if (rows.length === 0) {
             return []; // No alerts found
         }
@@ -36,9 +43,13 @@ export class AlertRepository {
     }
 
     async getAlertById(alert_id) {
-        const sql = `SELECT alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
-            FROM alerts WHERE alert_id = $1 AND expires_at > NOW()`;
+        const sql = `
+            SELECT alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
+            FROM alerts 
+            WHERE alert_id = $1 AND expires_at > NOW()
+        `;
         const { rows } = await pool.query(sql, [alert_id]);
+
         if (rows.length === 0) {
             return null; // Alert not found or expired
         }
@@ -47,9 +58,14 @@ export class AlertRepository {
     }
 
     async getAlertsByAlertType(alert_type) {
-        const sql = `SELECT alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
-            FROM alerts WHERE alert_type = $1 AND expires_at > NOW() ORDER BY created_at DESC`;
+        const sql = `
+            SELECT alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
+            FROM alerts 
+            WHERE alert_type = $1 AND expires_at > NOW() 
+            ORDER BY created_at DESC
+        `;
         const { rows } = await pool.query(sql, [alert_type]);
+
         if (rows.length === 0) {
             return []; // No alerts found for this type
         }
@@ -58,9 +74,14 @@ export class AlertRepository {
     }
 
     async getAlertsByTargetRole(target_role) {
-        const sql = `SELECT alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
-            FROM alerts WHERE target_role = $1 AND expires_at > NOW() ORDER BY created_at DESC`;
+        const sql = `
+            SELECT alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
+            FROM alerts 
+            WHERE target_role = $1 AND expires_at > NOW() 
+            ORDER BY created_at DESC
+        `;
         const { rows } = await pool.query(sql, [target_role]);
+
         if (rows.length === 0) {
             return []; // No alerts found for this target role
         }
@@ -69,9 +90,13 @@ export class AlertRepository {
     }
 
     async getAlertsByExpiration(expires_at) {
-        const sql = `SELECT alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
-            FROM alerts WHERE expires_at <= $1 ORDER BY expires_at ASC`;
+        const sql = `
+            SELECT alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
+            FROM alerts 
+            WHERE expires_at <= $1 ORDER BY expires_at ASC
+        `;
         const { rows } = await pool.query(sql, [expires_at]);
+
         if (rows.length === 0) {
             return []; // No alerts expiring by this time
         }
@@ -80,9 +105,14 @@ export class AlertRepository {
     }
 
     async getAlertsByFireId(fire_id) {
-        const sql = `SELECT alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
-            FROM alerts WHERE fire_id = $1 AND expires_at > NOW() ORDER BY created_at DESC`;
+        const sql = `
+            SELECT alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
+            FROM alerts 
+            WHERE fire_id = $1 AND expires_at > NOW() 
+            ORDER BY created_at DESC
+        `;
         const { rows } = await pool.query(sql, [fire_id]);
+
         if (rows.length === 0) {
             return []; // No alerts found for this fire_id
         }
@@ -91,8 +121,13 @@ export class AlertRepository {
     }
 
     async deleteAlert(alert_id) {
-        const sql = `DELETE FROM alerts WHERE alert_id = $1 RETURNING alert_id`;
+        const sql = `
+            DELETE FROM alerts 
+            WHERE alert_id = $1 
+            RETURNING alert_id
+        `;
         const { rows } = await pool.query(sql, [alert_id]);
+
         if (rows.length === 0) {
             return false; // Alert not found
         }
@@ -101,14 +136,22 @@ export class AlertRepository {
     }
 
     async deleteExpiredAlerts() {
-        const sql = `DELETE FROM alerts WHERE expires_at <= NOW() RETURNING alert_id`;
+        const sql = `
+            DELETE FROM alerts 
+            WHERE expires_at <= NOW() 
+            RETURNING alert_id
+        `;
         const { rows } = await pool.query(sql);
 
         return rows.length > 0; // Returns true if any expired alerts were deleted
     }
 
     async deleteAlertsByFireId(fire_id) {
-        const sql = `DELETE FROM alerts WHERE fire_id = $1 RETURNING alert_id`;
+        const sql = `
+            DELETE FROM alerts 
+            WHERE fire_id = $1 
+            RETURNING alert_id
+        `;
         const { rows } = await pool.query(sql, [fire_id]);
 
         return rows.length > 0; // Return true if any alerts were deleted
