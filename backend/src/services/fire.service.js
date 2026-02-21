@@ -130,7 +130,7 @@ export class FireService {
         }
     }
 
-    async getFireByLocationAndTime(lat, lng, startDate, endDate, radiusMeters) {
+    async getFiresByLocationAndTime(lat, lng, startDate, endDate, radiusMeters) {
         try {
             // Fetch fires by location and time from repository
             const fires = await this.fireRepository.getFireByLocationAndTime(lat, lng, startDate, endDate, radiusMeters);

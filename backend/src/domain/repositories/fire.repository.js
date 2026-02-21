@@ -178,7 +178,7 @@ export class FireRepository {
         return rows[0]; 
     }
 
-    async getFireByLocationAndTime(lat, lng, startDate, endDate, radiusMeters = 1000) {
+    async getFiresByLocationAndTime(lat, lng, startDate, endDate, radiusMeters = 1000) {
         // Retrieves fires near a location within a time range
         const sql = `
             SELECT fire_id, fire_source, ST_AsText(fire_location) AS fire_location,
