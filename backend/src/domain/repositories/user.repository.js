@@ -6,31 +6,35 @@ import { generateUserId } from '../../utils/id.utils.js';
 
 export class UserRepository {
     async createUser(data) {
-        // Generate sequential role-prefixed ID (R000001, P000001, M000001, A000001)
+        // Generate sequential role-prefixed ID (R for resident, P for responder, M for municipality, A for admin)
         const user_id = await generateUserId(data.user_role);
+        const { user_email, user_password, user_phone, user_role } = data;
 
-        // Creates a new user record in the database
         const userSql = `INSERT INTO users (user_id, user_email, user_password,
                         user_phone, user_role, isactive, created_at, updated_at)
                         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) 
-                        RETURNING *;`;
-        const userValues = [user_id, data.user_email, data.user_password, data.user_phone, data.user_role, true];
-        const { rows } = await pool.query(userSql, userValues);
+                        RETURNING *;
+        `;
+        const userValues = [user_id, user_email, user_password, user_phone, user_role, true];
+        const { rows: userRows } = await pool.query(userSql, userValues);
 
-        return rows[0] ? new User(rows[0]) : null; 
+        return User.fromEntity({
+            ...userRows[0] 
+        });
     }
 
     async getAllUsers() {
         // Retrieves all users without filters
-        const sql = `SELECT user_id, user_email, user_phone, user_role,
-                    isactive, created_at, updated_at 
-                    FROM users ORDER BY created_at DESC`; 
+        const sql = `
+                SELECT user_id, user_email, user_phone,
+                       user_role, isactive, created_at, updated_at 
+                FROM users 
+                ORDER BY created_at DESC 
+        `; 
         const { rows } = await pool.query(sql); 
-        if (rows.length === 0) {
-            return []; // No users found
-        }
+        if (rows.length === 0) return []; 
 
-        return rows.map(row => new User({
+        return rows.map(row => User.fromEntity({
             user_id: row.user_id,
             user_email: row.user_email,
             user_phone: row.user_phone,
@@ -43,15 +47,17 @@ export class UserRepository {
 
     async getUserById(user_id) { 
         // Retrieves a user by their unique ID
-        const sql = `SELECT user_id, user_email, user_phone, user_role,
-                    isactive, created_at, updated_at FROM users 
-                    WHERE user_id=$1`; 
+        const sql = `
+                SELECT user_id, user_email, user_phone,
+                       user_role, isactive, created_at, updated_at 
+                FROM users 
+                WHERE user_id=$1
+        `; 
         const { rows } = await pool.query(sql, [user_id]); 
-        if (rows.length === 0) {
-            return []; // No users found
-        }
+        if (rows.length === 0) return [];
 
-        return rows.map(row => new User({
+        const row = rows[0];
+        return User.fromEntity({
             user_id: row.user_id,
             user_email: row.user_email,
             user_phone: row.user_phone,
@@ -59,20 +65,22 @@ export class UserRepository {
             isactive: row.isactive,
             created_at: row.created_at,
             updated_at: row.updated_at 
-        }));   
+        });   
     }
 
     async getUserByEmail(user_email) { 
         // Retrieves a user by their email address 
-        const sql = `SELECT user_id, user_email, user_phone,
-                    user_role, isactive, created_at, updated_at 
-                    FROM users WHERE user_email=$1`; 
+        const sql = `
+                SELECT user_id, user_email, user_phone,
+                       user_role, isactive, created_at, updated_at 
+                FROM users 
+                WHERE user_email=$1
+        `; 
         const { rows } = await pool.query(sql, [user_email]); 
-        if (rows.length === 0) {
-            return []; // No users found
-        }
+        if (rows.length === 0) return null;
 
-        return rows.map(row => new User({
+        const row = rows[0];
+        return User.fromEntity({
             user_id: row.user_id,
             user_email: row.user_email,
             user_phone: row.user_phone,
@@ -80,20 +88,22 @@ export class UserRepository {
             isactive: row.isactive,
             created_at: row.created_at,
             updated_at: row.updated_at 
-        }));   
+        });   
     }
 
     async getUserByPhone(user_phone) { 
         // Retrieves a user by their phone number
-        const sql = `SELECT user_id, user_email, user_phone, user_role,
-                    isactive, created_at, updated_at FROM users 
-                    WHERE user_phone=$1`;
+        const sql = `
+                SELECT user_id, user_email, user_phone,
+                       user_role, isactive, created_at, updated_at 
+                FROM users 
+                WHERE user_phone=$1
+        `;
         const { rows } = await pool.query(sql, [user_phone]); 
-        if (rows.length === 0) {
-            return []; // No users found
-        }
+        if (rows.length === 0) return null;
 
-        return rows.map(row => new User({
+        const row = rows[0];
+        return User.fromEntity({
             user_id: row.user_id,
             user_email: row.user_email,
             user_phone: row.user_phone,
@@ -101,128 +111,287 @@ export class UserRepository {
             isactive: row.isactive,
             created_at: row.created_at,
             updated_at: row.updated_at 
-        }));  
+        });  
     }
 
     async getUsersByRole(user_role) {
         // Retrieves all users by a specific role
-        const sql = `SELECT user_id, user_email, user_phone, user_role,
-                    isactive, created_at, updated_at FROM users 
-                    WHERE user_role=$1`;
+        const sql = `
+                SELECT user_id, user_email, user_phone,
+                       user_role, isactive, created_at, updated_at 
+                FROM users 
+                WHERE user_role=$1
+        `;
         const { rows } = await pool.query(sql, [user_role]);
-        if (rows.length === 0) {
-                return null; // User not found
-        }
+        if (rows.length === 0) return null;
 
-        return rows.map(row => new User(row));
+        const row = rows[0];
+        return User.fromEntity({
+            user_id: row.user_id,
+            user_email: row.user_email,
+            user_phone: row.user_phone,
+            user_role: row.user_role,
+            isactive: row.isactive,
+            created_at: row.created_at,
+            updated_at: row.updated_at 
+        });
     }
 
     async getActiveUsers() {
         // Retrieves all active users
-        const sql = `SELECT user_id, user_email, user_phone, user_role, 
-                    isactive, created_at, updated_at FROM users 
-                    WHERE isactive=true`;
+        const sql = `
+                SELECT user_id, user_email, user_phone,
+                       user_role, isactive, created_at, updated_at 
+                FROM users 
+                WHERE isactive=true
+        `;
         const { rows } = await pool.query(sql);
-        if (rows.length === 0) {
-                return null; // User not found
-        }
+        if (rows.length === 0) return null;
 
-        return rows.map(row => new User(row));
+        const row = rows[0];
+        return User.fromEntity({
+            user_id: row.user_id,
+            user_email: row.user_email,
+            user_phone: row.user_phone,
+            user_role: row.user_role,
+            isactive: row.isactive,
+            created_at: row.created_at,
+            updated_at: row.updated_at 
+        });
     }
 
     async getInActiveUsers() {
         // Retrieves all inactive users
-        const sql = `SELECT user_id, user_email, user_phone, user_role,
-                    isactive, created_at, updated_at FROM users 
-                    WHERE isactive=false`;
+        const sql = `
+                SELECT user_id, user_email, user_phone, 
+                       user_role, isactive, created_at, updated_at 
+                FROM users 
+                WHERE isactive=false`;
         const { rows } = await pool.query(sql);
-        if (rows.length === 0) {
-                return null; // User not found
-        }
-        
-        return rows.map(row => new User(row));
+        if (rows.length === 0) return null;
+
+        const row = rows[0];
+        return User.fromEntity({
+            user_id: row.user_id,
+            user_email: row.user_email,
+            user_phone: row.user_phone,
+            user_role: row.user_role,
+            isactive: row.isactive,
+            created_at: row.created_at,
+            updated_at: row.updated_at 
+        });
     }
 
-    async updateUser(user_id, updates) { 
-        // Updates a user's details (email, phone, role, status)
-        const sql = `UPDATE users SET user_email=$2, user_phone=$3,
-                    user_role=$4, isactive=$5, updated_at=NOW() 
-                    WHERE user_id=$1 RETURNING user_id, user_email, 
-                    user_phone, user_role, isactive, created_at, updated_at`; 
-        const values = [user_id, updates.user_email, updates.user_phone, updates.user_role, updates.isactive]; 
-        const { rows } = await pool.query(sql, values); 
-        if (rows.length === 0) {
-                return null; // User not found
+    async updateUser(user_id, data) {
+        const fields = [];
+        const values = [];
+        let idx = 1;
+
+        // Step 1: Add fields dynamically if provided
+        if (data.user_email) {
+            fields.push(`user_email = $${idx++}`);
+            values.push(data.user_email);
         }
-        
-        return new User(rows[0]); 
+        if (data.user_phone) {
+            fields.push(`user_phone = $${idx++}`);
+            values.push(data.user_phone);
+        }
+        if (data.user_role) {
+            fields.push(`user_role = $${idx++}`);
+            values.push(data.user_role);
+        }
+        if (data.isactive !== undefined) {
+            fields.push(`isactive = $${idx++}`);
+            values.push(data.isactive);
+        }
+
+        // Always update timestamp
+        fields.push(`updated_at = NOW()`);
+
+        // Only run update if there are fields to change
+        if (fields.length > 0) {
+            const sql = `
+                UPDATE users
+                SET ${fields.join(', ')}
+                WHERE user_id = $${idx}
+                RETURNING user_id, user_email, user_password, user_phone, user_role, isactive, created_at, updated_at
+            `;
+            values.push(user_id);
+
+            const { rows } = await pool.query(sql, values);
+            if (rows.length === 0) return null;
+
+            return User.fromEntity({
+                ...rows[0]
+            });
+        }
+
+        return null; // nothing to update
     }
+
     
-    async updateUserRole(user_id, user_role) { 
-        // Updates only the role of a user 
-        const sql = `UPDATE users SET user_role=$2, updated_at=NOW() 
-                    WHERE user_id=$1 RETURNING user_id, user_email, 
-                    user_phone, user_role, isactive, created_at, updated_at`; 
-        const { rows } = await pool.query(sql, [user_id, user_role]); 
-        if (rows.length === 0) {
-                return null; // User not found
-        }
-        
-        return new User(rows[0]); 
-    } 
+    async updateUserRole(user_id, user_role) {
+        const fields = [];
+        const values = [];
+        let idx = 1;
 
-    async updateUserStatus(user_id, user_status) { 
-        // Updates only the active/inactive status of a user 
-        const sql = `UPDATE users SET isactive=$2, updated_at=NOW() 
-                    WHERE user_id=$1 RETURNING user_id, user_email, user_phone,
-                    user_role, isactive, created_at, updated_at`; 
-        const { rows } = await pool.query(sql, [user_id, user_status]);
-        if (rows.length === 0) {
-                return null; // User not found
+        // Step 1: Add role update
+        if (user_role) {
+            fields.push(`user_role = $${idx++}`);
+            values.push(user_role);
         }
-        
-        return new User(rows[0]); 
+
+        // Always update timestamp
+        fields.push(`updated_at = NOW()`);
+
+        // Step 2: Run update if fields exist
+        if (fields.length > 0) {
+            const sql = `
+                UPDATE users
+                SET ${fields.join(', ')}
+                WHERE user_id = $${idx}
+                RETURNING user_id, user_email, user_password, user_phone, user_role, isactive, created_at, updated_at
+            `;
+            values.push(user_id);
+
+            const { rows } = await pool.query(sql, values);
+            if (rows.length === 0) return null;
+
+            return User.fromEntity({
+                ...rows[0]
+            });
+        }
+
+        return null; // nothing to update
     }
+
+
+    async updateUserStatus(user_id, user_status) {
+        const fields = [];
+        const values = [];
+        let idx = 1;
+
+        // Step 1: Add status update if provided
+        if (user_status !== undefined) {
+            fields.push(`isactive = $${idx++}`);
+            values.push(user_status);
+        }
+
+        // Always update timestamp
+        fields.push(`updated_at = NOW()`);
+
+        // Step 2: Run update if fields exist
+        if (fields.length > 0) {
+            const sql = `
+                UPDATE users
+                SET ${fields.join(', ')}
+                WHERE user_id = $${idx}
+                RETURNING user_id, user_email, user_password, user_phone, user_role, isactive, created_at, updated_at
+            `;
+            values.push(user_id);
+
+            const { rows } = await pool.query(sql, values);
+            if (rows.length === 0) return null;
+
+            return User.fromEntity({
+                ...rows[0]
+            });
+        }
+
+        return null; // nothing to update
+    }
+
 
     async deactivateUser(user_id) {
-    const sql = `UPDATE users SET isactive=false, updated_at=NOW()
-                WHERE user_id=$1`;
-    const result = await pool.query(sql, [user_id]);
-    return result.rowCount > 0;
-    }
-
-    async filterUsers(filters={}, pagination={limit:10, offset:0}) { 
-        // Retrieves all users with optional filters and pagination 
-        let sql = `SELECT user_id, user_email, user_phone, user_role,
-                isactive, created_at, updated_at FROM users WHERE 1=1`; 
-        const values = []; 
-        if (filters.role) { 
-            values.push(filters.role); 
-            sql += ` AND user_role=$${values.length}`; 
-        } 
-        if (filters.isactive !== undefined) { 
-            values.push(filters.isactive); 
-            sql += ` AND isactive=$${values.length}`; 
-        } 
-        sql += ` LIMIT ${pagination.limit} OFFSET ${pagination.offset}`; 
-        const { rows } = await pool.query(sql, values); 
-        
-        return rows.map(row => new User(row)); 
-    }
-
-    async countUsers(filters={}) {
-        // Counts users based on optional filters
-        let sql = `SELECT COUNT(*) FROM users WHERE 1=1`;
+        const fields = [];
         const values = [];
-        if (filters.role) { values.push(filters.role); 
-            sql += ` AND user_role=$${values.length}`; 
+        let idx = 1;
+
+        // Step 1: Add deactivation
+        fields.push(`isactive = false`);
+
+        // Always update timestamp
+        fields.push(`updated_at = NOW()`);
+
+        // Step 2: Build SQL
+        const sql = `
+            UPDATE users
+            SET ${fields.join(', ')}
+            WHERE user_id = $${idx}
+            RETURNING user_id, user_email, user_password, user_phone, user_role, isactive, created_at, updated_at
+        `;
+        values.push(user_id);
+
+        // Step 3: Execute query
+        const { rows } = await pool.query(sql, values);
+        if (rows.length === 0) return null;
+
+        // Step 4: Return updated entity
+        return User.fromEntity({
+            ...rows[0]
+        });
+    }
+
+
+    async filterUsers(filters = {}, pagination = { limit: 10, offset: 0 }) {
+        const conditions = [];
+        const values = [];
+        let idx = 1;
+
+        // Step 1: Add filters dynamically
+        if (filters.role) {
+            conditions.push(`user_role = $${idx++}`);
+            values.push(filters.role);
         }
-        if (filters.isactive !== undefined) { 
-            values.push(filters.isactive); 
-            sql += ` AND isactive=$${values.length}`; 
+        if (filters.isactive !== undefined) {
+            conditions.push(`isactive = $${idx++}`);
+            values.push(filters.isactive);
         }
+
+        // Step 2: Build SQL with dynamic conditions
+        let sql = `
+            SELECT user_id, user_email, user_password, user_phone, user_role, isactive, created_at, updated_at
+            FROM users
+            WHERE 1=1
+        `;
+        if (conditions.length > 0) {
+            sql += ` AND ${conditions.join(' AND ')}`;
+        }
+        sql += ` ORDER BY created_at DESC LIMIT ${pagination.limit} OFFSET ${pagination.offset}`;
+
+        // Step 3: Execute query
+        const { rows: userRows } = await pool.query(sql, values);
+
+        // Step 4: Return entities
+        return userRows.map(row => User.fromEntity({ ...row }));
+    }
+
+
+    async countUsers(filters = {}) {
+        const conditions = [];
+        const values = [];
+        let idx = 1;
+
+        // Step 1: Add filters dynamically
+        if (filters.role) {
+            conditions.push(`user_role = $${idx++}`);
+            values.push(filters.role);
+        }
+        if (filters.isactive !== undefined) {
+            conditions.push(`isactive = $${idx++}`);
+            values.push(filters.isactive);
+        }
+
+        // Step 2: Build SQL with dynamic conditions
+        let sql = `SELECT COUNT(*) FROM users WHERE 1=1`;
+        if (conditions.length > 0) {
+            sql += ` AND ${conditions.join(' AND ')}`;
+        }
+
+        // Step 3: Execute query
         const { rows } = await pool.query(sql, values);
 
+        // Step 4: Return count
         return parseInt(rows[0].count, 10);
     }
 }

@@ -14,4 +14,32 @@ export class User {
         this.created_at = created_at;
         this.updated_at = updated_at;    
     }
+
+    // Static factory method
+    static fromEntity(raw) {
+        return new User({
+            user_id: raw.user_id,
+            user_email: raw.user_email,
+            user_password: raw.user_password,
+            user_phone: raw.user_phone,
+            user_role: raw.user_role,
+            isactive: raw.isactive,
+            created_at: raw.created_at,
+            updated_at: raw.updated_at
+        });
+    }
+
+    // Expose a DTO for controllers
+    toDTO() {
+        return {
+            user_id: this.user_id,
+            user_email: this.user_email,
+            user_password: this.user_password,
+            user_phone: this.user_phone,
+            user_role: this.user_role,
+            isactive: this.isactive,
+            created_at: this.created_at,
+            updated_at: this.updated_at
+        };
+    }
 }
