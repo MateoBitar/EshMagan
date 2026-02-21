@@ -36,4 +36,15 @@ export class AdminService {
             throw new Error(`Failed to create admin: ${err.message}`);
         }
     }
+
+    async getAllAdmins() {
+        try {
+            const admins = await this.adminRepository.getAllAdmins();
+
+            // Hydrate each raw record into an Admin entity
+            return admins.map(raw => Admin.fromEntity(raw));
+        } catch (err) {
+            throw new Error(`Failed to fetch admins: ${err.message}`);
+        }
+    }
 }
