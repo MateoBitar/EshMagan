@@ -18,9 +18,7 @@ export class UserRepository {
         const userValues = [user_id, user_email, user_password, user_phone, user_role, true];
         const { rows: userRows } = await pool.query(userSql, userValues);
 
-        return User.fromEntity({
-            ...userRows[0] 
-        });
+        return User.fromEntity(userRows[0]);
     }
 
     async getAllUsers() {
@@ -32,17 +30,11 @@ export class UserRepository {
                 ORDER BY created_at DESC 
         `; 
         const { rows } = await pool.query(sql); 
-        if (rows.length === 0) return []; 
-
-        return rows.map(row => User.fromEntity({
-            user_id: row.user_id,
-            user_email: row.user_email,
-            user_phone: row.user_phone,
-            user_role: row.user_role,
-            isactive: row.isactive,
-            created_at: row.created_at,
-            updated_at: row.updated_at 
-        }));
+        if (rows.length === 0) {
+            return []; // No users found
+        }
+                
+        return rows.map(row => User.fromEntity(row));
     }
 
     async getUserById(user_id) { 
@@ -54,18 +46,11 @@ export class UserRepository {
                 WHERE user_id=$1
         `; 
         const { rows } = await pool.query(sql, [user_id]); 
-        if (rows.length === 0) return [];
-
-        const row = rows[0];
-        return User.fromEntity({
-            user_id: row.user_id,
-            user_email: row.user_email,
-            user_phone: row.user_phone,
-            user_role: row.user_role,
-            isactive: row.isactive,
-            created_at: row.created_at,
-            updated_at: row.updated_at 
-        });   
+        if (rows.length === 0) {
+            return []; // No users found
+        }
+                
+        return rows.map(row => User.fromEntity(row));
     }
 
     async getUserByEmail(user_email) { 
@@ -77,18 +62,11 @@ export class UserRepository {
                 WHERE user_email=$1
         `; 
         const { rows } = await pool.query(sql, [user_email]); 
-        if (rows.length === 0) return null;
-
-        const row = rows[0];
-        return User.fromEntity({
-            user_id: row.user_id,
-            user_email: row.user_email,
-            user_phone: row.user_phone,
-            user_role: row.user_role,
-            isactive: row.isactive,
-            created_at: row.created_at,
-            updated_at: row.updated_at 
-        });   
+        if (rows.length === 0) {
+            return []; // No users found
+        }
+                
+        return rows.map(row => User.fromEntity(row));
     }
 
     async getUserByPhone(user_phone) { 
@@ -100,18 +78,11 @@ export class UserRepository {
                 WHERE user_phone=$1
         `;
         const { rows } = await pool.query(sql, [user_phone]); 
-        if (rows.length === 0) return null;
-
-        const row = rows[0];
-        return User.fromEntity({
-            user_id: row.user_id,
-            user_email: row.user_email,
-            user_phone: row.user_phone,
-            user_role: row.user_role,
-            isactive: row.isactive,
-            created_at: row.created_at,
-            updated_at: row.updated_at 
-        });  
+        if (rows.length === 0) {
+            return []; // No users found
+        }
+                
+        return rows.map(row => User.fromEntity(row));
     }
 
     async getUsersByRole(user_role) {
@@ -123,18 +94,11 @@ export class UserRepository {
                 WHERE user_role=$1
         `;
         const { rows } = await pool.query(sql, [user_role]);
-        if (rows.length === 0) return null;
-
-        const row = rows[0];
-        return User.fromEntity({
-            user_id: row.user_id,
-            user_email: row.user_email,
-            user_phone: row.user_phone,
-            user_role: row.user_role,
-            isactive: row.isactive,
-            created_at: row.created_at,
-            updated_at: row.updated_at 
-        });
+        if (rows.length === 0) {
+            return []; // No users found
+        }
+                
+        return rows.map(row => User.fromEntity(row));
     }
 
     async getActiveUsers() {
@@ -146,18 +110,11 @@ export class UserRepository {
                 WHERE isactive=true
         `;
         const { rows } = await pool.query(sql);
-        if (rows.length === 0) return null;
-
-        const row = rows[0];
-        return User.fromEntity({
-            user_id: row.user_id,
-            user_email: row.user_email,
-            user_phone: row.user_phone,
-            user_role: row.user_role,
-            isactive: row.isactive,
-            created_at: row.created_at,
-            updated_at: row.updated_at 
-        });
+        if (rows.length === 0) {
+            return []; // No users found
+        }
+                
+        return rows.map(row => User.fromEntity(row));
     }
 
     async getInActiveUsers() {
@@ -168,18 +125,11 @@ export class UserRepository {
                 FROM users 
                 WHERE isactive=false`;
         const { rows } = await pool.query(sql);
-        if (rows.length === 0) return null;
-
-        const row = rows[0];
-        return User.fromEntity({
-            user_id: row.user_id,
-            user_email: row.user_email,
-            user_phone: row.user_phone,
-            user_role: row.user_role,
-            isactive: row.isactive,
-            created_at: row.created_at,
-            updated_at: row.updated_at 
-        });
+        if (rows.length === 0) {
+            return []; // No users found
+        }
+                
+        return rows.map(row => User.fromEntity(row));
     }
 
     async updateUser(user_id, data) {
@@ -219,11 +169,11 @@ export class UserRepository {
             values.push(user_id);
 
             const { rows } = await pool.query(sql, values);
-            if (rows.length === 0) return null;
-
-            return User.fromEntity({
-                ...rows[0]
-            });
+            if (rows.length === 0) {
+                return []; // No users found
+            }
+                
+            return rows.map(row => User.fromEntity(row));
         }
 
         return null; // nothing to update
@@ -255,11 +205,11 @@ export class UserRepository {
             values.push(user_id);
 
             const { rows } = await pool.query(sql, values);
-            if (rows.length === 0) return null;
-
-            return User.fromEntity({
-                ...rows[0]
-            });
+            if (rows.length === 0) {
+                return []; // No users found
+            }
+                
+            return rows.map(row => User.fromEntity(row));
         }
 
         return null; // nothing to update
@@ -291,11 +241,11 @@ export class UserRepository {
             values.push(user_id);
 
             const { rows } = await pool.query(sql, values);
-            if (rows.length === 0) return null;
-
-            return User.fromEntity({
-                ...rows[0]
-            });
+            if (rows.length === 0) {
+                return []; // No users found
+            }
+                
+            return rows.map(row => User.fromEntity(row));
         }
 
         return null; // nothing to update
@@ -324,12 +274,11 @@ export class UserRepository {
 
         // Step 3: Execute query
         const { rows } = await pool.query(sql, values);
-        if (rows.length === 0) return null;
-
-        // Step 4: Return updated entity
-        return User.fromEntity({
-            ...rows[0]
-        });
+        if (rows.length === 0) {
+                return []; // No users found
+            }
+                
+        return rows.map(row => User.fromEntity(row));
     }
 
 
@@ -362,8 +311,8 @@ export class UserRepository {
         // Step 3: Execute query
         const { rows: userRows } = await pool.query(sql, values);
 
-        // Step 4: Return entities
-        return userRows.map(row => User.fromEntity({ ...row }));
+        // Step 4: Return entities 
+        return rows.map(row => User.fromEntity(row));
     }
 
 
