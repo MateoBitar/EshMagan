@@ -88,6 +88,17 @@ export const responderResolvers = {
         throw new Error(`GraphQL Error - getResponderByPhone: ${err.message}`);
       }
     },
+
+    // Fetch nearest responder to a fire location
+    getNearestResponder: async (_, { fire_location }, { dataSources }) => {
+      try {
+        const responder = await dataSources.responderService.getNearestResponder(fire_location);
+        if (!responder) throw new Error(`No responder found near fire location`);
+        return responder;
+      } catch (err) {
+        throw new Error(`GraphQL Error - getNearestResponder: ${err.message}`);
+      }
+    },
   },
 
   Mutation: {
@@ -108,6 +119,28 @@ export const responderResolvers = {
         return updated;
       } catch (err) {
         throw new Error(`GraphQL Error - updateResponder: ${err.message}`);
+      }
+    },
+
+    // Update responder status
+    updateResponderStatus: async (_, { responder_id, responder_status }, { dataSources }) => {
+      try {
+        const updated = await dataSources.responderService.updateResponderStatus(responder_id, responder_status);
+        if (!updated) throw new Error(`Responder with ID ${responder_id} not found`);
+        return updated;
+      } catch (err) {
+        throw new Error(`GraphQL Error - updateResponderStatus: ${err.message}`);
+      }
+    },
+
+    // Update responder location
+    updateResponderLocation: async (_, { responder_id, latitude, longitude }, { dataSources }) => {
+      try {
+        const updated = await dataSources.responderService.updateResponderLocation(responder_id, latitude, longitude);
+        if (!updated) throw new Error(`Responder with ID ${responder_id} not found`);
+        return updated;
+      } catch (err) {
+        throw new Error(`GraphQL Error - updateResponderLocation: ${err.message}`);
       }
     },
 

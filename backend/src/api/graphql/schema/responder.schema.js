@@ -3,9 +3,6 @@
 import gql from 'graphql-tag';
 
 export const responderTypeDefs = gql`
-  # -----------------------------
-  # Types
-  # -----------------------------
   type Responder {
     responder_id: ID!
     unit_nb: String!
@@ -13,31 +10,22 @@ export const responderTypeDefs = gql`
     assigned_region: String!
     responder_status: String!
     last_known_location: String!
-    user: User!
-  }
-
-  type User {
-    user_id: ID!
     user_email: String!
-    user_phone: String
-    user_role: String!
-    isactive: Boolean!
-    created_at: String
-    # password intentionally excluded
+    user_phone: String!
   }
 
   # -----------------------------
   # Input Types
   # -----------------------------
   input CreateResponderInput {
-    user_email: String!
-    user_password: String!
-    user_phone: String
     unit_nb: String!
     unit_location: String!
     assigned_region: String!
     responder_status: String!
     last_known_location: String!
+    user_email: String!
+    user_password: String!
+    user_phone: String!
   }
 
   input UpdateResponderInput {
@@ -46,8 +34,6 @@ export const responderTypeDefs = gql`
     assigned_region: String
     responder_status: String
     last_known_location: String
-    user_email: String
-    user_phone: String
   }
 
   # -----------------------------
@@ -63,6 +49,7 @@ export const responderTypeDefs = gql`
     getRespondersByLastKnownLocation(last_known_location: String!): [Responder!]!
     getResponderByEmail(user_email: String!): Responder
     getResponderByPhone(user_phone: String!): Responder
+    getNearestResponder(fire_location: String!): Responder
   }
 
   # -----------------------------
@@ -71,6 +58,17 @@ export const responderTypeDefs = gql`
   extend type Mutation {
     createResponder(input: CreateResponderInput!): Responder!
     updateResponder(responder_id: ID!, input: UpdateResponderInput!): Responder
+    updateResponderStatus(responder_id: ID!, responder_status: String!): Responder
+    updateResponderLocation(responder_id: ID!, latitude: Float!, longitude: Float!): ResponderLocationUpdate
     deactivateResponder(responder_id: ID!): Boolean!
+  }
+
+  # -----------------------------
+  # Extra Types
+  # -----------------------------
+  type ResponderLocationUpdate {
+    responder_id: ID!
+    last_known_location: String!
+    updated_at: String!
   }
 `;
