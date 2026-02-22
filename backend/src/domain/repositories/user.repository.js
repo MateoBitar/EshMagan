@@ -266,8 +266,6 @@ export class UserRepository {
         return null; // nothing to update
     }
 
-<<<<<<< Updated upstream
-=======
     async updateLastLogin(user_id) {
         // Updates the last login timestamp for a user
         const sql = `
@@ -285,7 +283,6 @@ export class UserRepository {
         return User.fromEntity(rows[0]);
     }
 
->>>>>>> Stashed changes
     async deactivateUser(user_id) {
         const fields = [];
         const values = [];

@@ -426,4 +426,31 @@ export class FireService {
             throw new Error(`Failed to count fires: ${err.message}`);
         }
     }
+
+    // Find all residents located near a specific fire.
+    // radiusMeters defaults to 1km around the fire's location.
+    async findResidentsNearFire(fire_id, radiusMeters = 1000) {
+        try {
+            if (!fire_id) throw new Error("Missing required field: Fire ID");
+
+            // Step 1: Get fire location
+            const fire = await this.fireService.getFireById(fire_id);
+            if (!fire) throw new Error("Fire not found");
+
+            // Step 2: Parse coordinates from WKT string
+            const coords = this._parseWKTPoint(fire.fire_location);
+            if (!coords) throw new Error("Could not parse fire location coordinates");
+
+            // Step 3: Find residents within radius via repository
+            // residentRepository.getResidentsByLastKnownLocation does a ST_DWithin.
+            const residents = await this.residentRepository.getResidentsByLastKnownLocation({
+                latitude:  coords.latitude,
+                longitude: coords.longitude
+            });
+
+            return residents.map(r => r.toDTO ? r.toDTO() : r);
+        } catch (err) {
+            throw new Error(`Failed to find residents near fire: ${err.message}`);
+        }
+    }
 }

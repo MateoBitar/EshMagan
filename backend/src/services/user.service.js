@@ -161,7 +161,7 @@ export class UserService {
             // Deactivate user (soft delete)
             const deactivatedUser = await this.userRepository.deactivateUser(user_id);
             if (!deactivatedUser) return null; // Not found or inactive
-            return deactivatedUser.toDTO();
+            return deactivatedUser;
         } catch (err) {
             throw new Error(`Failed to deactivate user: ${err.message}`);
         }

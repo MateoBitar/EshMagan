@@ -1,8 +1,8 @@
 // src/services/evacuation.service.js
 
-import { Evacuation } from '../domain/entities/evacuation.repository.js';
+import { Evacuation } from '../domain/entities/evacuation.entity.js';
 
-class EvacuationService {
+export class EvacuationService {
     constructor(evacuationRepository) {
         this.evacuationRepository = evacuationRepository;
     }
