@@ -176,23 +176,19 @@ export class UserRepository {
         fields.push(`updated_at = NOW()`);
 
         // Only run update if there are fields to change
-        if (fields.length > 1) {
-            const sql = `
-                UPDATE users
-                SET ${fields.join(', ')}
-                WHERE user_id = $${idx}
-                RETURNING user_id, user_email, user_password, user_phone, user_role, isactive, created_at, updated_at
-            `;
-            values.push(user_id);
-
-            const { rows } = await pool.query(sql, values);
-            if (rows.length === 0) {
-                return null; // No user found
-            }
-                
-            return User.fromEntity(rows[0]);
+        if (fields.length > 0) { 
+            const sql = ` 
+                    UPDATE users SET ${fields.join(', ')} 
+                    WHERE user_id = $${idx} 
+                    RETURNING user_id, user_email, user_password, user_phone, 
+                              user_role, isactive, created_at, updated_at `; 
+            values.push(user_id); 
+            const { rows } = await pool.query(sql, values); 
+            if (rows.length === 0) { 
+                return null; // No user found 
+            } 
+            return User.fromEntity(rows[0]); 
         }
-
         return null; // nothing to update
     }
     
@@ -227,7 +223,6 @@ export class UserRepository {
                 
             return User.fromEntity(rows[0]);
         }
-
         return null; // nothing to update
     }
 

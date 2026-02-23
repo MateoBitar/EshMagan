@@ -227,7 +227,7 @@ export class FireRepository {
         fields.push(`updated_at = NOW()`);
 
         // Only run update if there are fields to change
-        if (fields.length > 1) {
+        if (fields.length > 0) {
             const sql = `
                 UPDATE fireevents
                 SET ${fields.join(', ')}
@@ -242,7 +242,7 @@ export class FireRepository {
 
             return FireEvent.fromEntity(rows[0]);
         }
-
+        
         return null; // nothing to update
     }
 

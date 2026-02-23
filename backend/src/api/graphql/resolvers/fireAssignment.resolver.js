@@ -88,14 +88,15 @@ export const fireAssignmentResolvers = {
     },
 
     // Update assignment status
-    updateAssignmentStatus: async (_, { assignment_id, status }, { dataSources }) => {
-      try {
-        const updated = await dataSources.fireAssignmentService.updateAssignmentStatus(assignment_id, status);
-        if (!updated) throw new Error(`Assignment with ID ${assignment_id} not found`);
-        return updated;
-      } catch (err) {
-        throw new Error(`GraphQL Error - updateAssignmentStatus: ${err.message}`);
-      }
+    updateAssignmentStatus: async (_, { input }, { dataSources }) => { 
+      try { 
+        const updated = await dataSources.fireAssignmentService.updateAssignmentStatus( input.assignment_id, input.status );
+        if (!updated) 
+          throw new Error(`Assignment with ID ${input.assignment_id} not found`); 
+        return updated; 
+      } catch (err) { 
+        throw new Error(`GraphQL Error - updateAssignmentStatus: ${err.message}`); 
+      } 
     },
 
     // Delete assignment
