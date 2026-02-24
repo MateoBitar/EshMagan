@@ -141,4 +141,12 @@ CREATE TABLE public.notifications (
     CONSTRAINT notification_target_role_check CHECK (((target_role)::text = ANY ((ARRAY['Resident'::character varying, 'Responder'::character varying, 'Municipality'::character varying, 'Admin'::character varying])::text[])))
 );
 
+-- Token 
+CREATE TABLE refresh_tokens (
+    id         SERIAL PRIMARY KEY,
+    user_id    VARCHAR REFERENCES users(user_id),
+    token      TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
 -- End of script

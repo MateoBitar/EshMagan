@@ -1,11 +1,12 @@
 // src/services/auth.service.js
 
 import { hashPassword, comparePassword } from '../utils/hash.utils.js';
-import { generateToken } from '../utils/jwt.utils.js';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt.utils.js';
 
 export class AuthService {
-    constructor(userRepository) {
-        this.userRepository = userRepository;
+    constructor(userRepository, refreshTokenRepository) {
+        this.userRepository         = userRepository;
+        this.refreshTokenRepository = refreshTokenRepository;
     }
 
     async register(data) {
@@ -48,21 +49,82 @@ export class AuthService {
             const isMatch = await comparePassword(user_password, user.user_password);
             if (!isMatch) throw new Error("Invalid credentials");
 
-            // Step 3: Generate JWT
-            const token = generateToken({
-                user_id:   user.user_id,
-                user_role: user.user_role
-            });
+            // Step 3: Generate both tokens
+            const tokenPayload = { user_id: user.user_id, user_role: user.user_role };
+            const accessToken  = generateAccessToken(tokenPayload);
+            const refreshToken = generateRefreshToken(tokenPayload);
 
-            // Step 4: Update last login timestamp
+            // Step 4: Save refresh token to DB
+            await this.refreshTokenRepository.saveToken(user.user_id, refreshToken);
+
+            // Step 5: Update last login timestamp
             await this.userRepository.updateLastLogin(user.user_id);
 
             return {
-                token,
+                accessToken,
+                refreshToken,
                 user: user.toDTO()
             };
         } catch (err) {
             throw new Error(`Login failed: ${err.message}`);
+        }
+    }
+
+    // Called when the access token expires (every 15 minutes).
+    // Validates the refresh token against the DB, rotates it,
+    // and returns a fresh access token + new refresh token.
+    // The user never needs to log in again unless they explicitly log out.
+    async refreshToken(token) {
+        try {
+            if (!token) throw new Error("Missing required field: Refresh Token");
+
+            // Step 1: Verify token signature
+            const payload = verifyRefreshToken(token);
+
+            // Step 2: Check token exists in DB (not logged out)
+            const stored = await this.refreshTokenRepository.findToken(token);
+            if (!stored) throw new Error("Refresh token not found — please log in again");
+
+            // Step 3: Delete old token (rotation — invalidate after one use)
+            await this.refreshTokenRepository.deleteToken(token);
+
+            // Step 4: Issue new tokens
+            const tokenPayload    = { user_id: payload.user_id, user_role: payload.user_role };
+            const newAccessToken  = generateAccessToken(tokenPayload);
+            const newRefreshToken = generateRefreshToken(tokenPayload);
+
+            // Step 5: Save new refresh token to DB
+            await this.refreshTokenRepository.saveToken(payload.user_id, newRefreshToken);
+
+            return {
+                accessToken:  newAccessToken,
+                refreshToken: newRefreshToken
+            };
+        } catch (err) {
+            throw new Error(`Token refresh failed: ${err.message}`);
+        }
+    }
+
+    // Ends the session by deleting the refresh token from DB.
+    // The access token will naturally expire in 15 minutes.
+    async logout(token) {
+        try {
+            if (!token) throw new Error("Missing required field: Refresh Token");
+            await this.refreshTokenRepository.deleteToken(token);
+            return true;
+        } catch (err) {
+            throw new Error(`Logout failed: ${err.message}`);
+        }
+    }
+
+    // Logs out from ALL devices by deleting every refresh token for the user.
+    async logoutAll(user_id) {
+        try {
+            if (!user_id) throw new Error("Missing required field: User ID");
+            await this.refreshTokenRepository.deleteAllTokensForUser(user_id);
+            return true;
+        } catch (err) {
+            throw new Error(`Logout all failed: ${err.message}`);
         }
     }
 
@@ -82,6 +144,9 @@ export class AuthService {
             // Step 3: Hash and store new password
             const hashedPassword = await hashPassword(new_password);
             await this.userRepository.updateUser(user_id, { user_password: hashedPassword });
+
+            // Step 4: Force logout from all devices — all refresh tokens invalidated
+            await this.refreshTokenRepository.deleteAllTokensForUser(user_id);
 
             return true;
         } catch (err) {
