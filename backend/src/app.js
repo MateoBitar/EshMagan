@@ -1,30 +1,45 @@
-// src/app.js
-import express from "express";
-import cors from "cors";
-import morgan from "morgan";
+import express from 'express';
+import cors from 'cors';
+import morgan from 'morgan';
+import { expressMiddleware } from '@apollo/server/express4';
+
+import pool from './config/db.js';
+import restRouter from './api/rest/index.js';
+import { createApolloServer } from './api/graphql/index.js';
 
 const app = express();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(morgan("dev"));
+app.use(morgan('dev'));
 
-// Basic route (health check)
-app.get("/", (req, res) => {
-  res.send("Wildfire backend is running smoothly!");
+// Health
+app.get('/', (req, res) => {
+  res.send('Wildfire backend is running smoothly!');
 });
 
-import pool from "./config/db.js";
-
-app.get("/db-test", async (req, res) => {
+// DB Test
+app.get('/db-test', async (req, res) => {
   try {
-    const result = await pool.query("SELECT NOW()");
+    const result = await pool.query('SELECT NOW()');
     res.json({ time: result.rows[0].now });
   } catch (err) {
-    console.error(err);
-    res.status(500).send("Database error");
+    res.status(500).send('Database error');
   }
 });
+
+// REST
+app.use('/auth', restRouter);
+
+// GRAPHQL
+const { server, buildContext } = await createApolloServer();
+
+app.use(
+  '/eshmagan',
+  expressMiddleware(server, {
+    context: buildContext,
+  })
+);
 
 export default app;
