@@ -17,7 +17,7 @@ export class AuthController {
     }
 
     // POST /api/auth/register
-    // Creates a new user account (no token issued — user must login after)
+    // Creates a new user account (no token issued, user must login after)
     register = async (req, res) => {
         try {
             if (!this._validate(req, res)) return;
@@ -76,7 +76,7 @@ export class AuthController {
     };
 
     // POST /api/auth/logout
-    // Deletes the refresh token from DB — ends the session
+    // Deletes the refresh token from DB, ends the session
     logout = async (req, res) => {
         try {
             if (!this._validate(req, res)) return;
@@ -93,7 +93,7 @@ export class AuthController {
     };
 
     // POST /api/auth/logout-all
-    // Deletes ALL refresh tokens for the user — logs out from every device
+    // Deletes ALL refresh tokens for the user, logs out from every device
     logoutAll = async (req, res) => {
         try {
             const user_id = req.user?.user_id;
@@ -107,7 +107,7 @@ export class AuthController {
     };
 
     // POST /api/auth/change-password
-    // Requires valid access token — changes password and invalidates all sessions
+    // Requires valid access token, changes password and invalidates all sessions
     changePassword = async (req, res) => {
         try {
             if (!this._validate(req, res)) return;
