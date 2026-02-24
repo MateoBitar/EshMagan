@@ -10,7 +10,7 @@ export const fireTypeDefs = gql`
     fire_id: ID!
     fire_source: String!
     fire_location: String!   # Stored as WKT POINT string
-    fire_severitylevel: String
+    fire_severitylevel: Int
     is_extinguished: Boolean!
     is_verified: Boolean!
     spread_prediction: String
@@ -24,7 +24,7 @@ export const fireTypeDefs = gql`
   input CreateFireInput {
     fire_source: String!
     fire_location: String!   # WKT POINT format: "POINT(lng lat)"
-    fire_severitylevel: String
+    fire_severitylevel: Int
     is_extinguished: Boolean = false
     is_verified: Boolean = false
   }
@@ -32,7 +32,7 @@ export const fireTypeDefs = gql`
   input UpdateFireInput {
     fire_source: String
     fire_location: String
-    fire_severitylevel: String
+    fire_severitylevel: Int
     is_extinguished: Boolean
     is_verified: Boolean
     spread_prediction: String
@@ -54,6 +54,7 @@ export const fireTypeDefs = gql`
     getFireStatistics(startDate: String!, endDate: String!): FireStatistics
     getFiresByLocationAndTime(lat: Float!, lng: Float!, startDate: String!, endDate: String!, radiusMeters: Int): [Fire!]!
     countFires(filters: FireFilterInput): Int!
+    findResidentsNearFire(fire_id: ID!, radiusMeters: Int): [Resident!]! }
   }
 
   # -----------------------------
@@ -63,9 +64,13 @@ export const fireTypeDefs = gql`
     createFire(input: CreateFireInput!): Fire!
     updateFire(fire_id: ID!, input: UpdateFireInput!): Fire
     updateFireStatus(fire_id: ID!, fire_status: Boolean!): Fire
-    updateFireSeverity(fire_id: ID!, severityLevel: String!): Fire
+    updateFireSeverity(fire_id: ID!, severityLevel: Int!): Fire
     updateFireSpreadPrediction(fire_id: ID!, spreadPrediction: String!): Fire
     deleteFire(fire_id: ID!): Boolean!
+    createFireAndTriggerSystem(input: CreateFireInput!): Fire! 
+    verifyFire(fire_id: ID!): Fire 
+    extinguishFire(fire_id: ID!): Fire 
+    dispatchClosestResponder(fire_id: ID!): FireAssignment
   }
 
   # -----------------------------
@@ -80,6 +85,6 @@ export const fireTypeDefs = gql`
   input FireFilterInput {
     is_extinguished: Boolean
     is_verified: Boolean
-    fire_severitylevel: String
+    fire_severitylevel: Int
   }
 `;

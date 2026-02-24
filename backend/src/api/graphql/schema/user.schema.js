@@ -14,6 +14,7 @@ export const userTypeDefs = gql`
     isactive: Boolean!
     created_at: String
     updated_at: String
+    last_login: String
   }
 
   # -----------------------------
@@ -57,7 +58,8 @@ export const userTypeDefs = gql`
     updateUser(user_id: ID!, input: UpdateUserInput!): User
     updateUserRole(user_id: ID!, user_role: String!): User
     updateUserStatus(user_id: ID!, user_status: Boolean!): User
-    deactivateUser(user_id: ID!): User
+    updateLastLogin(user_id: ID!): User
+    deactivateUser(user_id: ID!): Boolean!   # <-- corrected
   }
 
   # -----------------------------

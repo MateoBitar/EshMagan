@@ -144,15 +144,23 @@ export const userResolvers = {
       }
     },
 
-    // Deactivate user
-    deactivateUser: async (_, { user_id }, { dataSources }) => {
+    updateLastLogin: async (_, { user_id }, { dataSources }) => {
       try {
-        const result = await dataSources.userService.deactivateUser(user_id);
-        if (!result) throw new Error(`Failed to deactivate user with ID ${user_id}`);
-        return result;
+        const updated = await dataSources.userService.updateLastLogin(user_id);
+        if (!updated) throw new Error(`User with ID ${user_id} not found`);
+        return updated;
       } catch (err) {
-        throw new Error(`GraphQL Error - deactivateUser: ${err.message}`);
+        throw new Error(`GraphQL Error - updateLastLogin: ${err.message}`);
       }
+    },
+
+    // Deactivate user
+    deactivateUser: async (_, { user_id }, { dataSources }) => { 
+      try { 
+        return await dataSources.userService.deactivateUser(user_id); 
+      } catch (err) { 
+        throw new Error(`GraphQL Error - deactivateUser: ${err.message}`); 
+      } 
     },
   },
 };

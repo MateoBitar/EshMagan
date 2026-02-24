@@ -111,6 +111,15 @@ export const fireResolvers = {
         throw new Error(`GraphQL Error - countFires: ${err.message}`);
       }
     },
+
+    // Find residents near fire
+    findResidentsNearFire: async (_, { fire_id, radiusMeters }, { dataSources }) => {
+      try {
+        return await dataSources.fireService.findResidentsNearFire(fire_id, radiusMeters);
+      } catch (err) {
+        throw new Error(`GraphQL Error - findResidentsNearFire: ${err.message}`);
+      }
+    },
   },
 
   Mutation: {
@@ -120,6 +129,15 @@ export const fireResolvers = {
         return await dataSources.fireService.createFire(input);
       } catch (err) {
         throw new Error(`GraphQL Error - createFire: ${err.message}`);
+      }
+    },
+
+    // Create fire and trigger full system orchestration 
+    createFireAndTriggerSystem: async (_, { input }, { dataSources }) => {
+      try {
+        return await dataSources.fireService.createFireAndTriggerSystem(input);
+      } catch (err) {
+        throw new Error(`GraphQL Error - createFireAndTriggerSystem: ${err.message}`);
       }
     },
 
@@ -175,6 +193,39 @@ export const fireResolvers = {
         return result;
       } catch (err) {
         throw new Error(`GraphQL Error - deleteFire: ${err.message}`);
+      }
+    },
+
+    // Verify fire
+    verifyFire: async (_, { fire_id }, { dataSources }) => {
+      try {
+        const fire = await dataSources.fireService.verifyFire(fire_id);
+        if (!fire) throw new Error(`Fire with ID ${fire_id} not found`);
+        return fire;
+      } catch (err) {
+        throw new Error(`GraphQL Error - verifyFire: ${err.message}`);
+      }
+    },
+
+    // Extinguish fire
+    extinguishFire: async (_, { fire_id }, { dataSources }) => {
+      try {
+        const fire = await dataSources.fireService.extinguishFire(fire_id);
+        if (!fire) throw new Error(`Fire with ID ${fire_id} not found`);
+        return fire;
+      } catch (err) {
+        throw new Error(`GraphQL Error - extinguishFire: ${err.message}`);
+      }
+    },
+
+    // Dispatch closest responder
+    dispatchClosestResponder: async (_, { fire_id }, { dataSources }) => {
+      try {
+        const assignment = await dataSources.fireService.dispatchClosestResponder(fire_id);
+        if (!assignment) throw new Error(`Failed to dispatch responder for fire ${fire_id}`);
+        return assignment;
+      } catch (err) {
+        throw new Error(`GraphQL Error - dispatchClosestResponder: ${err.message}`);
       }
     },
   },
