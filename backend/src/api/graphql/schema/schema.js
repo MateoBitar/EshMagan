@@ -9,6 +9,8 @@ import { evacuationTypeDefs } from './evacuation.schema.js';
 import { userTypeDefs } from './user.schema.js';
 import { fireTypeDefs } from './fire.schema.js';
 import { fireAssignmentTypeDefs } from './fireAssignment.schema.js';
+import { alertTypeDefs } from './alert.schema.js';
+import { notificationTypeDefs } from './notification.schema.js';
 
 // Root types must exist so that "extend type Query/Mutation" in each schema works
 export const rootTypeDefs = gql`
@@ -27,4 +29,6 @@ export const typeDefs = [
   userTypeDefs,
   fireTypeDefs,
   fireAssignmentTypeDefs,
+  alertTypeDefs,
+  notificationTypeDefs,
 ];

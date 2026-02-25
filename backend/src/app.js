@@ -30,7 +30,7 @@ app.get('/db-test', async (req, res) => {
 });
 
 // REST
-app.use('/auth', restRouter);
+app.use('/api', restRouter);
 
 // GRAPHQL
 const { server, buildContext } = await createApolloServer();
