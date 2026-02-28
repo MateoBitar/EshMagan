@@ -144,16 +144,6 @@ export const userResolvers = {
       }
     },
 
-    updateLastLogin: async (_, { user_id }, { dataSources }) => {
-      try {
-        const updated = await dataSources.userService.updateLastLogin(user_id);
-        if (!updated) throw new Error(`User with ID ${user_id} not found`);
-        return updated;
-      } catch (err) {
-        throw new Error(`GraphQL Error - updateLastLogin: ${err.message}`);
-      }
-    },
-
     // Deactivate user
     deactivateUser: async (_, { user_id }, { dataSources }) => { 
       try { 

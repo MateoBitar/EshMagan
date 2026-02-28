@@ -15,16 +15,6 @@ export const municipalityTypeDefs = gql`
     user: User!
   }
 
-  type User {
-    user_id: ID!
-    user_email: String!
-    user_phone: String
-    user_role: String!
-    isactive: Boolean!
-    created_at: String
-    # password intentionally excluded
-  }
-
   # -----------------------------
   # Input Types
   # -----------------------------

@@ -10,8 +10,7 @@ export const responderTypeDefs = gql`
     assigned_region: String!
     responder_status: String!
     last_known_location: String!
-    user_email: String!
-    user_phone: String!
+    user: User!
   }
 
   # -----------------------------
