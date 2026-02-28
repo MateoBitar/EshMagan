@@ -13,7 +13,7 @@ export class UserRepository {
         const userSql = `
                     INSERT INTO users (user_id, user_email, user_password,
                                        user_phone, user_role, isactive, created_at, updated_at)
-                    VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) 
+                    VALUES ($1, $2, $3, $4, $5, $6, NOW(), null) 
                     RETURNING *;
         `;
         const userValues = [user_id, user_email, user_password, user_phone, user_role, true];

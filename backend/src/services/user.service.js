@@ -1,6 +1,7 @@
 // src/services/user.service.js
 
 import { User } from '../domain/entities/user.entity.js';
+import { hashPassword } from '../utils/hash.utils.js';
 
 export class UserService {
     constructor(userRepository) {
@@ -18,10 +19,12 @@ export class UserService {
             const existing = await this.userRepository.getUserByEmail(data.user_email);
             if (existing) throw new Error("A user with this email already exists");
 
+            const hashedPassword = await hashPassword(data.user_password);
+
             // Step 1: Build User entity
             const user = new User({
                 user_email: data.user_email,
-                user_password: data.user_password,
+                user_password: hashedPassword,
                 user_phone: data.user_phone,
                 user_role: data.user_role || 'user',
                 isactive: data.isactive !== undefined ? data.isactive : true
