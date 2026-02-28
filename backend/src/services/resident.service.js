@@ -23,7 +23,7 @@ export class ResidentService {
                 user_email: data.user_email,
                 user_password: data.user_password,
                 user_phone: data.user_phone,
-                user_role: 'resident',
+                user_role: 'Resident',
                 isactive: true
             });
 
