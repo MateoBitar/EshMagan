@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/MateoBitar/EshMagan#readme",
   "dependencies": {
-    "@apollo/server": "^5.4.0",
+    "@apollo/server": "^4.13.0",
     "@grpc/grpc-js": "^1.14.3",
     "@grpc/proto-loader": "^0.8.0",
     "bcrypt": "^6.0.0",

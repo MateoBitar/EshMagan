@@ -3,8 +3,8 @@ import cors from 'cors';
 import morgan from 'morgan';
 import { expressMiddleware } from '@apollo/server/express4';
 
-import pool from './config/db.js';
-import restRouter from './api/rest/index.js';
+import { pool } from './config/db.js';
+import restRouter from './api/rest/routes/index.js';
 import { createApolloServer } from './api/graphql/index.js';
 
 const app = express();

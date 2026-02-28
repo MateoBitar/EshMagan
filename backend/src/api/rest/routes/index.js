@@ -1,7 +1,7 @@
 // src/api/rest/index.js
 
 import { Router } from 'express';
-import { authRoutes } from './routes/auth.routes.js';
+import { authRoutes } from './auth.routes.js';
 
 const restRouter = Router();
 
