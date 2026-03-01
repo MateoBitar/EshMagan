@@ -23,6 +23,7 @@ import { FireRepository }           from '../../domain/repositories/fire.reposit
 import { FireAssignmentRepository } from '../../domain/repositories/fireAssignment.repository.js';
 import { AlertRepository }          from '../../domain/repositories/alert.repository.js';
 import { NotificationRepository }   from '../../domain/repositories/notification.repository.js';
+import { natsPublisher }            from '../../events/publishers/nats.publisher.js';
 
 // Engine / NATS stubs
 // These will be replaced with real implementations when those layers are built.
@@ -30,7 +31,6 @@ import { NotificationRepository }   from '../../domain/repositories/notification
 const infraredEngine      = { analyze:  async () => null };
 const firePredictionEngine = { predict:  async () => null };
 const fireSpreadEngine    = { spread:   async () => null };
-const natsPublisher       = { publish:  async () => null };
 
 // Context Builder
 // Called on every GraphQL request by Apollo.

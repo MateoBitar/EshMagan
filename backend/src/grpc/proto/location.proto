@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package location;
+
+// Request to update last known location
+message LocationUpdateRequest { 
+    string entity_id = 1; // ID of responder, resident, or fire 
+    double latitude = 2; 
+    double longitude = 3; 
+    string entity_type = 4; // "Responder", "Resident", "Fire" 
+}
+
+// Response after update
+message LocationUpdateResponse { 
+    string entity_id = 1; 
+    string last_known_location = 2; 
+    string updated_at = 3; 
+}
+
+// Streaming message for real-time updates
+message LocationStream {
+  string entity_id = 1;
+  double latitude = 2;
+  double longitude = 3;
+  string timestamp = 4;
+}
+
+// Service definition
+service LocationService {
+  rpc UpdateLocation(LocationUpdateRequest) returns (LocationUpdateResponse);
+  rpc StreamLocations(LocationUpdateRequest) returns (stream LocationStream);
+}

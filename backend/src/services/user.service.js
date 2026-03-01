@@ -26,7 +26,7 @@ export class UserService {
                 user_email: data.user_email,
                 user_password: hashedPassword,
                 user_phone: data.user_phone,
-                user_role: data.user_role || 'user',
+                user_role: data.user_role || 'Resident',
                 isactive: data.isactive !== undefined ? data.isactive : true
             });
 
