@@ -10,20 +10,33 @@ export class AdminService {
 
     async createAdmin(data) {
         try {
-            // Admin-specific checks
             if (!data.admin_fname) throw new Error("Missing required field: Admin First Name");
             if (!data.admin_lname) throw new Error("Missing required field: Admin Last Name");
 
-            // Step 1: Create User via UserService
-            const user = await this.userService.createUser({
-                user_email: data.user_email,
-                user_password: data.user_password,
-                user_phone: data.user_phone,
-                user_role: 'Admin',
-                isactive: true
-            });
+            let user;
 
-            // Step 2: Create Admin entity linked to user_id
+            // Step 1: Try to find user by ID if provided
+            if (data.user_id) {
+                user = await this.userService.getUserById(data.user_id);
+            }
+
+            // Step 2: If not found by ID, check by email
+            if (!user && data.user_email) {
+                user = await this.userService.getUserByEmail(data.user_email);
+            }
+
+            // Step 3: If still not found, create new user
+            if (!user) {
+                user = await this.userService.createUser({
+                    user_email: data.user_email,
+                    user_password: data.user_password,
+                    user_phone: data.user_phone,
+                    user_role: 'Admin',
+                    isactive: true
+                });
+            }
+
+            // Step 4: Create Admin entity linked to user_id
             const admin = new Admin({
                 admin_id: user.user_id,
                 admin_fname: data.admin_fname,
@@ -31,7 +44,7 @@ export class AdminService {
                 user: user
             });
 
-            // Step 3: Persist via repository
+            // Step 5: Persist via repository
             const createdAdmin = await this.adminRepository.createAdmin(admin);
             return createdAdmin.toDTO();
         } catch (err) {

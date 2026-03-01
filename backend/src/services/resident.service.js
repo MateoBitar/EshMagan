@@ -18,16 +18,30 @@ export class ResidentService {
             if (!data.resident_idpic) throw new Error("Missing required field: Resident ID Picture");
             if (!data.last_known_location) throw new Error("Missing required field: Last Known Location");
 
-            // Step 1: Create User via UserService
-            const user = await this.userService.createUser({
-                user_email: data.user_email,
-                user_password: data.user_password,
-                user_phone: data.user_phone,
-                user_role: 'Resident',
-                isactive: true
-            });
+            let user;
 
-            // Step 2: Create Resident entity linked to user_id
+            // Step 1: Try to find user by ID if provided
+            if (data.user_id) {
+                user = await this.userService.getUserById(data.user_id);
+            }
+
+            // Step 2: If not found by ID, check by email
+            if (!user && data.user_email) {
+                user = await this.userService.getUserByEmail(data.user_email);
+            }
+
+            // Step 3: If still not found, create new user
+            if (!user) {
+                user = await this.userService.createUser({
+                    user_email: data.user_email,
+                    user_password: data.user_password,
+                    user_phone: data.user_phone,
+                    user_role: 'Resident',
+                    isactive: true
+                });
+            }
+
+            // Step 4: Create Resident entity linked to user_id
             const resident = new Resident({
                 resident_id: user.user_id,
                 resident_fname: data.resident_fname,
@@ -35,13 +49,13 @@ export class ResidentService {
                 resident_dob: data.resident_dob,
                 resident_idnb: data.resident_idnb,
                 resident_idpic: data.resident_idpic,
-                home_location: data.home_location || null, // optional fields
-                work_location: data.work_location || null, // optional fields
+                home_location: data.home_location || null,
+                work_location: data.work_location || null,
                 last_known_location: data.last_known_location,
                 user: user
             });
 
-            // Step 3: Persist via repository
+            // Step 5: Persist via repository
             const createdResident = await this.residentRepository.createResident(resident);
             return createdResident.toDTO();
         } catch (err) {

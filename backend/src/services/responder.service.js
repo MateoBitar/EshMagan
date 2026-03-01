@@ -10,23 +10,36 @@ export class ResponderService {
 
     async createResponder(data) {
         try {
-            // Responder-specific checks
             if (!data.unit_nb) throw new Error("Missing required field: Unit Number");
             if (!data.unit_location) throw new Error("Missing required field: Unit Location");
             if (!data.assigned_region) throw new Error("Missing required field: Assigned Region");
             if (!data.responder_status) throw new Error("Missing required field: Responder Status");
             if (!data.last_known_location) throw new Error("Missing required field: Last Known Location");
 
-            // Step 1: Create User via UserService
-            const user = await this.userService.createUser({
-                user_email: data.user_email,
-                user_password: data.user_password,
-                user_phone: data.user_phone,
-                user_role: 'Responder',
-                isactive: true
-            });
+            let user;
 
-            // Step 2: Create Responder entity linked to user_id
+            // Step 1: Try to find user by ID if provided
+            if (data.user_id) {
+                user = await this.userService.getUserById(data.user_id);
+            }
+
+            // Step 2: If not found by ID, check by email
+            if (!user && data.user_email) {
+                user = await this.userService.getUserByEmail(data.user_email);
+            }
+
+            // Step 3: If still not found, create new user
+            if (!user) {
+                user = await this.userService.createUser({
+                    user_email: data.user_email,
+                    user_password: data.user_password,
+                    user_phone: data.user_phone,
+                    user_role: 'Responder',
+                    isactive: true
+                });
+            }
+
+            // Step 4: Create Responder entity linked to user_id
             const responder = new Responder({
                 responder_id: user.user_id,
                 unit_nb: data.unit_nb,
@@ -37,7 +50,7 @@ export class ResponderService {
                 user: user
             });
 
-            // Step 3: Persist via repository
+            // Step 5: Persist via repository
             const createdResponder = await this.responderRepository.createResponder(responder);
             return createdResponder.toDTO();
         } catch (err) {
@@ -183,7 +196,7 @@ export class ResponderService {
 
     async updateResponderLocation(responder_id, latitude, longitude) {
         try {
-            if (latitude  === undefined || latitude  === null) throw new Error("Missing required field: Latitude");
+            if (latitude === undefined || latitude === null) throw new Error("Missing required field: Latitude");
             if (longitude === undefined || longitude === null) throw new Error("Missing required field: Longitude");
             // Returns bare { responder_id, last_known_location, updated_at } — not a full entity
             return await this.responderRepository.updateResponderLocation(responder_id, latitude, longitude);

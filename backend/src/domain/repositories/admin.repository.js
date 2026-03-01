@@ -7,24 +7,19 @@ import { UserRepository } from './user.repository.js';
 
 export class AdminRepository {
     async createAdmin(data) {
-        const { admin_fname, admin_lname, user } = data;
+        const { admin_id, admin_fname, admin_lname, user } = data;
 
-        // Step 1: Create the user first
-        const userRepository = new UserRepository();
-        const createdUser = await userRepository.createUser(user);
-
-        // Step 2: Create the admin with the user_id
         const adminSql = `
             INSERT INTO admins (admin_id, admin_fname, admin_lname)
             VALUES ($1, $2, $3)
             RETURNING admin_id, admin_fname, admin_lname
         `;
-        const adminValues = [createdUser.user_id, admin_fname, admin_lname];
+        const adminValues = [admin_id, admin_fname, admin_lname];
         const { rows: adminRows } = await pool.query(adminSql, adminValues);
 
         return Admin.fromEntity({
             ...adminRows[0],
-            user: createdUser
+            user: user
         });
     }
 

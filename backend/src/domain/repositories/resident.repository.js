@@ -41,21 +41,18 @@ function toResident(row, userEntity) {
 export class ResidentRepository {
     async createResident(data) {
         const {
+            resident_id, // comes from user.user_id
             resident_fname, resident_lname, resident_dob,
             resident_idnb, resident_idpic,
             home_location, work_location, last_known_location,
             user
         } = data;
 
-        // Step 1: Create the user first
-        const userRepository = new UserRepository();
-        const createdUser = await userRepository.createUser(user);
-
-        // Step 2: Encrypt sensitive fields before INSERT
+        // Step 1: Encrypt sensitive fields
         const encryptedIdNb  = encryption.encrypt(resident_idnb);
         const encryptedIdPic = encryption.encrypt(resident_idpic);
 
-        // Step 3: Insert resident
+        // Step 2: Insert resident
         const residentSql = `
             INSERT INTO residentdetails (
                 resident_id, resident_fname, resident_lname, resident_dob,
@@ -74,19 +71,23 @@ export class ResidentRepository {
                       ST_AsGeoJSON(last_known_location) AS last_known_location
         `;
         const residentValues = [
-            createdUser.user_id,
+            resident_id,
             resident_fname,
             resident_lname,
             resident_dob,
-            encryptedIdNb,   // encrypted
-            encryptedIdPic,  // encrypted
-            `POINT(${home_location.longitude} ${home_location.latitude})`,
-            `POINT(${work_location.longitude} ${work_location.latitude})`,
+            encryptedIdNb,
+            encryptedIdPic,
+            home_location ? `POINT(${home_location.longitude} ${home_location.latitude})` : null,
+            work_location ? `POINT(${work_location.longitude} ${work_location.latitude})` : null,
             `POINT(${last_known_location.longitude} ${last_known_location.latitude})`
         ];
 
         const { rows: residentRows } = await pool.query(residentSql, residentValues);
-        return toResident(residentRows[0], User.fromEntity(createdUser));
+
+        return Resident.fromEntity({
+            ...residentRows[0],
+            user: User.fromEntity(user)
+        });
     }
 
     async getAllResidents() {

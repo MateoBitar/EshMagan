@@ -10,22 +10,35 @@ export class MunicipalityService {
 
     async createMunicipality(data) {
         try {
-            // Municipality-specific checks
             if (!data.municipality_name) throw new Error("Missing required field: Municipality Name");
             if (!data.region_name) throw new Error("Missing required field: Region Name");
             if (!data.municipality_code) throw new Error("Missing required field: Municipality Code");
             if (!data.municipality_location) throw new Error("Missing required field: Municipality Location");
 
-            // Step 1: Create User via UserService
-            const user = await this.userService.createUser({
-                user_email: data.user_email,
-                user_password: data.user_password,
-                user_phone: data.user_phone,
-                user_role: 'Municipality',
-                isactive: true
-            });
+            let user;
 
-            // Step 2: Create Municipality entity linked to user_id
+            // Step 1: Try to find user by ID if provided
+            if (data.user_id) {
+                user = await this.userService.getUserById(data.user_id);
+            }
+
+            // Step 2: If not found by ID, check by email
+            if (!user && data.user_email) {
+                user = await this.userService.getUserByEmail(data.user_email);
+            }
+
+            // Step 3: If still not found, create new user
+            if (!user) {
+                user = await this.userService.createUser({
+                    user_email: data.user_email,
+                    user_password: data.user_password,
+                    user_phone: data.user_phone,
+                    user_role: 'Municipality',
+                    isactive: true
+                });
+            }
+
+            // Step 4: Create Municipality entity linked to user_id
             const municipality = new Municipality({
                 municipality_id: user.user_id,
                 municipality_name: data.municipality_name,
@@ -35,7 +48,7 @@ export class MunicipalityService {
                 user: user
             });
 
-            // Step 3: Persist via repository
+            // Step 5: Persist via repository
             const createdMunicipality = await this.municipalityRepository.createMunicipality(municipality);
             return createdMunicipality.toDTO();
         } catch (err) {

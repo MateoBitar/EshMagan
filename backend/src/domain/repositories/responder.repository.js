@@ -7,19 +7,24 @@ import { UserRepository } from './user.repository.js';
 
 export class ResponderRepository {
     async createResponder(data) {
-        const { unit_nb, unit_location, assigned_region, responder_status, last_known_location, user } = data;
+        const {
+            responder_id,
+            unit_nb,
+            unit_location,
+            assigned_region,
+            responder_status,
+            last_known_location,
+            user
+        } = data;
 
-        // Step 1: Create the user first
-        const userRepository = new UserRepository();
-        const createdUser = await userRepository.createUser(user);
-
-        // Step 2: Create the responder with the user_id
         const responderSql = `
             INSERT INTO responderdetails (
-                responder_id, unit_nb, unit_location, assigned_region, responder_status, last_known_location
+                responder_id, unit_nb, unit_location, assigned_region,
+                responder_status, last_known_location
             )
             VALUES (
-                $1, $2, ST_GeomFromText($3, 4326)::geography, $4, $5, ST_GeomFromText($6, 4326)::geography
+                $1, $2, ST_GeomFromText($3, 4326)::geography, $4, $5,
+                ST_GeomFromText($6, 4326)::geography
             )
             RETURNING responder_id, unit_nb,
                       ST_AsGeoJSON(unit_location) AS unit_location,
@@ -27,16 +32,17 @@ export class ResponderRepository {
                       ST_AsGeoJSON(last_known_location) AS last_known_location
         `;
         const responderValues = [
-            createdUser.user_id,
+            responder_id,
             unit_nb,
             `POINT(${unit_location.longitude} ${unit_location.latitude})`,
             assigned_region,
             responder_status,
             `POINT(${last_known_location.longitude} ${last_known_location.latitude})`
         ];
-        const { rows: responderRows } = await pool.query(responderSql, responderValues);
 
+        const { rows: responderRows } = await pool.query(responderSql, responderValues);
         const row = responderRows[0];
+
         const unitLoc = JSON.parse(row.unit_location);
         const lastLoc = JSON.parse(row.last_known_location);
 
@@ -53,7 +59,7 @@ export class ResponderRepository {
                 latitude: lastLoc.coordinates[1],
                 longitude: lastLoc.coordinates[0]
             },
-            user: User.fromEntity(createdUser)
+            user: User.fromEntity(user)
         });
     }
 
@@ -424,12 +430,12 @@ export class ResponderRepository {
 
         return Responder.fromEntity({
             responder_id: row.responder_id,
-            unit_nb:      row.unit_nb,
+            unit_nb: row.unit_nb,
             unit_location: { latitude: unitLoc.coordinates[1], longitude: unitLoc.coordinates[0] },
-            assigned_region:     row.assigned_region,
-            responder_status:    row.responder_status,
+            assigned_region: row.assigned_region,
+            responder_status: row.responder_status,
             last_known_location: { latitude: lastLoc.coordinates[1], longitude: lastLoc.coordinates[0] },
-            distance_meters:     parseFloat(row.distance_meters),
+            distance_meters: parseFloat(row.distance_meters),
             user: User.fromEntity(row)
         });
     }
@@ -548,7 +554,7 @@ export class ResponderRepository {
         return {
             responder_id: rows[0].responder_id,
             last_known_location: {
-                latitude:  loc.coordinates[1],
+                latitude: loc.coordinates[1],
                 longitude: loc.coordinates[0]
             },
             updated_at: rows[0].updated_at
