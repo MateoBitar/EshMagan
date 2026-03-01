@@ -4,8 +4,8 @@
   "description": "BS Project",
   "type": "module",
   "scripts": {
-    "start": "node backend/server.js",
-    "dev": "nodemon backend/server.js"
+  "start": "node backend/server.js",
+  "dev": "concurrently \"nodemon backend/server.js\" \"node backend/src/grpc/server.js\""
   },
   "repository": {
     "type": "git",
@@ -36,6 +36,7 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "nodemon": "^3.1.11"
   }
 }
