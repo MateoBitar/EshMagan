@@ -226,9 +226,14 @@ export class MunicipalityRepository {
             m.municipality_location,
             ST_GeomFromText($1, 4326)::geography,
             1000
-        ) AND u.isactive = true
+        )
+        AND u.isactive = true
+        LIMIT 1
     `;
+
+        // Convert LocationInput into WKT string
         const locationWKT = `POINT(${municipality_location.longitude} ${municipality_location.latitude})`;
+
         const { rows } = await pool.query(sql, [locationWKT]);
         if (rows.length === 0) return null;
 

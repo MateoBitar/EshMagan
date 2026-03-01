@@ -65,7 +65,7 @@ export const responderTypeDefs = gql`
     getRespondersByLastKnownLocation(last_known_location: LocationInput!): [Responder!]!
     getResponderByEmail(user_email: String!): Responder
     getResponderByPhone(user_phone: String!): Responder
-    getNearestResponder(fire_location: String!): Responder
+    getNearestResponder(fire_location: LocationInput!): Responder
   }
 
   # -----------------------------

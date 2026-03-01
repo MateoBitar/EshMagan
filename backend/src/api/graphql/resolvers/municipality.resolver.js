@@ -55,7 +55,11 @@ export const municipalityResolvers = {
     getMunicipalityByLocation: async (_, { municipality_location }, { dataSources }) => {
       try {
         const municipality = await dataSources.municipalityService.getMunicipalityByLocation(municipality_location);
-        if (!municipality) throw new Error(`Municipality at location ${municipality_location} not found`);
+        if (!municipality) {
+          throw new Error(
+            `Municipality at location (lat: ${municipality_location.latitude}, lon: ${municipality_location.longitude}) not found`
+          );
+        }
         return municipality;
       } catch (err) {
         throw new Error(`GraphQL Error - getMunicipalityByLocation: ${err.message}`);

@@ -483,30 +483,32 @@ export class ResponderRepository {
     //   - POINT   → straight-line distance to the ignition point
     //   - POLYGON → distance to the nearest edge of the polygon
     async getNearestResponder(fire_location) {
-        const sql = `
-            SELECT r.responder_id, r.unit_nb,
-                ST_AsGeoJSON(r.unit_location)       AS unit_location,
-                r.assigned_region, r.responder_status,
-                ST_AsGeoJSON(r.last_known_location) AS last_known_location,
-                r.updated_at AS responder_updated_at,
-                u.user_id, u.user_email, u.user_phone, u.user_role,
-                u.isactive,
-                u.created_at AS user_created_at,
-                u.updated_at AS user_updated_at,
-                ST_Distance(
-                    r.last_known_location::geography,
-                    ST_GeomFromText($1, 4326)::geography
-                ) AS distance_meters
-            FROM responderdetails r
-            JOIN users u ON r.responder_id = u.user_id
-            WHERE r.responder_status = 'Active'
-            AND u.isactive = true
-            ORDER BY distance_meters ASC
-            LIMIT 1
-        `;
+        // Convert LocationInput into WKT string
+        const locationWKT = `POINT(${fire_location.longitude} ${fire_location.latitude})`;
 
-        // fire_location is already WKT (POINT or POLYGON)
-        const { rows } = await pool.query(sql, [fire_location]);
+        const sql = `
+        SELECT r.responder_id, r.unit_nb,
+               ST_AsGeoJSON(r.unit_location)       AS unit_location,
+               r.assigned_region, r.responder_status,
+               ST_AsGeoJSON(r.last_known_location) AS last_known_location,
+               r.updated_at AS responder_updated_at,
+               u.user_id, u.user_email, u.user_phone, u.user_role,
+               u.isactive,
+               u.created_at AS user_created_at,
+               u.updated_at AS user_updated_at,
+               ST_Distance(
+                   r.last_known_location::geography,
+                   ST_GeomFromText($1, 4326)::geography
+               ) AS distance_meters
+        FROM responderdetails r
+        JOIN users u ON r.responder_id = u.user_id
+        WHERE r.responder_status = 'Active'
+          AND u.isactive = true
+        ORDER BY distance_meters ASC
+        LIMIT 1
+    `;
+
+        const { rows } = await pool.query(sql, [locationWKT]);
         if (rows.length === 0) return null;
 
         const row = rows[0];
