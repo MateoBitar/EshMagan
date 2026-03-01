@@ -30,7 +30,10 @@ export class Admin {
                 user_id: this.user.user_id,
                 user_email: this.user.user_email,
                 user_phone: this.user.user_phone,
-                isactive: this.user.isactive
+                user_role: this.user.user_role,
+                isactive: this.user.isactive,
+                created_at: this.user.created_at,
+                updated_at: this.user.updated_at
             } : null
         };
     }

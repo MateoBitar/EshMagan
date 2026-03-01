@@ -45,12 +45,14 @@ export class MunicipalityRepository {
 
     async getAllMunicipalities() {
         const sql = `
-            SELECT municipality_id, municipality_name, region_name, municipality_code,
-                   ST_AsGeoJSON(municipality_location) AS municipality_location,
-                   user_id, user_email, user_phone, user_role, isactive
-            FROM municipalitydetails
-            JOIN users ON municipalitydetails.municipality_id = users.user_id
-            WHERE isactive = true
+            SELECT m.municipality_id, m.municipality_name, m.region_name, m.municipality_code,
+                   ST_AsGeoJSON(m.municipality_location) AS municipality_location,
+                   u.user_id, u.user_email, u.user_phone, u.user_role, u.isactive,
+                   u.created_at AS user_created_at,
+                   u.updated_at AS user_updated_at
+            FROM municipalitydetails m
+            JOIN users u ON m.municipality_id = u.user_id
+            WHERE u.isactive = true
         `;
         const { rows } = await pool.query(sql);
         if (rows.length === 0) return [];
@@ -66,19 +68,25 @@ export class MunicipalityRepository {
                     longitude: location.coordinates[0],
                     latitude: location.coordinates[1]
                 },
-                user: User.fromEntity(row)
+                user: User.fromEntity({
+                    ...row,
+                    created_at: row.user_created_at,
+                    updated_at: row.user_updated_at
+                })
             });
         });
     }
 
     async getMunicipalityById(municipality_id) {
         const sql = `
-            SELECT municipality_id, municipality_name, region_name, municipality_code,
-                   ST_AsGeoJSON(municipality_location) AS municipality_location,
-                   user_id, user_email, user_phone, user_role, isactive
-            FROM municipalitydetails
-            JOIN users ON municipalitydetails.municipality_id = users.user_id
-            WHERE municipality_id = $1 AND isactive = true
+            SELECT m.municipality_id, m.municipality_name, m.region_name, m.municipality_code,
+                   ST_AsGeoJSON(m.municipality_location) AS municipality_location,
+                   u.user_id, u.user_email, u.user_phone, u.user_role, u.isactive,
+                   u.created_at AS user_created_at,
+                   u.updated_at AS user_updated_at
+            FROM municipalitydetails m
+            JOIN users u ON m.municipality_id = u.user_id
+            WHERE m.municipality_id = $1 AND u.isactive = true
         `;
         const { rows } = await pool.query(sql, [municipality_id]);
         if (rows.length === 0) return null;
@@ -95,18 +103,24 @@ export class MunicipalityRepository {
                 longitude: location.coordinates[0],
                 latitude: location.coordinates[1]
             },
-            user: User.fromEntity(row)
+            user: User.fromEntity({
+                ...row,
+                created_at: row.user_created_at,
+                updated_at: row.user_updated_at
+            })
         });
     }
 
     async getMunicipalitiesByName(municipality_name) {
         const sql = `
-            SELECT municipality_id, municipality_name, region_name, municipality_code,
-                   ST_AsGeoJSON(municipality_location) AS municipality_location,
-                   user_id, user_email, user_phone, user_role, isactive
-            FROM municipalitydetails
-            JOIN users ON municipalitydetails.municipality_id = users.user_id
-            WHERE municipality_name ILIKE $1 AND isactive = true
+            SELECT m.municipality_id, m.municipality_name, m.region_name, m.municipality_code,
+                   ST_AsGeoJSON(m.municipality_location) AS municipality_location,
+                   u.user_id, u.user_email, u.user_phone, u.user_role, u.isactive,
+                   u.created_at AS user_created_at,
+                   u.updated_at AS user_updated_at
+            FROM municipalitydetails m
+            JOIN users u ON m.municipality_id = u.user_id
+            WHERE m.municipality_name ILIKE $1 AND u.isactive = true
         `;
         const { rows } = await pool.query(sql, [`%${municipality_name}%`]);
         if (rows.length === 0) return [];
@@ -122,41 +136,60 @@ export class MunicipalityRepository {
                     longitude: location.coordinates[0],
                     latitude: location.coordinates[1]
                 },
-                user: User.fromEntity(row)
+                user: User.fromEntity({
+                    ...row,
+                    created_at: row.user_created_at,
+                    updated_at: row.user_updated_at
+                })
             });
         });
     }
 
     async getMunicipalityByRegion(region_name) {
         const sql = `
-        SELECT municipality_id, municipality_name, region_name, municipality_code, municipality_location,
-               user_id, user_email, user_phone, user_role, isactive
-        FROM municipalitydetails
-        JOIN users ON municipalitydetails.municipality_id = users.user_id
-        WHERE region_name = $1 AND isactive = true
-    `;
+            SELECT m.municipality_id, m.municipality_name, m.region_name, m.municipality_code,
+                   ST_AsGeoJSON(m.municipality_location) AS municipality_location,
+                   u.user_id, u.user_email, u.user_phone, u.user_role, u.isactive,
+                   u.created_at AS user_created_at,
+                   u.updated_at AS user_updated_at
+            FROM municipalitydetails m
+            JOIN users u ON m.municipality_id = u.user_id
+            WHERE m.region_name = $1 AND u.isactive = true
+        `;
         const { rows } = await pool.query(sql, [region_name]);
         if (rows.length === 0) return [];
 
-        return rows.map(row => Municipality.fromEntity({
-            municipality_id: row.municipality_id,
-            municipality_name: row.municipality_name,
-            region_name: row.region_name,
-            municipality_code: row.municipality_code,
-            municipality_location: row.municipality_location,
-            user: User.fromEntity(row)
-        }));
+        return rows.map(row => {
+            const location = JSON.parse(row.municipality_location);
+            return Municipality.fromEntity({
+                municipality_id: row.municipality_id,
+                municipality_name: row.municipality_name,
+                region_name: row.region_name,
+                municipality_code: row.municipality_code,
+                municipality_location: {
+                    longitude: location.coordinates[0],
+                    latitude: location.coordinates[1]
+                },
+                user: User.fromEntity({
+                    ...row,
+                    created_at: row.user_created_at,
+                    updated_at: row.user_updated_at
+                })
+            });
+        });
     }
 
     async getMunicipalityByCode(municipality_code) {
         const sql = `
-            SELECT municipality_id, municipality_name, region_name, municipality_code,
-                   ST_AsGeoJSON(municipality_location) AS municipality_location,
-                   user_id, user_email, user_phone, user_role, isactive
-            FROM municipalitydetails
-            JOIN users ON municipalitydetails.municipality_id = users.user_id
-            WHERE municipality_code = $1 AND isactive = true
-        `;
+        SELECT m.municipality_id, m.municipality_name, m.region_name, m.municipality_code,
+               ST_AsGeoJSON(m.municipality_location) AS municipality_location,
+               u.user_id, u.user_email, u.user_phone, u.user_role, u.isactive,
+               u.created_at AS user_created_at,
+               u.updated_at AS user_updated_at
+        FROM municipalitydetails m
+        JOIN users u ON m.municipality_id = u.user_id
+        WHERE m.municipality_code = $1 AND u.isactive = true
+    `;
         const { rows } = await pool.query(sql, [municipality_code]);
         if (rows.length === 0) return null;
 
@@ -172,23 +205,29 @@ export class MunicipalityRepository {
                 longitude: location.coordinates[0],
                 latitude: location.coordinates[1]
             },
-            user: User.fromEntity(row)
+            user: User.fromEntity({
+                ...row,
+                created_at: row.user_created_at,
+                updated_at: row.user_updated_at
+            })
         });
     }
 
     async getMunicipalityByLocation(municipality_location) {
         const sql = `
-            SELECT municipality_id, municipality_name, region_name, municipality_code,
-                   ST_AsGeoJSON(municipality_location) AS municipality_location,
-                   user_id, user_email, user_phone, user_role, isactive
-            FROM municipalitydetails
-            JOIN users ON municipalitydetails.municipality_id = users.user_id
-            WHERE ST_DWithin(
-                municipality_location,
-                ST_GeomFromText($1, 4326)::geography,
-                1000
-            ) AND isactive = true
-        `;
+        SELECT m.municipality_id, m.municipality_name, m.region_name, m.municipality_code,
+               ST_AsGeoJSON(m.municipality_location) AS municipality_location,
+               u.user_id, u.user_email, u.user_phone, u.user_role, u.isactive,
+               u.created_at AS user_created_at,
+               u.updated_at AS user_updated_at
+        FROM municipalitydetails m
+        JOIN users u ON m.municipality_id = u.user_id
+        WHERE ST_DWithin(
+            m.municipality_location,
+            ST_GeomFromText($1, 4326)::geography,
+            1000
+        ) AND u.isactive = true
+    `;
         const locationWKT = `POINT(${municipality_location.longitude} ${municipality_location.latitude})`;
         const { rows } = await pool.query(sql, [locationWKT]);
         if (rows.length === 0) return null;
@@ -205,18 +244,24 @@ export class MunicipalityRepository {
                 longitude: location.coordinates[0],
                 latitude: location.coordinates[1]
             },
-            user: User.fromEntity(row)
+            user: User.fromEntity({
+                ...row,
+                created_at: row.user_created_at,
+                updated_at: row.user_updated_at
+            })
         });
     }
 
     async getMunicipalityByEmail(user_email) {
         const sql = `
-        SELECT municipality_id, municipality_name, region_name, municipality_code,
-               ST_AsGeoJSON(municipality_location) AS municipality_location,
-               user_id, user_email, user_phone, user_role, isactive
-        FROM municipalitydetails
-        JOIN users ON municipalitydetails.municipality_id = users.user_id
-        WHERE user_email = $1 AND isactive = true
+        SELECT m.municipality_id, m.municipality_name, m.region_name, m.municipality_code,
+               ST_AsGeoJSON(m.municipality_location) AS municipality_location,
+               u.user_id, u.user_email, u.user_phone, u.user_role, u.isactive,
+               u.created_at AS user_created_at,
+               u.updated_at AS user_updated_at
+        FROM municipalitydetails m
+        JOIN users u ON m.municipality_id = u.user_id
+        WHERE u.user_email = $1 AND u.isactive = true
     `;
         const { rows } = await pool.query(sql, [user_email]);
         if (rows.length === 0) return null;
@@ -233,18 +278,24 @@ export class MunicipalityRepository {
                 longitude: location.coordinates[0],
                 latitude: location.coordinates[1]
             },
-            user: User.fromEntity(row)
+            user: User.fromEntity({
+                ...row,
+                created_at: row.user_created_at,
+                updated_at: row.user_updated_at
+            })
         });
     }
 
     async getMunicipalityByPhone(user_phone) {
         const sql = `
-        SELECT municipality_id, municipality_name, region_name, municipality_code,
-               ST_AsGeoJSON(municipality_location) AS municipality_location,
-               user_id, user_email, user_phone, user_role, isactive
-        FROM municipalitydetails
-        JOIN users ON municipalitydetails.municipality_id = users.user_id
-        WHERE user_phone = $1 AND isactive = true
+        SELECT m.municipality_id, m.municipality_name, m.region_name, m.municipality_code,
+               ST_AsGeoJSON(m.municipality_location) AS municipality_location,
+               u.user_id, u.user_email, u.user_phone, u.user_role, u.isactive,
+               u.created_at AS user_created_at,
+               u.updated_at AS user_updated_at
+        FROM municipalitydetails m
+        JOIN users u ON m.municipality_id = u.user_id
+        WHERE u.user_phone = $1 AND u.isactive = true
     `;
         const { rows } = await pool.query(sql, [user_phone]);
         if (rows.length === 0) return null;
@@ -261,7 +312,11 @@ export class MunicipalityRepository {
                 longitude: location.coordinates[0],
                 latitude: location.coordinates[1]
             },
-            user: User.fromEntity(row)
+            user: User.fromEntity({
+                ...row,
+                created_at: row.user_created_at,
+                updated_at: row.user_updated_at
+            })
         });
     }
 
@@ -296,7 +351,7 @@ export class MunicipalityRepository {
             const sql = `
             UPDATE municipalitydetails
             SET ${fields.join(', ')}
-            WHERE municipality_id = $${idx} AND isactive = true
+            WHERE municipality_id = $${idx}
             RETURNING municipality_id, municipality_name, region_name, municipality_code,
                       ST_AsGeoJSON(municipality_location) AS municipality_location
         `;
@@ -312,12 +367,14 @@ export class MunicipalityRepository {
 
         // Step 3: Fetch full municipality + user joined
         const joinSql = `
-        SELECT municipality_id, municipality_name, region_name, municipality_code,
-               ST_AsGeoJSON(municipality_location) AS municipality_location,
-               user_id, user_email, user_phone, user_role, isactive
-        FROM municipalitydetails
-        JOIN users ON municipalitydetails.municipality_id = users.user_id
-        WHERE municipality_id = $1 AND isactive = true
+        SELECT m.municipality_id, m.municipality_name, m.region_name, m.municipality_code,
+               ST_AsGeoJSON(m.municipality_location) AS municipality_location,
+               u.user_id, u.user_email, u.user_phone, u.user_role, u.isactive,
+               u.created_at AS user_created_at,
+               u.updated_at AS user_updated_at
+        FROM municipalitydetails m
+        JOIN users u ON m.municipality_id = u.user_id
+        WHERE m.municipality_id = $1 AND u.isactive = true
     `;
         const { rows } = await pool.query(joinSql, [municipality_id]);
         if (rows.length === 0) return null;
@@ -334,7 +391,11 @@ export class MunicipalityRepository {
                 longitude: location.coordinates[0],
                 latitude: location.coordinates[1]
             },
-            user: User.fromEntity(row)
+            user: User.fromEntity({
+                ...row,
+                created_at: row.user_created_at,
+                updated_at: row.user_updated_at
+            })
         });
     }
 

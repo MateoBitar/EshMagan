@@ -2,9 +2,9 @@
 
 // This entity represents a resident user in the system, which is a specialized type of user with additional fields.
 export class Resident {
-    constructor({ resident_id, resident_fname, resident_lname, resident_dob, 
-            resident_idnb,resident_idpic, home_location, work_location, last_known_location,
-            updated_at, user }) {
+    constructor({ resident_id, resident_fname, resident_lname, resident_dob,
+        resident_idnb, resident_idpic, home_location, work_location, last_known_location,
+        updated_at, user }) {
 
         this.resident_id = resident_id;
         this.resident_fname = resident_fname;
@@ -43,6 +43,8 @@ export class Resident {
             resident_fname: this.resident_fname,
             resident_lname: this.resident_lname,
             resident_dob: this.resident_dob,
+            resident_idnb: this.resident_idnb ? "[MASKED]" : null,
+            resident_idpic: this.resident_idpic ? "[MASKED]" : null,
             home_location: this.home_location,
             work_location: this.work_location,
             last_known_location: this.last_known_location,
@@ -51,7 +53,10 @@ export class Resident {
                 user_id: this.user.user_id,
                 user_email: this.user.user_email,
                 user_phone: this.user.user_phone,
-                isactive: this.user.isactive
+                user_role: this.user.user_role,
+                isactive: this.user.isactive,
+                created_at: this.user.created_at,
+                updated_at: this.user.updated_at
             } : null
         };
     }

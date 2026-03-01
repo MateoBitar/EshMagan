@@ -29,48 +29,48 @@ export class UserRepository {
                        user_role, isactive, created_at, updated_at 
                 FROM users 
                 ORDER BY created_at DESC 
-        `; 
-        const { rows } = await pool.query(sql); 
+        `;
+        const { rows } = await pool.query(sql);
         if (rows.length === 0) {
             return []; // No users found
         }
-                
+
         return rows.map(row => User.fromEntity(row));
     }
 
-    async getUserById(user_id) { 
+    async getUserById(user_id) {
         // Retrieves a user by their unique ID
         const sql = `
                 SELECT user_id, user_email, user_phone,
                        user_role, isactive, created_at, updated_at 
                 FROM users 
                 WHERE user_id=$1
-        `; 
-        const { rows } = await pool.query(sql, [user_id]); 
+        `;
+        const { rows } = await pool.query(sql, [user_id]);
         if (rows.length === 0) {
             return null; // No users found
         }
-                
+
         return User.fromEntity(rows[0]);
     }
 
-    async getUserByEmail(user_email) { 
+    async getUserByEmail(user_email) {
         // Retrieves a user by their email address 
         const sql = `
                 SELECT user_id, user_email, user_phone,
                        user_role, isactive, created_at, updated_at 
                 FROM users 
                 WHERE user_email=$1
-        `; 
-        const { rows } = await pool.query(sql, [user_email]); 
+        `;
+        const { rows } = await pool.query(sql, [user_email]);
         if (rows.length === 0) {
             return null; // No users found
         }
-                
+
         return User.fromEntity(rows[0]);
     }
 
-    async getUserByPhone(user_phone) { 
+    async getUserByPhone(user_phone) {
         // Retrieves a user by their phone number
         const sql = `
                 SELECT user_id, user_email, user_phone,
@@ -78,11 +78,11 @@ export class UserRepository {
                 FROM users 
                 WHERE user_phone=$1
         `;
-        const { rows } = await pool.query(sql, [user_phone]); 
+        const { rows } = await pool.query(sql, [user_phone]);
         if (rows.length === 0) {
             return null; // No users found
         }
-                
+
         return User.fromEntity(rows[0]);
     }
 
@@ -98,7 +98,7 @@ export class UserRepository {
         if (rows.length === 0) {
             return []; // No users found
         }
-                
+
         return rows.map(row => User.fromEntity(row));
     }
 
@@ -114,7 +114,7 @@ export class UserRepository {
         if (rows.length === 0) {
             return []; // No users found
         }
-                
+
         return rows.map(row => User.fromEntity(row));
     }
 
@@ -129,19 +129,19 @@ export class UserRepository {
         if (rows.length === 0) {
             return []; // No users found
         }
-                
+
         return rows.map(row => User.fromEntity(row));
     }
 
-    async getUserByEmailAndActive(user_email) { 
+    async getUserByEmailAndActive(user_email) {
         // Retrieves a user by email only if active 
         const sql = `
             SELECT user_id, user_email, user_password, user_phone,
                    user_role, isactive, created_at, updated_at 
             FROM users 
             WHERE user_email = $1 AND isactive = true 
-        `; 
-        const { rows } = await pool.query(sql, [user_email]); 
+        `;
+        const { rows } = await pool.query(sql, [user_email]);
         if (rows.length === 0) {
             return null;
         }
@@ -176,22 +176,25 @@ export class UserRepository {
         fields.push(`updated_at = NOW()`);
 
         // Only run update if there are fields to change
-        if (fields.length > 0) { 
+        if (fields.length > 0) {
             const sql = ` 
                     UPDATE users SET ${fields.join(', ')} 
                     WHERE user_id = $${idx} 
                     RETURNING user_id, user_email, user_password, user_phone, 
-                              user_role, isactive, created_at, updated_at `; 
-            values.push(user_id); 
-            const { rows } = await pool.query(sql, values); 
-            if (rows.length === 0) { 
+                              user_role, isactive,
+                              created_at AS user_created_at,
+                              updated_at AS user_updated_at
+            `;
+            values.push(user_id);
+            const { rows } = await pool.query(sql, values);
+            if (rows.length === 0) {
                 return null; // No user found 
-            } 
-            return User.fromEntity(rows[0]); 
+            }
+            return User.fromEntity(rows[0]);
         }
         return null; // nothing to update
     }
-    
+
     async updateUserRole(user_id, user_role) {
         const fields = [];
         const values = [];
@@ -220,7 +223,7 @@ export class UserRepository {
             if (rows.length === 0) {
                 return null; // No user found
             }
-                
+
             return User.fromEntity(rows[0]);
         }
         return null; // nothing to update
@@ -254,7 +257,7 @@ export class UserRepository {
             if (rows.length === 0) {
                 return null; // No user found
             }
-                
+
             return User.fromEntity(rows[0]);
         }
 
@@ -301,9 +304,9 @@ export class UserRepository {
         // Step 3: Execute query
         const { rows } = await pool.query(sql, values);
         if (rows.length === 0) {
-                return false; // No user found
-            }
-                
+            return false; // No user found
+        }
+
         return true;
     }
 

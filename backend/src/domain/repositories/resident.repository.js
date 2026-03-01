@@ -11,29 +11,30 @@ const encryption = new EncryptionService();
 // SHARED HELPER
 // Parses a DB row into a Resident entity, decrypting sensitive fields transparently.
 function toResident(row, userEntity) {
-    const homeLocation      = JSON.parse(row.home_location);
-    const workLocation      = JSON.parse(row.work_location);
+    const homeLocation = JSON.parse(row.home_location);
+    const workLocation = JSON.parse(row.work_location);
     const lastKnownLocation = JSON.parse(row.last_known_location);
 
     return Resident.fromEntity({
-        resident_id:    row.resident_id,
+        resident_id: row.resident_id,
         resident_fname: row.resident_fname,
         resident_lname: row.resident_lname,
-        resident_dob:   row.resident_dob,
-        resident_idnb:  encryption.decrypt(row.resident_idnb),   // decrypt
+        resident_dob: row.resident_dob,
+        resident_idnb: encryption.decrypt(row.resident_idnb),   // decrypt
         resident_idpic: encryption.decrypt(row.resident_idpic),  // decrypt
         home_location: {
-            latitude:  homeLocation.coordinates[1],
-            longitude: homeLocation.coordinates[0]
+            longitude: homeLocation.coordinates[0],
+            latitude: homeLocation.coordinates[1]  
         },
         work_location: {
-            latitude:  workLocation.coordinates[1],
-            longitude: workLocation.coordinates[0]
+            longitude: workLocation.coordinates[0],
+            latitude: workLocation.coordinates[1]
         },
         last_known_location: {
-            latitude:  lastKnownLocation.coordinates[1],
-            longitude: lastKnownLocation.coordinates[0]
+            longitude: lastKnownLocation.coordinates[0],
+            latitude: lastKnownLocation.coordinates[1]
         },
+        updated_at: row.resident_updated_at,
         user: userEntity
     });
 }
@@ -48,28 +49,37 @@ export class ResidentRepository {
             user
         } = data;
 
-        // Step 1: Encrypt sensitive fields
-        const encryptedIdNb  = encryption.encrypt(resident_idnb);
+        // Encrypt sensitive fields
+        const encryptedIdNb = encryption.encrypt(resident_idnb);
         const encryptedIdPic = encryption.encrypt(resident_idpic);
 
-        // Step 2: Insert resident
+        // Build WKT safely
+        const homeWKT = home_location
+            ? `POINT(${home_location.longitude} ${home_location.latitude})`
+            : null;
+        const workWKT = work_location
+            ? `POINT(${work_location.longitude} ${work_location.latitude})`
+            : null;
+        const lastKnownWKT = `POINT(${last_known_location.longitude} ${last_known_location.latitude})`;
+
         const residentSql = `
             INSERT INTO residentdetails (
-                resident_id, resident_fname, resident_lname, resident_dob,
-                resident_idnb, resident_idpic,
-                home_location, work_location, last_known_location
+            resident_id, resident_fname, resident_lname, resident_dob,
+            resident_idnb, resident_idpic,
+            home_location, work_location, last_known_location
             ) VALUES (
-                $1, $2, $3, $4, $5, $6,
-                ST_GeomFromText($7, 4326),
-                ST_GeomFromText($8, 4326),
-                ST_GeomFromText($9, 4326)
+            $1, $2, $3, $4, $5, $6,
+            ${homeWKT ? `ST_GeomFromText($7, 4326)` : 'NULL'},
+            ${workWKT ? `ST_GeomFromText($8, 4326)` : 'NULL'},
+            ST_GeomFromText($9, 4326)
             )
             RETURNING resident_id, resident_fname, resident_lname, resident_dob,
-                      resident_idnb, resident_idpic,
-                      ST_AsGeoJSON(home_location)       AS home_location,
-                      ST_AsGeoJSON(work_location)       AS work_location,
-                      ST_AsGeoJSON(last_known_location) AS last_known_location
+                    resident_idnb, resident_idpic,
+                    ST_AsGeoJSON(home_location)       AS home_location,
+                    ST_AsGeoJSON(work_location)       AS work_location,
+                    ST_AsGeoJSON(last_known_location) AS last_known_location
         `;
+
         const residentValues = [
             resident_id,
             resident_fname,
@@ -77,9 +87,9 @@ export class ResidentRepository {
             resident_dob,
             encryptedIdNb,
             encryptedIdPic,
-            home_location ? `POINT(${home_location.longitude} ${home_location.latitude})` : null,
-            work_location ? `POINT(${work_location.longitude} ${work_location.latitude})` : null,
-            `POINT(${last_known_location.longitude} ${last_known_location.latitude})`
+            homeWKT,
+            workWKT,
+            lastKnownWKT
         ];
 
         const { rows: residentRows } = await pool.query(residentSql, residentValues);
@@ -92,32 +102,57 @@ export class ResidentRepository {
 
     async getAllResidents() {
         const sql = `
-            SELECT resident_id, resident_fname, resident_lname, resident_dob,
-                   resident_idnb, resident_idpic,
-                   ST_AsGeoJSON(home_location)       AS home_location,
-                   ST_AsGeoJSON(work_location)       AS work_location,
-                   ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
-            FROM residentdetails
-            JOIN users ON residentdetails.resident_id = users.user_id
-            WHERE users.isactive = true
+            SELECT 
+                r.resident_id,
+                r.resident_fname,
+                r.resident_lname,
+                r.resident_dob,
+                r.resident_idnb,
+                r.resident_idpic,
+                ST_AsGeoJSON(r.home_location)       AS home_location,
+                ST_AsGeoJSON(r.work_location)       AS work_location,
+                ST_AsGeoJSON(r.last_known_location) AS last_known_location,
+                r.updated_at AS resident_updated_at,
+                u.user_id,
+                u.user_email,
+                u.user_phone,
+                u.user_role,
+                u.isactive,
+                u.created_at AS user_created_at,
+                u.updated_at AS user_updated_at
+            FROM residentdetails r
+            JOIN users u ON r.resident_id = u.user_id
+            WHERE u.isactive = true;
         `;
         const { rows } = await pool.query(sql);
         if (rows.length === 0) return [];
-        return rows.map(row => toResident(row, User.fromEntity(row)));
+        const result = rows.map(row => toResident(row, User.fromEntity(row)));
+        return result;
     }
 
     async getResidentById(resident_id) {
         const sql = `
-            SELECT resident_id, resident_fname, resident_lname, resident_dob,
-                   resident_idnb, resident_idpic,
-                   ST_AsGeoJSON(home_location)       AS home_location,
-                   ST_AsGeoJSON(work_location)       AS work_location,
-                   ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
-            FROM residentdetails
-            JOIN users ON residentdetails.resident_id = users.user_id
-            WHERE resident_id = $1 AND users.isactive = true
+            SELECT 
+                r.resident_id,
+                r.resident_fname,
+                r.resident_lname,
+                r.resident_dob,
+                r.resident_idnb,
+                r.resident_idpic,
+                ST_AsGeoJSON(r.home_location)       AS home_location,
+                ST_AsGeoJSON(r.work_location)       AS work_location,
+                ST_AsGeoJSON(r.last_known_location) AS last_known_location,
+                r.updated_at AS resident_updated_at,
+                u.user_id,
+                u.user_email,
+                u.user_phone,
+                u.user_role,
+                u.isactive,
+                u.created_at AS user_created_at,
+                u.updated_at AS user_updated_at
+            FROM residentdetails r
+            JOIN users u ON r.resident_id = u.user_id
+            WHERE r.resident_id = $1 AND u.isactive = true;
         `;
         const { rows } = await pool.query(sql, [resident_id]);
         if (rows.length === 0) return null;
@@ -126,15 +161,27 @@ export class ResidentRepository {
 
     async getResidentsByFName(resident_fname) {
         const sql = `
-            SELECT resident_id, resident_fname, resident_lname, resident_dob,
-                   resident_idnb, resident_idpic,
-                   ST_AsGeoJSON(home_location)       AS home_location,
-                   ST_AsGeoJSON(work_location)       AS work_location,
-                   ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
-            FROM residentdetails
-            JOIN users ON residentdetails.resident_id = users.user_id
-            WHERE resident_fname ILIKE $1 AND users.isactive = true
+            SELECT 
+                r.resident_id,
+                r.resident_fname,
+                r.resident_lname,
+                r.resident_dob,
+                r.resident_idnb,
+                r.resident_idpic,
+                ST_AsGeoJSON(r.home_location)       AS home_location,
+                ST_AsGeoJSON(r.work_location)       AS work_location,
+                ST_AsGeoJSON(r.last_known_location) AS last_known_location,
+                r.updated_at AS resident_updated_at,
+                u.user_id,
+                u.user_email,
+                u.user_phone,
+                u.user_role,
+                u.isactive,
+                u.created_at AS user_created_at,
+                u.updated_at AS user_updated_at
+            FROM residentdetails r
+            JOIN users u ON r.resident_id = u.user_id
+            WHERE r.resident_fname ILIKE $1 AND u.isactive = true
         `;
         const { rows } = await pool.query(sql, [`%${resident_fname}%`]);
         if (rows.length === 0) return [];
@@ -143,15 +190,27 @@ export class ResidentRepository {
 
     async getResidentsByLName(resident_lname) {
         const sql = `
-            SELECT resident_id, resident_fname, resident_lname, resident_dob,
-                   resident_idnb, resident_idpic,
-                   ST_AsGeoJSON(home_location)       AS home_location,
-                   ST_AsGeoJSON(work_location)       AS work_location,
-                   ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
-            FROM residentdetails
-            JOIN users ON residentdetails.resident_id = users.user_id
-            WHERE resident_lname ILIKE $1 AND users.isactive = true
+            SELECT 
+                r.resident_id,
+                r.resident_fname,
+                r.resident_lname,
+                r.resident_dob,
+                r.resident_idnb,
+                r.resident_idpic,
+                ST_AsGeoJSON(r.home_location)       AS home_location,
+                ST_AsGeoJSON(r.work_location)       AS work_location,
+                ST_AsGeoJSON(r.last_known_location) AS last_known_location,
+                r.updated_at AS resident_updated_at,
+                u.user_id,
+                u.user_email,
+                u.user_phone,
+                u.user_role,
+                u.isactive,
+                u.created_at AS user_created_at,
+                u.updated_at AS user_updated_at
+            FROM residentdetails r
+            JOIN users u ON r.resident_id = u.user_id
+            WHERE r.resident_lname ILIKE $1 AND u.isactive = true
         `;
         const { rows } = await pool.query(sql, [`%${resident_lname}%`]);
         if (rows.length === 0) return [];
@@ -163,15 +222,27 @@ export class ResidentRepository {
         // so we cannot do a direct SQL WHERE match on the ciphertext.
         // Solution: fetch all active residents, decrypt in memory, compare.
         const sql = `
-            SELECT resident_id, resident_fname, resident_lname, resident_dob,
-                   resident_idnb, resident_idpic,
-                   ST_AsGeoJSON(home_location)       AS home_location,
-                   ST_AsGeoJSON(work_location)       AS work_location,
-                   ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
-            FROM residentdetails
-            JOIN users ON residentdetails.resident_id = users.user_id
-            WHERE users.isactive = true
+            SELECT 
+                r.resident_id,
+                r.resident_fname,
+                r.resident_lname,
+                r.resident_dob,
+                r.resident_idnb,
+                r.resident_idpic,
+                ST_AsGeoJSON(r.home_location)       AS home_location,
+                ST_AsGeoJSON(r.work_location)       AS work_location,
+                ST_AsGeoJSON(r.last_known_location) AS last_known_location,
+                r.updated_at AS resident_updated_at,
+                u.user_id,
+                u.user_email,
+                u.user_phone,
+                u.user_role,
+                u.isactive,
+                u.created_at AS user_created_at,
+                u.updated_at AS user_updated_at
+            FROM residentdetails r
+            JOIN users u ON r.resident_id = u.user_id
+            WHERE u.isactive = true
         `;
         const { rows } = await pool.query(sql);
         if (rows.length === 0) return null;
@@ -190,19 +261,31 @@ export class ResidentRepository {
 
     async getResidentsByLastKnownLocation(last_known_location) {
         const sql = `
-            SELECT resident_id, resident_fname, resident_lname, resident_dob,
-                   resident_idnb, resident_idpic,
-                   ST_AsGeoJSON(home_location)       AS home_location,
-                   ST_AsGeoJSON(work_location)       AS work_location,
-                   ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
-            FROM residentdetails
-            JOIN users ON residentdetails.resident_id = users.user_id
+            SELECT 
+                r.resident_id,
+                r.resident_fname,
+                r.resident_lname,
+                r.resident_dob,
+                r.resident_idnb,
+                r.resident_idpic,
+                ST_AsGeoJSON(r.home_location)       AS home_location,
+                ST_AsGeoJSON(r.work_location)       AS work_location,
+                ST_AsGeoJSON(r.last_known_location) AS last_known_location,
+                r.updated_at AS resident_updated_at,
+                u.user_id,
+                u.user_email,
+                u.user_phone,
+                u.user_role,
+                u.isactive,
+                u.created_at AS user_created_at,
+                u.updated_at AS user_updated_at
+            FROM residentdetails r
+            JOIN users u ON r.resident_id = u.user_id
             WHERE ST_DWithin(
                 last_known_location,
                 ST_GeomFromText($1, 4326)::geography,
                 1000
-            ) AND users.isactive = true
+            ) AND u.isactive = true
         `;
         const locationWKT = `POINT(${last_known_location.longitude} ${last_known_location.latitude})`;
         const { rows } = await pool.query(sql, [locationWKT]);
@@ -212,15 +295,27 @@ export class ResidentRepository {
 
     async getResidentByEmail(user_email) {
         const sql = `
-            SELECT resident_id, resident_fname, resident_lname, resident_dob,
-                   resident_idnb, resident_idpic,
-                   ST_AsGeoJSON(home_location)       AS home_location,
-                   ST_AsGeoJSON(work_location)       AS work_location,
-                   ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
-            FROM residentdetails
-            JOIN users ON residentdetails.resident_id = users.user_id
-            WHERE user_email = $1 AND users.isactive = true
+            SELECT 
+                r.resident_id,
+                r.resident_fname,
+                r.resident_lname,
+                r.resident_dob,
+                r.resident_idnb,
+                r.resident_idpic,
+                ST_AsGeoJSON(r.home_location)       AS home_location,
+                ST_AsGeoJSON(r.work_location)       AS work_location,
+                ST_AsGeoJSON(r.last_known_location) AS last_known_location,
+                r.updated_at AS resident_updated_at,
+                u.user_id,
+                u.user_email,
+                u.user_phone,
+                u.user_role,
+                u.isactive,
+                u.created_at AS user_created_at,
+                u.updated_at AS user_updated_at
+            FROM residentdetails r
+            JOIN users u ON r.resident_id = u.user_id
+            WHERE u.user_email = $1 AND u.isactive = true
         `;
         const { rows } = await pool.query(sql, [user_email]);
         if (rows.length === 0) return null;
@@ -229,15 +324,27 @@ export class ResidentRepository {
 
     async getResidentByPhone(user_phone) {
         const sql = `
-            SELECT resident_id, resident_fname, resident_lname, resident_dob,
-                   resident_idnb, resident_idpic,
-                   ST_AsGeoJSON(home_location)       AS home_location,
-                   ST_AsGeoJSON(work_location)       AS work_location,
-                   ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
-            FROM residentdetails
-            JOIN users ON residentdetails.resident_id = users.user_id
-            WHERE user_phone = $1 AND users.isactive = true
+            SELECT 
+                r.resident_id,
+                r.resident_fname,
+                r.resident_lname,
+                r.resident_dob,
+                r.resident_idnb,
+                r.resident_idpic,
+                ST_AsGeoJSON(r.home_location)       AS home_location,
+                ST_AsGeoJSON(r.work_location)       AS work_location,
+                ST_AsGeoJSON(r.last_known_location) AS last_known_location,
+                r.updated_at AS resident_updated_at,
+                u.user_id,
+                u.user_email,
+                u.user_phone,
+                u.user_role,
+                u.isactive,
+                u.created_at AS user_created_at,
+                u.updated_at AS user_updated_at
+            FROM residentdetails r
+            JOIN users u ON r.resident_id = u.user_id
+            WHERE u.user_phone = $1 AND u.isactive = true
         `;
         const { rows } = await pool.query(sql, [user_phone]);
         if (rows.length === 0) return null;
@@ -303,15 +410,27 @@ export class ResidentRepository {
 
         // Fetch full resident + user joined
         const joinSql = `
-            SELECT resident_id, resident_fname, resident_lname, resident_dob,
-                   resident_idnb, resident_idpic,
-                   ST_AsGeoJSON(home_location)       AS home_location,
-                   ST_AsGeoJSON(work_location)       AS work_location,
-                   ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
-            FROM residentdetails
-            JOIN users ON residentdetails.resident_id = users.user_id
-            WHERE resident_id = $1 AND users.isactive = true
+            SELECT 
+                r.resident_id,
+                r.resident_fname,
+                r.resident_lname,
+                r.resident_dob,
+                r.resident_idnb,
+                r.resident_idpic,
+                ST_AsGeoJSON(r.home_location)       AS home_location,
+                ST_AsGeoJSON(r.work_location)       AS work_location,
+                ST_AsGeoJSON(r.last_known_location) AS last_known_location,
+                r.updated_at AS resident_updated_at,
+                u.user_id,
+                u.user_email,
+                u.user_phone,
+                u.user_role,
+                u.isactive,
+                u.created_at AS user_created_at,
+                u.updated_at AS user_updated_at
+            FROM residentdetails r
+            JOIN users u ON r.resident_id = u.user_id
+            WHERE r.resident_id = $1 AND u.isactive = true
         `;
         const { rows } = await pool.query(joinSql, [resident_id]);
         if (rows.length === 0) return null;

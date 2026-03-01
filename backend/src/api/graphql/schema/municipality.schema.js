@@ -11,13 +11,25 @@ export const municipalityTypeDefs = gql`
     municipality_name: String!
     region_name: String!
     municipality_code: String!
-    municipality_location: String!
+    municipality_location: Location!
+    created_at: String
+    updated_at: String
     user: User!
   }
 
   # -----------------------------
   # Input Types
   # -----------------------------
+  input LocationInput {
+    latitude: Float!
+    longitude: Float!
+  }
+
+  type Location {
+    latitude: Float
+    longitude: Float
+  }
+
   input CreateMunicipalityInput {
     user_email: String!
     user_password: String!
@@ -25,14 +37,14 @@ export const municipalityTypeDefs = gql`
     municipality_name: String!
     region_name: String!
     municipality_code: String!
-    municipality_location: String!
+    municipality_location: LocationInput!
   }
 
   input UpdateMunicipalityInput {
     municipality_name: String
     region_name: String
     municipality_code: String
-    municipality_location: String
+    municipality_location: LocationInput
     user_phone: String
     user_email: String
   }
@@ -46,7 +58,7 @@ export const municipalityTypeDefs = gql`
     getMunicipalitiesByName(municipality_name: String!): [Municipality!]!
     getMunicipalityByRegion(region_name: String!): [Municipality!]!
     getMunicipalityByCode(municipality_code: String!): Municipality
-    getMunicipalityByLocation(municipality_location: String!): Municipality
+    getMunicipalityByLocation(municipality_location: LocationInput!): Municipality
     getMunicipalityByEmail(user_email: String!): Municipality
     getMunicipalityByPhone(user_phone: String!): Municipality
   }

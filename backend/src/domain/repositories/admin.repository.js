@@ -26,7 +26,7 @@ export class AdminRepository {
     async getAllAdmins() {
         const sql = `
             SELECT admin_id, admin_fname, admin_lname,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM admins
             JOIN users ON admins.admin_id = users.user_id
             WHERE isactive = true
@@ -45,7 +45,7 @@ export class AdminRepository {
     async getAdminById(admin_id) {
         const sql = `
             SELECT admin_id, admin_fname, admin_lname,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM admins
             JOIN users ON admins.admin_id = users.user_id
             WHERE admin_id = $1 AND isactive = true
@@ -65,7 +65,7 @@ export class AdminRepository {
     async getAdminByFName(admin_fname) {
         const sql = `
             SELECT admin_id, admin_fname, admin_lname,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM admins
             JOIN users ON admins.admin_id = users.user_id
             WHERE admin_fname = $1 AND isactive = true
@@ -85,7 +85,7 @@ export class AdminRepository {
     async getAdminByLName(admin_lname) {
         const sql = `
             SELECT admin_id, admin_fname, admin_lname,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM admins
             JOIN users ON admins.admin_id = users.user_id
             WHERE admin_lname = $1 AND isactive = true
@@ -105,7 +105,7 @@ export class AdminRepository {
     async getAdminByEmail(user_email) {
         const sql = `
             SELECT admin_id, admin_fname, admin_lname,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM admins
             JOIN users ON admins.admin_id = users.user_id
             WHERE user_email = $1 AND isactive = true
@@ -125,7 +125,7 @@ export class AdminRepository {
     async getAdminByPhone(user_phone) {
         const sql = `
             SELECT admin_id, admin_fname, admin_lname,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM admins
             JOIN users ON admins.admin_id = users.user_id
             WHERE user_phone = $1 AND isactive = true
@@ -145,7 +145,7 @@ export class AdminRepository {
     async getAdminsByCreationDate(created_at) {
         const sql = `
             SELECT admin_id, admin_fname, admin_lname,
-                   user_id, user_email, user_phone, user_role, isactive, created_at
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM admins
             JOIN users ON admins.admin_id = users.user_id
             WHERE created_at >= $1::date

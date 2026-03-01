@@ -3,7 +3,7 @@
 // This entity represents a system user, storing their credentials, role, and contact details.
 export class User {
     constructor({ user_id, user_email, user_password, user_phone, user_role, isactive,
-            created_at, updated_at }) {
+        created_at, updated_at }) {
 
         this.user_id = user_id;
         this.user_email = user_email;
@@ -12,7 +12,7 @@ export class User {
         this.user_role = user_role;
         this.isactive = isactive;
         this.created_at = created_at;
-        this.updated_at = updated_at;    
+        this.updated_at = updated_at;
     }
 
     // Static factory method
@@ -24,8 +24,8 @@ export class User {
             user_phone: raw.user_phone,
             user_role: raw.user_role,
             isactive: raw.isactive,
-            created_at: raw.created_at,
-            updated_at: raw.updated_at
+            created_at: raw.user_created_at ?? raw.created_at,
+            updated_at: raw.user_updated_at ?? raw.updated_at
         });
     }
 
