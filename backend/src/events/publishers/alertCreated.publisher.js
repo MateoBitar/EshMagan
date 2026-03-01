@@ -10,7 +10,6 @@ export async function publishAlertCreated(data) {
         const js = getJetStream();
 
         const payload = sc.encode(JSON.stringify({
-            alert_id:      data.alert_id,
             alert_type:    data.alert_type,
             target_role:   data.target_role,
             alert_message: data.alert_message,

@@ -46,7 +46,7 @@ export async function startAlertSubscriber() {
                                 await alertRepository.createAlert({
                                     alert_type:    'FireAlert',
                                     target_role:   role,
-                                    alert_message: `Fire detected. Severity: ${data.fire_severitylevel}. All ${role}s in the area should take immediate action.`,
+                                    alert_message: data.alert_message,
                                     expires_at:    new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
                                     fire_id:       data.fire_id,
                                 });

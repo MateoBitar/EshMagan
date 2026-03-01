@@ -33,6 +33,10 @@ app.get('/db-test', async (req, res) => {
 // REST
 app.use('/api', restRouter);
 
+// NATS
+await connectNATS();
+await setupNATSConsumers();
+
 // GRAPHQL
 const { server, buildContext } = await createApolloServer();
 
@@ -42,9 +46,5 @@ app.use(
     context: buildContext,
   })
 );
-
-// NATS
-await connectNATS();
-await setupNATSConsumers();
 
 export default app;
