@@ -97,7 +97,7 @@ export class ResidentRepository {
                    ST_AsGeoJSON(home_location)       AS home_location,
                    ST_AsGeoJSON(work_location)       AS work_location,
                    ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM residentdetails
             JOIN users ON residentdetails.resident_id = users.user_id
             WHERE users.isactive = true
@@ -114,7 +114,7 @@ export class ResidentRepository {
                    ST_AsGeoJSON(home_location)       AS home_location,
                    ST_AsGeoJSON(work_location)       AS work_location,
                    ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM residentdetails
             JOIN users ON residentdetails.resident_id = users.user_id
             WHERE resident_id = $1 AND users.isactive = true
@@ -131,7 +131,7 @@ export class ResidentRepository {
                    ST_AsGeoJSON(home_location)       AS home_location,
                    ST_AsGeoJSON(work_location)       AS work_location,
                    ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM residentdetails
             JOIN users ON residentdetails.resident_id = users.user_id
             WHERE resident_fname ILIKE $1 AND users.isactive = true
@@ -148,7 +148,7 @@ export class ResidentRepository {
                    ST_AsGeoJSON(home_location)       AS home_location,
                    ST_AsGeoJSON(work_location)       AS work_location,
                    ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM residentdetails
             JOIN users ON residentdetails.resident_id = users.user_id
             WHERE resident_lname ILIKE $1 AND users.isactive = true
@@ -168,7 +168,7 @@ export class ResidentRepository {
                    ST_AsGeoJSON(home_location)       AS home_location,
                    ST_AsGeoJSON(work_location)       AS work_location,
                    ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM residentdetails
             JOIN users ON residentdetails.resident_id = users.user_id
             WHERE users.isactive = true
@@ -195,7 +195,7 @@ export class ResidentRepository {
                    ST_AsGeoJSON(home_location)       AS home_location,
                    ST_AsGeoJSON(work_location)       AS work_location,
                    ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM residentdetails
             JOIN users ON residentdetails.resident_id = users.user_id
             WHERE ST_DWithin(
@@ -217,7 +217,7 @@ export class ResidentRepository {
                    ST_AsGeoJSON(home_location)       AS home_location,
                    ST_AsGeoJSON(work_location)       AS work_location,
                    ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM residentdetails
             JOIN users ON residentdetails.resident_id = users.user_id
             WHERE user_email = $1 AND users.isactive = true
@@ -234,7 +234,7 @@ export class ResidentRepository {
                    ST_AsGeoJSON(home_location)       AS home_location,
                    ST_AsGeoJSON(work_location)       AS work_location,
                    ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM residentdetails
             JOIN users ON residentdetails.resident_id = users.user_id
             WHERE user_phone = $1 AND users.isactive = true

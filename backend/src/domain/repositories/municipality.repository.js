@@ -47,7 +47,7 @@ export class MunicipalityRepository {
         const sql = `
             SELECT municipality_id, municipality_name, region_name, municipality_code,
                    ST_AsGeoJSON(municipality_location) AS municipality_location,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM municipalitydetails
             JOIN users ON municipalitydetails.municipality_id = users.user_id
             WHERE isactive = true
@@ -75,7 +75,7 @@ export class MunicipalityRepository {
         const sql = `
             SELECT municipality_id, municipality_name, region_name, municipality_code,
                    ST_AsGeoJSON(municipality_location) AS municipality_location,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM municipalitydetails
             JOIN users ON municipalitydetails.municipality_id = users.user_id
             WHERE municipality_id = $1 AND isactive = true
@@ -103,7 +103,7 @@ export class MunicipalityRepository {
         const sql = `
             SELECT municipality_id, municipality_name, region_name, municipality_code,
                    ST_AsGeoJSON(municipality_location) AS municipality_location,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM municipalitydetails
             JOIN users ON municipalitydetails.municipality_id = users.user_id
             WHERE municipality_name ILIKE $1 AND isactive = true
@@ -130,7 +130,7 @@ export class MunicipalityRepository {
     async getMunicipalityByRegion(region_name) {
         const sql = `
         SELECT municipality_id, municipality_name, region_name, municipality_code, municipality_location,
-               user_id, user_email, user_phone, user_role, isactive
+               user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
         FROM municipalitydetails
         JOIN users ON municipalitydetails.municipality_id = users.user_id
         WHERE region_name = $1 AND isactive = true
@@ -152,7 +152,7 @@ export class MunicipalityRepository {
         const sql = `
             SELECT municipality_id, municipality_name, region_name, municipality_code,
                    ST_AsGeoJSON(municipality_location) AS municipality_location,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM municipalitydetails
             JOIN users ON municipalitydetails.municipality_id = users.user_id
             WHERE municipality_code = $1 AND isactive = true
@@ -180,7 +180,7 @@ export class MunicipalityRepository {
         const sql = `
             SELECT municipality_id, municipality_name, region_name, municipality_code,
                    ST_AsGeoJSON(municipality_location) AS municipality_location,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM municipalitydetails
             JOIN users ON municipalitydetails.municipality_id = users.user_id
             WHERE ST_DWithin(
@@ -213,7 +213,7 @@ export class MunicipalityRepository {
         const sql = `
         SELECT municipality_id, municipality_name, region_name, municipality_code,
                ST_AsGeoJSON(municipality_location) AS municipality_location,
-               user_id, user_email, user_phone, user_role, isactive
+               user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
         FROM municipalitydetails
         JOIN users ON municipalitydetails.municipality_id = users.user_id
         WHERE user_email = $1 AND isactive = true
@@ -241,7 +241,7 @@ export class MunicipalityRepository {
         const sql = `
         SELECT municipality_id, municipality_name, region_name, municipality_code,
                ST_AsGeoJSON(municipality_location) AS municipality_location,
-               user_id, user_email, user_phone, user_role, isactive
+               user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
         FROM municipalitydetails
         JOIN users ON municipalitydetails.municipality_id = users.user_id
         WHERE user_phone = $1 AND isactive = true
@@ -314,7 +314,7 @@ export class MunicipalityRepository {
         const joinSql = `
         SELECT municipality_id, municipality_name, region_name, municipality_code,
                ST_AsGeoJSON(municipality_location) AS municipality_location,
-               user_id, user_email, user_phone, user_role, isactive
+               user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
         FROM municipalitydetails
         JOIN users ON municipalitydetails.municipality_id = users.user_id
         WHERE municipality_id = $1 AND isactive = true

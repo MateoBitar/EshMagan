@@ -69,7 +69,7 @@ export class ResponderRepository {
                    ST_AsGeoJSON(unit_location) AS unit_location,
                    assigned_region, responder_status,
                    ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM responderdetails
             JOIN users ON responderdetails.responder_id = users.user_id
             WHERE isactive = true
@@ -105,7 +105,7 @@ export class ResponderRepository {
                    ST_AsGeoJSON(unit_location) AS unit_location,
                    assigned_region, responder_status,
                    ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
             FROM responderdetails
             JOIN users ON responderdetails.responder_id = users.user_id
             WHERE responder_id = $1 AND isactive = true
@@ -140,7 +140,7 @@ export class ResponderRepository {
                ST_AsGeoJSON(unit_location) AS unit_location,
                assigned_region, responder_status,
                ST_AsGeoJSON(last_known_location) AS last_known_location,
-               user_id, user_email, user_phone, user_role, isactive
+               user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
         FROM responderdetails
         JOIN users ON responderdetails.responder_id = users.user_id
         WHERE unit_nb = $1 AND isactive = true
@@ -176,7 +176,7 @@ export class ResponderRepository {
                ST_AsGeoJSON(unit_location) AS unit_location,
                assigned_region, responder_status,
                ST_AsGeoJSON(last_known_location) AS last_known_location,
-               user_id, user_email, user_phone, user_role, isactive
+               user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
         FROM responderdetails
         JOIN users ON responderdetails.responder_id = users.user_id
         WHERE ST_DWithin(unit_location, ST_GeomFromText($1, 4326)::geography, 1000)
@@ -214,7 +214,7 @@ export class ResponderRepository {
                ST_AsGeoJSON(unit_location) AS unit_location,
                assigned_region, responder_status,
                ST_AsGeoJSON(last_known_location) AS last_known_location,
-               user_id, user_email, user_phone, user_role, isactive
+               user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
         FROM responderdetails
         JOIN users ON responderdetails.responder_id = users.user_id
         WHERE assigned_region = $1 AND isactive = true
@@ -250,7 +250,7 @@ export class ResponderRepository {
                ST_AsGeoJSON(unit_location) AS unit_location,
                assigned_region, responder_status,
                ST_AsGeoJSON(last_known_location) AS last_known_location,
-               user_id, user_email, user_phone, user_role, isactive
+               user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
         FROM responderdetails
         JOIN users ON responderdetails.responder_id = users.user_id
         WHERE responder_status = $1 AND isactive = true
@@ -286,7 +286,7 @@ export class ResponderRepository {
                ST_AsGeoJSON(unit_location) AS unit_location,
                assigned_region, responder_status,
                ST_AsGeoJSON(last_known_location) AS last_known_location,
-               user_id, user_email, user_phone, user_role, isactive
+               user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
         FROM responderdetails
         JOIN users ON responderdetails.responder_id = users.user_id
         WHERE ST_DWithin(
@@ -327,7 +327,7 @@ export class ResponderRepository {
                ST_AsGeoJSON(unit_location) AS unit_location,
                assigned_region, responder_status,
                ST_AsGeoJSON(last_known_location) AS last_known_location,
-               user_id, user_email, user_phone, user_role, isactive
+               user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
         FROM responderdetails
         JOIN users ON responderdetails.responder_id = users.user_id
         WHERE user_email = $1 AND isactive = true
@@ -362,7 +362,7 @@ export class ResponderRepository {
                ST_AsGeoJSON(unit_location) AS unit_location,
                assigned_region, responder_status,
                ST_AsGeoJSON(last_known_location) AS last_known_location,
-               user_id, user_email, user_phone, user_role, isactive
+               user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
         FROM responderdetails
         JOIN users ON responderdetails.responder_id = users.user_id
         WHERE user_phone = $1 AND isactive = true
@@ -407,7 +407,7 @@ export class ResponderRepository {
                    ST_AsGeoJSON(unit_location)       AS unit_location,
                    assigned_region, responder_status,
                    ST_AsGeoJSON(last_known_location) AS last_known_location,
-                   user_id, user_email, user_phone, user_role, isactive,
+                   user_id, user_email, user_phone, user_role, isactive, created_at, updated_at,
                    ST_Distance(
                        last_known_location::geography,
                        ST_GeogFromText($1)
@@ -479,7 +479,7 @@ export class ResponderRepository {
             RETURNING responder_id, unit_nb,
                       ST_AsGeoJSON(unit_location) AS unit_location,
                       assigned_region, responder_status,
-                      ST_AsGeoJSON(last_known_location) AS last_known_location
+                      ST_AsGeoJSON(last_known_location) AS last_known_location,
         `;
             values.push(responder_id);
             await pool.query(sql, values);
@@ -497,7 +497,7 @@ export class ResponderRepository {
                ST_AsGeoJSON(unit_location) AS unit_location,
                assigned_region, responder_status,
                ST_AsGeoJSON(last_known_location) AS last_known_location,
-               user_id, user_email, user_phone, user_role, isactive
+               user_id, user_email, user_phone, user_role, isactive, created_at, updated_at
         FROM responderdetails
         JOIN users ON responderdetails.responder_id = users.user_id
         WHERE responder_id = $1 AND isactive = true
