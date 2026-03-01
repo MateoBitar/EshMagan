@@ -2,10 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import { expressMiddleware } from '@apollo/server/express4';
-
 import { pool } from './config/db.js';
 import restRouter from './api/rest/routes/index.js';
 import { createApolloServer } from './api/graphql/index.js';
+import { connectNATS } from './config/nats.js';
+import { setupNATSConsumers } from './config/nats.consumers.js';
 
 const app = express();
 
@@ -41,5 +42,9 @@ app.use(
     context: buildContext,
   })
 );
+
+// NATS
+await connectNATS();
+await setupNATSConsumers();
 
 export default app;
