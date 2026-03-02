@@ -82,13 +82,16 @@ export class EvacuationService {
 
     async getEvacuationsByZone(safe_zone) {
         try {
-            // Validate safe zone input
-            if (!safe_zone?.latitude || !safe_zone?.longitude)
-                throw new Error("Missing required fields: Safe Zone latitude and longitude");
+            const match = safe_zone.match(/POINT\(([^\s]+)\s+([^\)]+)\)/i);
+            if (!match) throw new Error("Invalid format. Expected POINT(lng lat)");
+            
+            const coords = {
+                longitude: parseFloat(match[1]),
+                latitude:  parseFloat(match[2])
+            };
 
-            // Fetch evacuation routes by safe zone
-            const evacuations = await this.evacuationRepository.getEvacuationsByZone(safe_zone);
-            if (!evacuations || evacuations.length === 0) return [];  // No evacuation routes found for this zone
+            const evacuations = await this.evacuationRepository.getEvacuationsByZone(coords);
+            if (!evacuations || evacuations.length === 0) return [];
             return evacuations.map(evac => evac.toDTO());
         } catch (err) {
             throw new Error(`Failed to fetch evacuation routes by zone: ${err.message}`);

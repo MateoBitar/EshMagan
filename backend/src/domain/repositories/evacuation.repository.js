@@ -21,7 +21,7 @@ export class EvacuationRepository {
             (route_status, route_priority, route_path, safe_zone, distance_km, estimated_time, created_at, fire_id)
             VALUES ($1, $2, ST_GeogFromText($3), ST_GeogFromText($4), $5, $6, NOW(), $7)
             RETURNING route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path, 
-            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, fire_id
+            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time::text AS estimated_time, created_at, fire_id
         `;
 
         // route_path and safe_zone must be WKT strings like 'LINESTRING(...)' and 'POLYGON(...)'
@@ -34,7 +34,7 @@ export class EvacuationRepository {
     async getAllEvacuations() {
         const sql = `
             SELECT route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path, 
-            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, updated_at, fire_id 
+            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time::text AS estimated_time, created_at, updated_at, fire_id 
             FROM evacuationroutes 
             ORDER BY created_at DESC
         `;
@@ -50,7 +50,7 @@ export class EvacuationRepository {
     async getEvacuationById(route_id) {
         const sql = `
             SELECT route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path, 
-            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, updated_at, fire_id
+            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time::text AS estimated_time, created_at, updated_at, fire_id
             FROM evacuationroutes 
             WHERE route_id = $1
         `;
@@ -66,7 +66,7 @@ export class EvacuationRepository {
     async getEvacuationsByStatus(route_status) {
         const sql = `
             SELECT route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path, 
-            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, updated_at, fire_id
+            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time::text AS estimated_time, created_at, updated_at, fire_id
             FROM evacuationroutes 
             WHERE route_status = $1
         `;
@@ -82,7 +82,7 @@ export class EvacuationRepository {
     async getEvacuationsByPriority(route_priority) {
         const sql = `
             SELECT route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path, 
-            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, updated_at, fire_id
+            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time::text AS estimated_time, created_at, updated_at, fire_id
             FROM evacuationroutes 
             WHERE route_priority = $1
         `;
@@ -98,7 +98,7 @@ export class EvacuationRepository {
     async getEvacuationsByZone(safe_zone) {
         const sql = `
             SELECT route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path, 
-            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, updated_at, fire_id
+            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time::text AS estimated_time, created_at, updated_at, fire_id
             FROM evacuationroutes 
             WHERE ST_DWithin(safe_zone::geography, ST_GeogFromText($1), 1000) -- Within 1km of the given safe_zone
         `;
@@ -114,7 +114,7 @@ export class EvacuationRepository {
     async getEvacuationsByFireId(fire_id) {
         const sql = `
             SELECT route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path, 
-            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, updated_at, fire_id
+            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time::text AS estimated_time, created_at, updated_at, fire_id
             FROM evacuationroutes WHERE fire_id = $1
         `;
         const { rows } = await pool.query(sql, [fire_id]);
@@ -129,7 +129,7 @@ export class EvacuationRepository {
     async getNearestEvacuation(latitude, longitude) {
         const sql = `
             SELECT route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path,
-            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, updated_at, fire_id,
+            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time::text AS estimated_time, created_at, updated_at, fire_id,
             ST_Distance(route_path::geography, ST_GeogFromText($1)::geography) AS distance_to_route
             FROM evacuationroutes
             ORDER BY distance_to_route ASC
@@ -149,7 +149,7 @@ export class EvacuationRepository {
             UPDATE evacuationroutes SET route_status = $1, updated_at = NOW()
             WHERE route_id = $2
             RETURNING route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path,
-            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, updated_at, fire_id
+            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time::text AS estimated_time, created_at, updated_at, fire_id
         `;
         const { rows } = await pool.query(sql, [new_status, route_id]);
 
@@ -164,7 +164,7 @@ export class EvacuationRepository {
         const sql = `
             UPDATE evacuationroutes SET route_priority = $1, updated_at = NOW()
             WHERE route_id = $2 RETURNING route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path,
-            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, updated_at, fire_id
+            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time::text AS estimated_time, created_at, updated_at, fire_id
         `;
         const { rows } = await pool.query(sql, [new_priority, route_id]);
 
@@ -179,7 +179,7 @@ export class EvacuationRepository {
         const sql = `
             UPDATE evacuationroutes SET route_path = ST_GeogFromText($1), safe_zone = ST_GeogFromText($2), updated_at = NOW() 
             WHERE route_id = $3 RETURNING route_id, route_status, route_priority, ST_AsGeoJSON(route_path) AS route_path,
-            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time, created_at, updated_at, fire_id
+            ST_AsGeoJSON(safe_zone) AS safe_zone, distance_km, estimated_time::text AS estimated_time, created_at, updated_at, fire_id
         `;
         const { rows } = await pool.query(sql, [new_route_path, new_safe_zone, route_id]);
 
