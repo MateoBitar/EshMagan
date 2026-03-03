@@ -19,7 +19,7 @@ export async function publishAlertCreated(data) {
         }));
 
         await js.publish(SUBJECTS.ALERT_CREATED, payload);
-        console.log(`[NATS] Published alert.created for alert_id: ${data.alert_id}`);
+        console.log(`[NATS] Published alert.created for fire_id: ${data.fire_id}`);
     } catch (err) {
         console.error(`[NATS] Failed to publish alert.created: ${err.message}`);
         throw err;

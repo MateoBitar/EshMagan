@@ -11,6 +11,7 @@ import { startFireDetectedSubscriber }    from '../events/subscribers/fireDetect
 import { startAlertSubscriber }           from '../events/subscribers/alert.subscriber.js';
 import { startNotificationSubscriber }    from '../events/subscribers/notification.subscriber.js';
 import { startFireAssignmentSubscriber }  from '../events/subscribers/fireAssignment.subscriber.js';
+import { startEvacuationSubscriber }      from '../events/subscribers/evacuation.subscriber.js';
 import { AckPolicy, DeliverPolicy }       from 'nats';
 
 const CONSUMERS = [
@@ -20,9 +21,12 @@ const CONSUMERS = [
         filter_subject:  SUBJECTS.FIRE_DETECTED,
     },
     {
-        // Listens to alert.created + evacuation.updated → creates Alerts for all roles
-        name:            'alert-consumer',
-        filter_subjects: [SUBJECTS.ALERT_CREATED, SUBJECTS.EVACUATION_UPDATED],
+        name: 'alert-consumer',
+        filter_subject: SUBJECTS.ALERT_CREATED,
+    },
+    {
+        name: 'evacuation-consumer',
+        filter_subject: SUBJECTS.EVACUATION_UPDATED,
     },
     {
         // Listens to fire.risk.predicted → creates Notifications per user near zone
@@ -62,6 +66,7 @@ export async function setupNATSConsumers() {
     await startAlertSubscriber();
     await startNotificationSubscriber();
     await startFireAssignmentSubscriber();
+    await startEvacuationSubscriber();
 
     console.log('[NATS] All subscribers started');
 }

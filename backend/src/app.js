@@ -10,41 +10,53 @@ import { setupNATSConsumers } from './config/nats.consumers.js';
 
 const app = express();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(morgan('dev'));
-
-// Health
-app.get('/', (req, res) => {
-  res.send('Wildfire backend is running smoothly!');
-});
-
-// DB Test
-app.get('/db-test', async (req, res) => {
+// Async Bootstrap Wrapper
+(async () => {
   try {
-    const result = await pool.query('SELECT NOW()');
-    res.json({ time: result.rows[0].now });
+
+    // Middleware
+    app.use(cors());
+    app.use(express.json());
+    app.use(morgan('dev'));
+
+    // Health
+    app.get('/', (req, res) => {
+      res.send('Wildfire backend is running smoothly!');
+    });
+
+    // DB Test
+    app.get('/db-test', async (req, res) => {
+      try {
+        const result = await pool.query('SELECT NOW()');
+        res.json({ time: result.rows[0].now });
+      } catch (err) {
+        res.status(500).send('Database error');
+      }
+    });
+
+    // REST
+    app.use('/api', restRouter);
+
+    // NATS
+    await connectNATS();
+    await setupNATSConsumers();
+
+    // GRAPHQL
+    const { server, buildContext } = await createApolloServer();
+
+    app.use(
+      '/eshmagan',
+      expressMiddleware(server, {
+        context: buildContext,
+      })
+    );
+
+    console.log('Server bootstrap completed successfully');
+
   } catch (err) {
-    res.status(500).send('Database error');
+    console.error('Fatal startup error:', err);
+    process.exit(1);
   }
-});
-
-// REST
-app.use('/api', restRouter);
-
-// NATS
-await connectNATS();
-await setupNATSConsumers();
-
-// GRAPHQL
-const { server, buildContext } = await createApolloServer();
-
-app.use(
-  '/eshmagan',
-  expressMiddleware(server, {
-    context: buildContext,
-  })
-);
+})();
 
 export default app;
