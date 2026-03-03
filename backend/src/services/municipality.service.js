@@ -113,17 +113,20 @@ export class MunicipalityService {
 
     async getMunicipalityByLocation(municipality_location) {
         try {
-            if (!municipality_location?.latitude || !municipality_location?.longitude)
-                throw new Error("Missing required fields: Municipality Location latitude and longitude");
-            // Fetch municipality by spatial location (within radius)
-            const municipality = await this.municipalityRepository.getMunicipalityByLocation(municipality_location);
+            const coords = typeof municipality_location === 'string'
+                ? (() => {
+                    const match = municipality_location.match(/POINT\(([^\s]+)\s+([^\)]+)\)/i);
+                    if (!match) throw new Error("Invalid format. Expected POINT(lng lat)");
+                    return { longitude: parseFloat(match[1]), latitude: parseFloat(match[2]) };
+                })()
+                : municipality_location;
+            const municipality = await this.municipalityRepository.getMunicipalityByLocation(coords);
             if (!municipality) return null;
             return municipality.toDTO();
         } catch (err) {
             throw new Error(`Failed to fetch municipality by location: ${err.message}`);
         }
     }
-
     async getMunicipalityByEmail(user_email) {
         try {
             // Fetch municipality by associated user email

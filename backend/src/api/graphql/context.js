@@ -64,6 +64,7 @@ export async function buildContext({ req }) {
 
     const fireService = new FireService(
         fireRepository,
+        residentRepository,
         fireAssignmentService,
         evacuationRepository,
         alertRepository,

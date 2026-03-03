@@ -93,11 +93,15 @@ export class ResponderService {
 
     async getRespondersByUnitLocation(unit_location) {
         try {
-            if (!unit_location?.latitude || !unit_location?.longitude)
-                throw new Error("Missing required fields: Unit Location latitude and longitude");
-            // Fetch responders by spatial unit location (within radius)
-            const responders = await this.responderRepository.getRespondersByUnitLocation(unit_location);
-            if (!responders || responders.length === 0) return []; // None found or inactive
+            const coords = typeof unit_location === 'string'
+                ? (() => {
+                    const match = unit_location.match(/POINT\(([^\s]+)\s+([^\)]+)\)/i);
+                    if (!match) throw new Error("Invalid format. Expected POINT(lng lat)");
+                    return { longitude: parseFloat(match[1]), latitude: parseFloat(match[2]) };
+                })()
+                : unit_location;
+            const responders = await this.responderRepository.getRespondersByUnitLocation(coords);
+            if (!responders || responders.length === 0) return [];
             return responders.map(r => r.toDTO());
         } catch (err) {
             throw new Error(`Failed to fetch responders by unit location: ${err.message}`);
@@ -128,11 +132,15 @@ export class ResponderService {
 
     async getRespondersByLastKnownLocation(last_known_location) {
         try {
-            if (!last_known_location?.latitude || !last_known_location?.longitude)
-                throw new Error("Missing required fields: Last Known Location latitude and longitude");
-            // Fetch responders by spatial last known location (within radius)
-            const responders = await this.responderRepository.getRespondersByLastKnownLocation(last_known_location);
-            if (!responders || responders.length === 0) return []; // None found or inactive
+            const coords = typeof last_known_location === 'string'
+                ? (() => {
+                    const match = last_known_location.match(/POINT\(([^\s]+)\s+([^\)]+)\)/i);
+                    if (!match) throw new Error("Invalid format. Expected POINT(lng lat)");
+                    return { longitude: parseFloat(match[1]), latitude: parseFloat(match[2]) };
+                })()
+                : last_known_location;
+            const responders = await this.responderRepository.getRespondersByLastKnownLocation(coords);
+            if (!responders || responders.length === 0) return [];
             return responders.map(r => r.toDTO());
         } catch (err) {
             throw new Error(`Failed to fetch responders by last known location: ${err.message}`);

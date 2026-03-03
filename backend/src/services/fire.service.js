@@ -101,7 +101,7 @@ export class FireService {
                     // Mark responder as dispatched
                     await this.responderService.updateResponderStatus(
                         nearestResponder.responder_id,
-                        'dispatched'
+                        'Unavailable'
                     );
                 }
             } catch (dispatchErr) {
@@ -124,18 +124,6 @@ export class FireService {
             }
 
             // Step 8: Broadcast alert
-            try {
-                await this.alertRepository.createAlert({
-                    alert_type:    'fire',
-                    target_role:   'all',
-                    alert_message: `Fire reported at ${createdFire.fire_location}. Severity: ${createdFire.fire_severitylevel}.`,
-                    expires_at:    new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h expiry
-                    fire_id:       createdFire.fire_id
-                });
-            } catch (alertErr) {
-                console.warn(`Alert broadcast failed for fire ${createdFire.fire_id}: ${alertErr.message}`);
-            }
-
             // Step 9: Publish NATS event
             try {
                 await this.natsPublisher.publish('fireDetected', {
@@ -354,12 +342,12 @@ export class FireService {
             if (!nearestResponder) throw new Error("No available responders found");
 
             const assignment = await this.fireAssignmentService.createAssignment({
-                assignment_status: 'active',
+                assignment_status: 'Active',
                 fire_id,
                 responder_id: nearestResponder.responder_id
             });
 
-            await this.responderService.updateResponderStatus(nearestResponder.responder_id, 'dispatched');
+            await this.responderService.updateResponderStatus(nearestResponder.responder_id, 'Unavailable');
 
             return assignment;
         } catch (err) {
@@ -445,5 +433,11 @@ export class FireService {
         } catch (err) {
             throw new Error(`Failed to find residents near fire: ${err.message}`);
         }
+    }
+
+    _parseWKTPoint(wkt) {
+        const match = wkt?.match(/POINT\(([^\s]+)\s+([^\)]+)\)/i);
+        if (!match) return null;
+        return { longitude: parseFloat(match[1]), latitude: parseFloat(match[2]) };
     }
 }

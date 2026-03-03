@@ -120,11 +120,15 @@ export class ResidentService {
 
     async getResidentsByLastKnownLocation(last_known_location) {
         try {
-            if (!last_known_location?.latitude || !last_known_location?.longitude)
-                throw new Error("Missing required fields: Last Known Location latitude and longitude");
-            // Fetch residents by spatial last known location (within radius)
-            const residents = await this.residentRepository.getResidentsByLastKnownLocation(last_known_location);
-            if (!residents || residents.length === 0) return []; // None found or inactive
+            const coords = typeof last_known_location === 'string'
+                ? (() => {
+                    const match = last_known_location.match(/POINT\(([^\s]+)\s+([^\)]+)\)/i);
+                    if (!match) throw new Error("Invalid format. Expected POINT(lng lat)");
+                    return { longitude: parseFloat(match[1]), latitude: parseFloat(match[2]) };
+                })()
+                : last_known_location;
+            const residents = await this.residentRepository.getResidentsByLastKnownLocation(coords);
+            if (!residents || residents.length === 0) return [];
             return residents.map(r => r.toDTO());
         } catch (err) {
             throw new Error(`Failed to fetch residents by last known location: ${err.message}`);

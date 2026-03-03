@@ -484,7 +484,9 @@ export class ResponderRepository {
     //   - POLYGON → distance to the nearest edge of the polygon
     async getNearestResponder(fire_location) {
         // Convert LocationInput into WKT string
-        const locationWKT = `POINT(${fire_location.longitude} ${fire_location.latitude})`;
+        const locationWKT = typeof fire_location === 'string'
+            ? fire_location
+            : `POINT(${fire_location.longitude} ${fire_location.latitude})`;
 
         const sql = `
         SELECT r.responder_id, r.unit_nb,

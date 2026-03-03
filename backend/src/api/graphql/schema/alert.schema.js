@@ -29,7 +29,7 @@ export const alertTypeDefs = gql`
     alert_message: String!
     expires_at: String!
     created_at: String!
-    fire_id: ID!
+    fire_id: ID
   }
 
   # -----------------------------
