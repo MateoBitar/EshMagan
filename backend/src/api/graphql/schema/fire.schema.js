@@ -13,7 +13,6 @@ export const fireTypeDefs = gql`
     fire_severitylevel: Int
     is_extinguished: Boolean!
     is_verified: Boolean!
-    spread_prediction: String
     created_at: String
     updated_at: String
   }
@@ -35,7 +34,6 @@ export const fireTypeDefs = gql`
     fire_severitylevel: Int
     is_extinguished: Boolean
     is_verified: Boolean
-    spread_prediction: String
   }
 
   # -----------------------------
@@ -65,7 +63,6 @@ export const fireTypeDefs = gql`
     updateFire(fire_id: ID!, input: UpdateFireInput!): Fire
     updateFireStatus(fire_id: ID!, fire_status: Boolean!): Fire
     updateFireSeverity(fire_id: ID!, severityLevel: Int!): Fire
-    updateFireSpreadPrediction(fire_id: ID!, spreadPrediction: String!): Fire
     deleteFire(fire_id: ID!): Boolean!
     createFireAndTriggerSystem(input: CreateFireInput!): Fire! 
     verifyFire(fire_id: ID!): Fire 

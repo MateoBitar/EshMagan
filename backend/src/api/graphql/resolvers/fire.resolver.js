@@ -174,17 +174,6 @@ export const fireResolvers = {
       }
     },
 
-    // Update fire spread prediction
-    updateFireSpreadPrediction: async (_, { fire_id, spreadPrediction }, { dataSources }) => {
-      try {
-        const updated = await dataSources.fireService.updateFireSpreadPrediction(fire_id, spreadPrediction);
-        if (!updated) throw new Error(`Fire with ID ${fire_id} not found`);
-        return updated;
-      } catch (err) {
-        throw new Error(`GraphQL Error - updateFireSpreadPrediction: ${err.message}`);
-      }
-    },
-
     // Delete fire
     deleteFire: async (_, { fire_id }, { dataSources }) => {
       try {

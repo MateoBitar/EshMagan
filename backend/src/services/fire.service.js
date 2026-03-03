@@ -5,6 +5,7 @@ import { FireEvent } from '../domain/entities/fire.entity.js';
 export class FireService {
     constructor(
         fireRepository,
+        residentRepository, 
         fireAssignmentService,
         evacuationRepository,
         alertRepository,
@@ -15,6 +16,7 @@ export class FireService {
         natsPublisher
     ) {
         this.fireRepository         = fireRepository;
+        this.residentRepository     = residentRepository;
         this.fireAssignmentService  = fireAssignmentService;
         this.evacuationRepository   = evacuationRepository;
         this.alertRepository        = alertRepository;
@@ -398,17 +400,6 @@ export class FireService {
         }
     }
 
-    async updateFireSpreadPrediction(fire_id, spreadPrediction) {
-        try {
-            // Update fire spread prediction
-            const updatedFire = await this.fireRepository.updateFireSpreadPrediction(fire_id, spreadPrediction);
-            if (!updatedFire) return null;
-            return updatedFire.toDTO();
-        } catch (err) {
-            throw new Error(`Failed to update fire spread prediction: ${err.message}`);
-        }
-    }
-
     async deleteFire(fire_id) {
         try {
             // Delete fire by ID
@@ -434,21 +425,23 @@ export class FireService {
             if (!fire_id) throw new Error("Missing required field: Fire ID");
 
             // Step 1: Get fire location
-            const fire = await this.fireService.getFireById(fire_id);
+            const fire = await this.fireRepository.getFireById(fire_id);
             if (!fire) throw new Error("Fire not found");
 
             // Step 2: Parse coordinates from WKT string
             const coords = this._parseWKTPoint(fire.fire_location);
             if (!coords) throw new Error("Could not parse fire location coordinates");
 
-            // Step 3: Find residents within radius via repository
-            // residentRepository.getResidentsByLastKnownLocation does a ST_DWithin.
-            const residents = await this.residentRepository.getResidentsByLastKnownLocation({
-                latitude:  coords.latitude,
-                longitude: coords.longitude
-            });
+            // Step 3: Find residents within radius
+            const residents =
+                await this.residentRepository.getResidentsByLastKnownLocation({
+                    latitude: coords.latitude,
+                    longitude: coords.longitude,
+                    radiusMeters
+                });
 
             return residents.map(r => r.toDTO ? r.toDTO() : r);
+
         } catch (err) {
             throw new Error(`Failed to find residents near fire: ${err.message}`);
         }

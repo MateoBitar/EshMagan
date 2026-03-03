@@ -11,7 +11,7 @@ export class FireRepository {
         const fireSql = `
                 INSERT INTO fireevents (fire_source, fire_location, fire_severitylevel,
                                         is_extinguished, is_verified, created_at, updated_at) 
-                VALUES ($1,ST_GeogFromText($2),$3,$4,$5,NOW(),NOW()) 
+                VALUES ($1,ST_SetSRID(ST_GeomFromText($2), 4326)::geography,$3,$4,$5,NOW(),NOW()) 
                 RETURNING fire_id, fire_source, ST_AsText(fire_location) as fire_location, fire_severitylevel,
                 is_extinguished, is_verified, created_at, updated_at
         `; 
@@ -91,7 +91,8 @@ export class FireRepository {
                        f.fire_severitylevel, f.is_extinguished, f.is_verified, f.created_at, f.updated_at 
                 FROM fireevents f 
                 JOIN municipalitydetails m 
-                ON ST_Within(f.fire_location, m.municipality_location) 
+                ON ST_Within(f.fire_location::geometry,
+                             m.municipality_location::geometry) 
                 WHERE m.municipality_id=$1 
         `; 
         const { rows } = await pool.query(sql, [municipality_id]); 
@@ -123,7 +124,8 @@ export class FireRepository {
                 SELECT fire_id, fire_source, ST_AsText(fire_location) AS fire_location,
                        fire_severitylevel, is_extinguished, is_verified, created_at, updated_at 
                 FROM fireevents 
-                WHERE ST_Within(fire_location, ST_GeomFromGeoJSON($1)::geography) 
+                WHERE ST_Within(fire_location::geometry,
+            ST_GeomFromGeoJSON($1)) 
         `; 
         const { rows } = await pool.query(sql, [polygonGeoJSON]); 
         if (rows.length === 0) {
@@ -291,25 +293,6 @@ export class FireRepository {
                     fire_severitylevel, is_extinguished, is_verified, created_at, updated_at
         `;
         const { rows } = await pool.query(sql, [fire_id, severityLevel]);
-
-        if (rows.length === 0) {
-            return null;
-        }
-
-        return FireEvent.fromEntity(rows[0]);
-    }
-
-    async updateFireSpreadPrediction(fire_id, spreadPrediction) {
-        // Updates the spread prediction field for a fire
-        const sql = `
-            UPDATE fireevents
-            SET spread_prediction = $2,
-                updated_at = NOW()
-            WHERE fire_id = $1
-            RETURNING fire_id, fire_source, ST_AsText(fire_location) AS fire_location,
-                    fire_severitylevel, is_extinguished, is_verified, spread_prediction, created_at, updated_at
-        `;
-        const { rows } = await pool.query(sql, [fire_id, spreadPrediction]);
 
         if (rows.length === 0) {
             return null;
