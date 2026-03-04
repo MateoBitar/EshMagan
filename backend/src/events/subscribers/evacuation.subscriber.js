@@ -15,35 +15,37 @@ export async function startEvacuationSubscriber() {
 
         console.log('[NATS] evacuation subscriber started');
 
-        for await (const msg of messages) {
-            try {
-                if (msg.subject !== SUBJECTS.EVACUATION_UPDATED) {
+        (async () => {
+            for await (const msg of messages) {
+                try {
+                    if (msg.subject !== SUBJECTS.EVACUATION_UPDATED) {
+                        msg.ack();
+                        continue;
+                    }
+
+                    const data = JSON.parse(sc.decode(msg.data));
+
+                    console.log(`[NATS] evacuation.updated received for route_id: ${data.route_id}`);
+
+                    const roles = ['Resident', 'Responder', 'Municipality'];
+                    for (const role of roles) {
+                        await publishAlertCreated({
+                            fire_id: data.fire_id,
+                            alert_type: 'EvacuationAlert',
+                            target_role: role,
+                            alert_message:
+                                `Evacuation route update: Route ${data.route_id} is now ${data.route_status} (Priority: ${data.route_priority}).`,
+                            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
+                        });
+                    }
                     msg.ack();
-                    continue;
+
+                } catch (err) {
+                    console.error(`[NATS] Error processing evacuation.updated: ${err.message}`);
+                    // no ack → JetStream retry
                 }
-
-                const data = JSON.parse(sc.decode(msg.data));
-
-                console.log(`[NATS] evacuation.updated received for route_id: ${data.route_id}`);
-
-                const roles = ['Resident', 'Responder', 'Municipality'];
-                for (const role of roles) {
-                    await publishAlertCreated({
-                        fire_id: data.fire_id,
-                        alert_type: 'EvacuationAlert',
-                        target_role: role,
-                        alert_message:
-                            `Evacuation route update: Route ${data.route_id} is now ${data.route_status} (Priority: ${data.route_priority}).`,
-                        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
-                    });
-                }
-                msg.ack();
-
-            } catch (err) {
-                console.error(`[NATS] Error processing evacuation.updated: ${err.message}`);
-                // no ack → JetStream retry
             }
-        }
+        })();
     } catch (err) {
         console.error(`[NATS] Failed to start evacuation subscriber: ${err.message}`);
         throw err;

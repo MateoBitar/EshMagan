@@ -20,38 +20,39 @@ export async function startFireDetectedSubscriber() {
 
         console.log('[NATS] fireDetected subscriber started');
 
-
-        for await (const msg of messages) {
-            if (msg.subject !== SUBJECTS.FIRE_DETECTED) {
-                msg.ack();
-                continue;
-            }
-
-            try {
-                const data = JSON.parse(sc.decode(msg.data));
-                console.log(`[NATS] fire.detected received for fire_id: ${data.fire_id}`);
-
-                // Publish alert.created — alert.subscriber will create
-                // one FireAlert per role (Resident, Responder, Municipality)
-                for (const role of ['Resident', 'Responder', 'Municipality']) {
-                    await publishAlertCreated({
-                        fire_id: data.fire_id,
-                        fire_location: data.fire_location,
-                        fire_severitylevel: data.fire_severitylevel,
-                        alert_type: 'FireAlert',
-                        target_role: role,
-                        alert_message: `Fire detected. Severity: ${data.fire_severitylevel}. All roles in the area should take immediate action.`,
-                        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
-                    });
+        (async () => {
+            for await (const msg of messages) {
+                if (msg.subject !== SUBJECTS.FIRE_DETECTED) {
+                    msg.ack();
+                    continue;
                 }
-                console.log(`[NATS] alert.created published for fire_id: ${data.fire_id}`);
-                msg.ack();
 
-            } catch (err) {
-                console.error(`[NATS] Error processing fire.detected: ${err.message}`);
-                // Do not ack — JetStream will redeliver
+                try {
+                    const data = JSON.parse(sc.decode(msg.data));
+                    console.log(`[NATS] fire.detected received for fire_id: ${data.fire_id}`);
+
+                    // Publish alert.created — alert.subscriber will create
+                    // one FireAlert per role (Resident, Responder, Municipality)
+                    for (const role of ['Resident', 'Responder', 'Municipality']) {
+                        await publishAlertCreated({
+                            fire_id: data.fire_id,
+                            fire_location: data.fire_location,
+                            fire_severitylevel: data.fire_severitylevel,
+                            alert_type: 'FireAlert',
+                            target_role: role,
+                            alert_message: `Fire detected. Severity: ${data.fire_severitylevel}. All roles in the area should take immediate action.`,
+                            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
+                        });
+                    }
+                    console.log(`[NATS] alert.created published for fire_id: ${data.fire_id}`);
+                    msg.ack();
+
+                } catch (err) {
+                    console.error(`[NATS] Error processing fire.detected: ${err.message}`);
+                    // Do not ack — JetStream will redeliver
+                }
             }
-        }
+        })();
     } catch (err) {
         console.error(`[NATS] Failed to start fireDetected subscriber: ${err.message}`);
         throw err;
