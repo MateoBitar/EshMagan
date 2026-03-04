@@ -10,9 +10,9 @@ export class AlertRepository {
 
         // Step 1: Validate fire_id exists
         const fireRepository = new FireRepository();
-        const fire = await fireRepository.getFireById(fire_id);
-        if (!fire) {
-            throw new Error('Fire incident not found for the given fire_id');
+        if (fire_id) {
+            const fire = await fireRepository.getFireById(fire_id);
+            if (!fire) throw new Error('Fire incident not found for the given fire_id');
         }
 
         // Step 2: Insert the alert

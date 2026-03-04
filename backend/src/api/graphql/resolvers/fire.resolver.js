@@ -97,7 +97,7 @@ export const fireResolvers = {
     // Fetch fires by location and time
     getFiresByLocationAndTime: async (_, { lat, lng, startDate, endDate, radiusMeters }, { dataSources }) => {
       try {
-        return await dataSources.fireService.getFireByLocationAndTime(lat, lng, startDate, endDate, radiusMeters);
+        return await dataSources.fireService.getFiresByLocationAndTime(lat, lng, startDate, endDate, radiusMeters);
       } catch (err) {
         throw new Error(`GraphQL Error - getFiresByLocationAndTime: ${err.message}`);
       }

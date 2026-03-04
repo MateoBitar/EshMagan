@@ -82,19 +82,18 @@ export class EvacuationService {
 
     async getEvacuationsByZone(safe_zone) {
         try {
-            const match = safe_zone.match(/POINT\(([^\s]+)\s+([^\)]+)\)/i);
-            if (!match) throw new Error("Invalid format. Expected POINT(lng lat)");
-            
-            const coords = {
-                longitude: parseFloat(match[1]),
-                latitude:  parseFloat(match[2])
-            };
-
+            const coords = typeof safe_zone === 'string'
+                ? (() => {
+                    const match = safe_zone.match(/POINT\(([^\s]+)\s+([^\)]+)\)/i);
+                    if (!match) throw new Error("Invalid format. Expected POINT(lng lat)");
+                    return { longitude: parseFloat(match[1]), latitude: parseFloat(match[2]) };
+                })()
+                : safe_zone;
             const evacuations = await this.evacuationRepository.getEvacuationsByZone(coords);
             if (!evacuations || evacuations.length === 0) return [];
-            return evacuations.map(evac => evac.toDTO());
+            return evacuations.map(e => e.toDTO());
         } catch (err) {
-            throw new Error(`Failed to fetch evacuation routes by zone: ${err.message}`);
+            throw new Error(`Failed to fetch evacuations by zone: ${err.message}`);
         }
     }
 
