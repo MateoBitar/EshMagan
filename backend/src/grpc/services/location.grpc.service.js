@@ -1,49 +1,116 @@
-// backend/src/grpc/services/location.grpc.service.js
-import { ResponderService } from '../../services/responder.service.js';
-import { ResidentService } from '../../services/resident.service.js';
-import { FireService } from '../../services/fire.service.js';
+// grpc/services/location.grpc.service.js
+import { ResponderRepository } from '../../domain/repositories/responder.repository.js';
+import { ResidentRepository }  from '../../domain/repositories/resident.repository.js';
+import { FireRepository }      from '../../domain/repositories/fire.repository.js';
+import { UserRepository }      from '../../domain/repositories/user.repository.js';
+import { UserService }         from '../../services/user.service.js';
+import { ResponderService }    from '../../services/responder.service.js';
+import { ResidentService }     from '../../services/resident.service.js';
+import { getNATSConnection, sc } from '../../config/nats.js';
 
-const responderService = new ResponderService();
-const residentService = new ResidentService();
-const fireService = new FireService();
+const userRepository   = new UserRepository();
+const userService      = new UserService(userRepository);
+const responderService = new ResponderService(new ResponderRepository(), userService);
+const residentService  = new ResidentService(new ResidentRepository(), userService);
+const fireRepository   = new FireRepository();
+
+// Subscribe to NATS location updates for a specific entity.
+// Publishers push to location.<EntityType>.<entity_id> subjects.
+// Returns an unsubscribe function for cleanup on stream end.
+function subscribeToLocationUpdates(entity_id, entity_type, onUpdate) {
+    const nc = getNATSConnection();
+    const subject = `location.${entity_type}.${entity_id}`;
+    const sub = nc.subscribe(subject);
+
+    (async () => {
+        for await (const msg of sub) {
+            try {
+                const data = JSON.parse(sc.decode(msg.data));
+                onUpdate({
+                    entity_id:  data.entity_id,
+                    latitude:   data.latitude,
+                    longitude:  data.longitude,
+                    timestamp:  data.timestamp ?? new Date().toISOString()
+                });
+            } catch (err) {
+                console.error(`[gRPC] StreamLocations parse error: ${err.message}`);
+            }
+        }
+    })();
+
+    return () => sub.unsubscribe();
+}
 
 export const locationGrpcService = {
-  UpdateLocation: async (call, callback) => {
-    try {
-      const { entity_id, latitude, longitude, entity_type } = call.request;
-      let result;
 
-      if (entity_type === "Responder") {
-        result = await responderService.updateResponderLocation(entity_id, latitude, longitude);
-      } else if (entity_type === "Resident") {
-        result = await residentService.updateResident(entity_id, {
-          last_known_location: { latitude, longitude }
-        });
-      } else if (entity_type === "Fire") {
-        result = await fireService.updateFireSpreadPrediction(entity_id, {
-          latitude, longitude
-        });
-      } else {
-        throw new Error("Unknown entity type");
-      }
+    // Unary RPC — update location once and return result
+    UpdateLocation: async (call, callback) => {
+        try {
+            const { entity_id, latitude, longitude, entity_type } = call.request;
+            let entity_result_id;
+            let last_known_location;
+            let updated_at;
 
-      callback(null, result);
-    } catch (err) {
-      callback(err, null);
+            if (entity_type === 'Responder') {
+                const result = await responderService.updateResponderLocation(
+                    entity_id, latitude, longitude
+                );
+                entity_result_id    = result.responder_id;
+                last_known_location = JSON.stringify(result.last_known_location);
+                updated_at          = result.updated_at ?? new Date().toISOString();
+
+            } else if (entity_type === 'Resident') {
+                const result = await residentService.updateResident(entity_id, {
+                    last_known_location: { latitude, longitude }
+                });
+                entity_result_id    = result.resident_id;
+                last_known_location = JSON.stringify(result.last_known_location);
+                updated_at          = result.updated_at ?? new Date().toISOString();
+
+            } else if (entity_type === 'Fire') {
+                // fire_location update — store as WKT POINT
+                const wkt = `POINT(${longitude} ${latitude})`;
+                const result = await fireRepository.updateFireSpreadPrediction(entity_id, wkt);
+                entity_result_id    = result.fire_id;
+                last_known_location = result.fire_location ?? wkt;
+                updated_at          = result.updated_at   ?? new Date().toISOString();
+
+            } else {
+                return callback(new Error(`Unknown entity_type: ${entity_type}`), null);
+            }
+
+            callback(null, {
+                entity_id:           entity_result_id ?? entity_id,
+                last_known_location: last_known_location,
+                updated_at:          updated_at
+            });
+
+        } catch (err) {
+            console.error(`[gRPC] UpdateLocation error: ${err.message}`);
+            callback(err, null);
+        }
+    },
+
+    // Server-streaming RPC — stream live location updates to client
+    StreamLocations: (call) => {
+        const { entity_id, entity_type } = call.request;
+
+        const unsubscribe = subscribeToLocationUpdates(entity_id, entity_type, (update) => {
+            try {
+                call.write(update);
+            } catch (err) {
+                console.error(`[gRPC] StreamLocations write error: ${err.message}`);
+            }
+        });
+
+        call.on('cancelled', () => {
+            unsubscribe();
+            call.end();
+        });
+
+        call.on('error', (err) => {
+            console.error(`[gRPC] StreamLocations stream error: ${err.message}`);
+            unsubscribe();
+        });
     }
-  },
-
-  StreamLocations: (call) => {
-    const { entity_id, entity_type } = call.request;
-
-    // Example: hook into NATS or DB triggers
-    const unsubscribe = subscribeToLocationUpdates(entity_id, entity_type, (update) => {
-      call.write(update);
-    });
-
-    call.on('end', () => {
-      unsubscribe();
-      call.end();
-    });
-  }
 };
