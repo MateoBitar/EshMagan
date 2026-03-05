@@ -27,10 +27,10 @@ function subscribeToLocationUpdates(entity_id, entity_type, onUpdate) {
             try {
                 const data = JSON.parse(sc.decode(msg.data));
                 onUpdate({
-                    entity_id:  data.entity_id,
-                    latitude:   data.latitude,
-                    longitude:  data.longitude,
-                    timestamp:  data.timestamp ?? new Date().toISOString()
+                    entity_id: data.entity_id,
+                    latitude:  data.latitude,
+                    longitude: data.longitude,
+                    timestamp: data.timestamp ?? new Date().toISOString()
                 });
             } catch (err) {
                 console.error(`[gRPC] StreamLocations parse error: ${err.message}`);
@@ -39,6 +39,22 @@ function subscribeToLocationUpdates(entity_id, entity_type, onUpdate) {
     })();
 
     return () => sub.unsubscribe();
+}
+
+// Publish location update to NATS so StreamLocations subscribers receive it
+function publishLocationUpdate(entity_id, entity_type, latitude, longitude, timestamp) {
+    try {
+        const nc = getNATSConnection();
+        const subject = `location.${entity_type}.${entity_id}`;
+        nc.publish(subject, sc.encode(JSON.stringify({
+            entity_id,
+            latitude,
+            longitude,
+            timestamp
+        })));
+    } catch (natsErr) {
+        console.warn(`[gRPC] NATS publish failed: ${natsErr.message}`);
+    }
 }
 
 export const locationGrpcService = {
@@ -68,16 +84,18 @@ export const locationGrpcService = {
                 updated_at          = result.updated_at ?? new Date().toISOString();
 
             } else if (entity_type === 'Fire') {
-                // fire_location update — store as WKT POINT
                 const wkt = `POINT(${longitude} ${latitude})`;
                 const result = await fireRepository.updateFireSpreadPrediction(entity_id, wkt);
                 entity_result_id    = result.fire_id;
                 last_known_location = result.fire_location ?? wkt;
-                updated_at          = result.updated_at   ?? new Date().toISOString();
+                updated_at          = result.updated_at ?? new Date().toISOString();
 
             } else {
                 return callback(new Error(`Unknown entity_type: ${entity_type}`), null);
             }
+
+            // Publish to NATS → StreamLocations subscribers receive the update
+            publishLocationUpdate(entity_id, entity_type, latitude, longitude, updated_at);
 
             callback(null, {
                 entity_id:           entity_result_id ?? entity_id,
