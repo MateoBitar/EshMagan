@@ -41,7 +41,7 @@ export class UserRepository {
     async getUserById(user_id) {
         // Retrieves a user by their unique ID
         const sql = `
-                SELECT user_id, user_email, user_phone,
+                SELECT user_id, user_email, user_password, user_phone,
                        user_role, isactive, created_at, updated_at 
                 FROM users 
                 WHERE user_id=$1
@@ -171,6 +171,10 @@ export class UserRepository {
             fields.push(`isactive = $${idx++}`);
             values.push(data.isactive);
         }
+        if (data.user_password) {
+            fields.push(`user_password = $${idx++}`);
+            values.push(data.user_password);
+        }
 
         // Always update timestamp
         fields.push(`updated_at = NOW()`);
@@ -268,9 +272,9 @@ export class UserRepository {
         // Updates the last login timestamp for a user
         const sql = `
             UPDATE users
-            SET last_login = NOW(), updated_at = NOW()
+            SET updated_at = NOW()
             WHERE user_id = $1
-            RETURNING user_id, user_email, user_password, user_phone, user_role, isactive, created_at, updated_at, last_login
+            RETURNING user_id, user_email, user_password, user_phone, user_role, isactive, created_at, updated_at
         `;
         const { rows } = await pool.query(sql, [user_id]);
 

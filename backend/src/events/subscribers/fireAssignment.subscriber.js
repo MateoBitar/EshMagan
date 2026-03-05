@@ -73,7 +73,7 @@ export async function startFireAssignmentSubscriber() {
 
                 } catch (err) {
                     console.error('[NATS] fireAssignment processing error:', err.message);
-                    // no ack → JetStream retry
+                    msg.ack(); // Acknowledge to avoid reprocessing bad messages
                 }
             }
         })();

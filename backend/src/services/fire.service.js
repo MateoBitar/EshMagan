@@ -5,7 +5,7 @@ import { FireEvent } from '../domain/entities/fire.entity.js';
 export class FireService {
     constructor(
         fireRepository,
-        residentRepository, 
+        residentRepository,
         fireAssignmentService,
         evacuationRepository,
         alertRepository,
@@ -15,16 +15,16 @@ export class FireService {
         fireSpreadEngine,
         natsPublisher
     ) {
-        this.fireRepository         = fireRepository;
-        this.residentRepository     = residentRepository;
-        this.fireAssignmentService  = fireAssignmentService;
-        this.evacuationRepository   = evacuationRepository;
-        this.alertRepository        = alertRepository;
-        this.responderService       = responderService;
-        this.infraredEngine         = infraredEngine;
-        this.firePredictionEngine   = firePredictionEngine;
-        this.fireSpreadEngine       = fireSpreadEngine;
-        this.natsPublisher          = natsPublisher;
+        this.fireRepository = fireRepository;
+        this.residentRepository = residentRepository;
+        this.fireAssignmentService = fireAssignmentService;
+        this.evacuationRepository = evacuationRepository;
+        this.alertRepository = alertRepository;
+        this.responderService = responderService;
+        this.infraredEngine = infraredEngine;
+        this.firePredictionEngine = firePredictionEngine;
+        this.fireSpreadEngine = fireSpreadEngine;
+        this.natsPublisher = natsPublisher;
     }
 
     // CORE ORCHESTRATION METHOD
@@ -43,17 +43,17 @@ export class FireService {
     //
     async createFireAndTriggerSystem(data) {
         try {
-            if (!data.fire_source)       throw new Error("Missing required field: Fire Source");
-            if (!data.fire_location)     throw new Error("Missing required field: Fire Location");
+            if (!data.fire_source) throw new Error("Missing required field: Fire Source");
+            if (!data.fire_location) throw new Error("Missing required field: Fire Location");
             if (!data.fire_severitylevel) throw new Error("Missing required field: Fire Severity Level");
 
             // Step 1: Save fire
             const fire = new FireEvent({
-                fire_source:        data.fire_source,
-                fire_location:      data.fire_location,
+                fire_source: data.fire_source,
+                fire_location: data.fire_location,
                 fire_severitylevel: data.fire_severitylevel,
-                is_extinguished:    false,
-                is_verified:        false
+                is_extinguished: false,
+                is_verified: false
             });
             const createdFire = await this.fireRepository.createFire(fire);
 
@@ -86,53 +86,55 @@ export class FireService {
             }
 
             // Step 5: Dispatch nearest available responder
+            // Step 6: Publish assignment.created → fireAssignment.subscriber notifies the responder
             let assignment = null;
             try {
-                const nearestResponder = await this.responderService.getNearestResponder(
-                    createdFire.fire_location
-                );
-                if (nearestResponder) {
-                    // Step 6: Create fire assignment
-                    assignment = await this.fireAssignmentService.createAssignment({
-                        assignment_status: 'active',
-                        fire_id:           createdFire.fire_id,
-                        responder_id:      nearestResponder.responder_id
-                    });
-                    // Mark responder as dispatched
-                    await this.responderService.updateResponderStatus(
-                        nearestResponder.responder_id,
-                        'Unavailable'
-                    );
-                }
+                assignment = await this.dispatchClosestResponder(createdFire.fire_id);
+
+                await this.natsPublisher.publish('assignmentCreated', {
+                    assignment_id: assignment.assignment_id,
+                    assignment_status: assignment.assignment_status,
+                    fire_id: createdFire.fire_id,
+                    responder_id: assignment.responder_id
+                });
             } catch (dispatchErr) {
                 console.warn(`Responder dispatch failed for fire ${createdFire.fire_id}: ${dispatchErr.message}`);
             }
 
             // Step 7: Generate evacuation route
+            // Step 8: Publish evacuation.updated → alert.subscriber creates EvacuationAlerts for all roles
             try {
-                await this.evacuationRepository.createEvacuation({
-                    route_status:   'active',
-                    route_priority: createdFire.fire_severitylevel,
-                    route_path:     data.suggested_route_path ?? createdFire.fire_location,
-                    safe_zone:      data.suggested_safe_zone  ?? createdFire.fire_location,
-                    distance_km:    data.distance_km          ?? 0,
-                    estimated_time: data.estimated_time       ?? 0,
-                    fire_id:        createdFire.fire_id
-                });
+                if (data) {
+                    const evacuation = await this.evacuationRepository.createEvacuation({
+                        route_status: 'Open',
+                        route_priority: createdFire.fire_severitylevel,
+                        route_geometry: data.suggested_route_path,
+                        safe_zone: data.suggested_safe_zone ?? null,
+                        distance_km: data.distance_km ?? 0,
+                        estimated_time: data.estimated_time ?? 0,
+                        fire_id: createdFire.fire_id
+                    });
+
+                    await this.natsPublisher.publish('evacuationUpdated', {
+                        route_id: evacuation.route_id,
+                        route_status: evacuation.route_status,
+                        route_priority: evacuation.route_priority,
+                        fire_id: createdFire.fire_id
+                    });
+                }
             } catch (evacErr) {
                 console.warn(`Evacuation route creation failed for fire ${createdFire.fire_id}: ${evacErr.message}`);
             }
 
-            // Step 8: Broadcast alert
-            // Step 9: Publish NATS event
+            // Step 9: Publish fire.detected → fireDetected.subscriber → alert.created x3 → 3 FireAlerts in DB
             try {
                 await this.natsPublisher.publish('fireDetected', {
-                    fire_id:            createdFire.fire_id,
-                    fire_location:      createdFire.fire_location,
+                    fire_id: createdFire.fire_id,
+                    fire_location: createdFire.fire_location,
                     fire_severitylevel: createdFire.fire_severitylevel,
-                    is_verified:        createdFire.is_verified,
-                    assignment_id:      assignment?.assignment_id ?? null,
-                    timestamp:          new Date().toISOString()
+                    is_verified: createdFire.is_verified,
+                    assignment_id: assignment?.assignment_id ?? null,
+                    timestamp: new Date().toISOString()
                 });
             } catch (natsErr) {
                 console.warn(`NATS publish failed for fire ${createdFire.fire_id}: ${natsErr.message}`);
@@ -342,7 +344,7 @@ export class FireService {
             if (!nearestResponder) throw new Error("No available responders found");
 
             const assignment = await this.fireAssignmentService.createAssignment({
-                assignment_status: 'Active',
+                assignment_status: 'Assigned',
                 fire_id,
                 responder_id: nearestResponder.responder_id
             });
