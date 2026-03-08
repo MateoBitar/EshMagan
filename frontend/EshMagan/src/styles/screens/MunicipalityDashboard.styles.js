@@ -1,0 +1,45 @@
+// src/styles/screens/MunicipalityDashboard.styles.js
+import { StyleSheet } from 'react-native';
+import { shadows } from '../global';
+
+export default StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: '#f8fafc' },
+  topBar: {
+    backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0',
+    flexDirection: 'row', alignItems: 'center', padding: 16,
+  },
+  logoIcon: { width: 40, height: 40, backgroundColor: '#dc2626', borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  appName: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
+  portalLabel: { fontSize: 12, color: '#64748b' },
+  layout: { flex: 1, flexDirection: 'row' },
+  sidebar: { width: 72, backgroundColor: '#fff', borderRightWidth: 1, borderRightColor: '#e2e8f0', paddingTop: 12 },
+  navItem: { alignItems: 'center', paddingVertical: 14, marginBottom: 4, marginHorizontal: 6, borderRadius: 12 },
+  navItemActive: { backgroundColor: '#fef2f2' },
+  navItemInactive: { backgroundColor: 'transparent' },
+  navEmoji: { fontSize: 20, marginBottom: 4 },
+  navLabel: { fontSize: 9, fontWeight: '600', textAlign: 'center' },
+  navLabelActive: { color: '#dc2626' },
+  navLabelInactive: { color: '#94a3b8' },
+  mainContent: { padding: 16 },
+  dashTitle: { fontSize: 22, fontWeight: '800', color: '#0f172a', marginBottom: 4 },
+  dashSubtitle: { fontSize: 13, color: '#64748b', marginBottom: 20 },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
+  statCard: { flex: 1, minWidth: '45%', borderRadius: 16, padding: 14, borderLeftWidth: 4 },
+  statRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
+  statLabel: { fontSize: 11, color: '#64748b', fontWeight: '600' },
+  statValue: { fontSize: 28, fontWeight: '800' },
+  firesTitle: { fontSize: 16, fontWeight: '700', color: '#0f172a', marginBottom: 12 },
+  emptyBox: { backgroundColor: '#f0fdf4', borderWidth: 2, borderColor: '#bbf7d0', borderRadius: 16, padding: 24, alignItems: 'center' },
+  fireCard: {
+    backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12,
+    borderWidth: 1, borderColor: '#e2e8f0', ...shadows.sm,
+  },
+  fireCardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  fireLocation: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
+  fireMeta: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
+  fireSeverityBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  fireSeverityText: { fontSize: 11, fontWeight: '700' },
+  fireCardBottom: { flexDirection: 'row', gap: 16 },
+  fireStatusText: { fontSize: 12, color: '#64748b' },
+  fireArrow: { marginLeft: 'auto', color: '#94a3b8', fontSize: 16 },
+});

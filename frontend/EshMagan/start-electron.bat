@@ -1,0 +1,6 @@
+@echo off
+echo Waiting for webpack dev server...
+npx wait-on http://localhost:3000
+echo Starting Electron...
+set NODE_ENV=development
+.\node_modules\.bin\electron.cmd electron.js
