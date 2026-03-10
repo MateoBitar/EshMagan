@@ -14,7 +14,7 @@
     "build:desktop": "npm run build:web && electron-builder"
   },
   "dependencies": {
-    "@apollo/client": "^3.11.8",
+    "@apollo/client": "^3.14.0",
     "@react-native-async-storage/async-storage": "^1.23.1",
     "@react-native/new-app-screen": "0.84.1",
     "@react-navigation/bottom-tabs": "^7.15.5",

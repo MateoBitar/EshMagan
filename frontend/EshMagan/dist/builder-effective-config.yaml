@@ -1,0 +1,14 @@
+directories:
+  output: dist
+  buildResources: build
+appId: com.eshmagan
+productName: EshMagan
+files:
+  - filter:
+      - web-build/**/*
+      - electron.js
+win:
+  target: nsis
+mac:
+  target: dmg
+electronVersion: 40.8.0
