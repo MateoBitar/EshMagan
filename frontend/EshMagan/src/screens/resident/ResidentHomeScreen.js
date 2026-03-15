@@ -1,9 +1,7 @@
 // src/screens/resident/ResidentHomeScreen.js
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Linking } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { useQuery } from '@apollo/client';
-import { GET_FIRES } from '../../services/api';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Linking, Platform } from 'react-native';
+import { gqlFetch, GET_ACTIVE_FIRES } from '../../services/api';
 import styles from '../../styles/screens/ResidentHomeScreen.styles';
 
 const QUICK_ACTIONS = [
@@ -19,21 +17,89 @@ const EMERGENCY_CONTACTS = [
   { name: 'Medical Emergency', number: '101', emoji: '🚑', color: '#10b981' },
 ];
 
-const RISK_COLORS = {
-  critical: '#dc2626', high: '#ea580c', moderate: '#d97706', low: '#16a34a',
-};
+function getSeverityColor(level) {
+  if (!level) return '#94a3b8';
+  if (level >= 8) return '#dc2626';
+  if (level >= 6) return '#ea580c';
+  if (level >= 3) return '#d97706';
+  return '#16a34a';
+}
 
-export default function ResidentHomeScreen() {
-  const navigation = useNavigation();
-  const { data, loading } = useQuery(GET_FIRES, { pollInterval: 30000 });
+function getSeverityLabel(level) {
+  if (!level) return 'Unknown';
+  if (level >= 8) return 'Critical';
+  if (level >= 6) return 'High';
+  if (level >= 3) return 'Moderate';
+  return 'Low';
+}
 
-  const fires = data?.fires || [];
-  const activeFires = fires.filter(f => f.fire_status === 'Active' || f.fire_status === 'detected');
+function useActiveFires() {
+  const [fires, setFires] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      // Native: use Apollo
+      setLoading(false);
+      return;
+    }
+    const fetchFires = async () => {
+      try {
+        const data = await gqlFetch(GET_ACTIVE_FIRES);
+        setFires(data?.getActiveFires || []);
+      } catch (e) {
+        console.error('Failed to fetch fires:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFires();
+    const interval = setInterval(fetchFires, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return { fires, loading };
+}
+
+export default function ResidentHomeScreen({ navigation }) {
+  let nav = navigation;
+  if (Platform.OS !== 'web') {
+    try {
+      const { useNavigation } = require('@react-navigation/native');
+      nav = useNavigation();
+    } catch {}
+  }
+
+  // For native, use Apollo
+  let fires = [];
+  let loading = false;
+  const webData = useActiveFires();
+
+  if (Platform.OS !== 'web') {
+    try {
+      const { useQuery, gql } = require('@apollo/client');
+      const QUERY = gql`query GetActiveFires {
+        getActiveFires {
+          fire_id fire_source fire_location
+          fire_severitylevel is_extinguished is_verified created_at
+        }
+      }`;
+      const result = useQuery(QUERY, { pollInterval: 30000 });
+      fires = result.data?.getActiveFires || [];
+      loading = result.loading;
+    } catch {}
+  } else {
+    fires = webData.fires;
+    loading = webData.loading;
+  }
+
+  const activeFires = fires.filter(f => f.is_extinguished === false);
   const hasActiveThreat = activeFires.length > 0;
 
-  const riskStatus = hasActiveThreat
-    ? { message: '⚠️ Active Fire Threat', desc: `${activeFires.length} fire(s) detected nearby` }
-    : { message: '✅ You Are Safe', desc: 'No active fire threats in your area' };
+  const navigate = (screen, params) => {
+    if (!screen) return;
+    nav?.navigate(screen, params);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -51,7 +117,7 @@ export default function ResidentHomeScreen() {
                 <Text style={styles.headerSub}>Resident Portal</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Alert')}>
+            <TouchableOpacity style={styles.bellBtn} onPress={() => navigate('Alert')}>
               <Text style={styles.bellEmoji}>🔔</Text>
             </TouchableOpacity>
           </View>
@@ -63,8 +129,14 @@ export default function ResidentHomeScreen() {
                 <Text style={styles.statusEmoji}>{hasActiveThreat ? '🚨' : '🛡️'}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.statusMsg}>{riskStatus.message}</Text>
-                <Text style={styles.statusDesc}>{loading ? 'Checking status...' : riskStatus.desc}</Text>
+                <Text style={styles.statusMsg}>
+                  {hasActiveThreat ? '⚠️ Active Fire Threat' : '✅ You Are Safe'}
+                </Text>
+                <Text style={styles.statusDesc}>
+                  {loading ? 'Checking status...' : hasActiveThreat
+                    ? `${activeFires.length} active fire(s) detected nearby`
+                    : 'No active fire threats in your area'}
+                </Text>
               </View>
               {loading && <ActivityIndicator color="#dc2626" size="small" />}
             </View>
@@ -82,7 +154,7 @@ export default function ResidentHomeScreen() {
             {QUICK_ACTIONS.map(action => (
               <TouchableOpacity
                 key={action.label}
-                onPress={() => action.screen && navigation.navigate(action.screen)}
+                onPress={() => navigate(action.screen)}
                 style={[styles.actionBtn, { backgroundColor: action.color, shadowColor: action.color }]}
               >
                 <Text style={styles.actionEmoji}>{action.emoji}</Text>
@@ -110,24 +182,27 @@ export default function ResidentHomeScreen() {
             </View>
           ) : (
             fires.slice(0, 5).map(fire => {
-              const riskColor = RISK_COLORS[fire.fire_severitylevel?.toLowerCase()] || '#94a3b8';
+              const riskColor = getSeverityColor(fire.fire_severitylevel);
+              const riskLabel = getSeverityLabel(fire.fire_severitylevel);
               return (
                 <TouchableOpacity
-                  key={fire.id}
-                  onPress={() => navigation.navigate('IncidentDetails', { fireId: fire.id })}
+                  key={fire.fire_id}
+                  onPress={() => navigate('IncidentDetails', { fireId: fire.fire_id })}
                   style={styles.fireCard}
                 >
                   <View style={styles.fireCardTop}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.fireLocation}>{fire.fire_location || 'Unknown Location'}</Text>
-                      <Text style={styles.fireId}>ID: {fire.id?.slice(0, 8)}</Text>
+                      <Text style={styles.fireId}>ID: {fire.fire_id?.slice(0, 8)}</Text>
                     </View>
                     <View style={[styles.fireBadge, { backgroundColor: riskColor + '20', borderColor: riskColor }]}>
-                      <Text style={[styles.fireBadgeText, { color: riskColor }]}>{fire.fire_severitylevel || 'Unknown'}</Text>
+                      <Text style={[styles.fireBadgeText, { color: riskColor }]}>{riskLabel}</Text>
                     </View>
                   </View>
                   <View style={styles.fireCardBottom}>
-                    <Text style={styles.fireStatus}>📌 {fire.fire_status} • {fire.fire_source || 'Manual'}</Text>
+                    <Text style={styles.fireStatus}>
+                      📌 {fire.is_extinguished ? 'Extinguished' : 'Active'} • {fire.fire_source || 'Manual'}
+                    </Text>
                     <Text style={styles.fireArrow}>›</Text>
                   </View>
                 </TouchableOpacity>

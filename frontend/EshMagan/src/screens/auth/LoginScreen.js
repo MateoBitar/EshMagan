@@ -8,10 +8,10 @@ import { useAuth } from '../../context/AuthContext';
 import styles from '../../styles/screens/LoginScreen.styles';
 
 const ROLES = [
-  { id: 'resident', name: 'Resident', emoji: '👤', description: 'Access fire alerts and evacuation routes', activeBg: '#fef2f2', activeBorder: '#f87171' },
-  { id: 'municipality', name: 'Municipality', emoji: '🛡️', description: 'Monitor and manage fire events', activeBg: '#eff6ff', activeBorder: '#60a5fa' },
-  { id: 'responder', name: 'First Responder', emoji: '⚠️', description: 'Real-time command and incident management', activeBg: '#fff7ed', activeBorder: '#fb923c' },
-  { id: 'admin', name: 'Admin', emoji: '🔒', description: 'System administration and configuration', activeBg: '#faf5ff', activeBorder: '#c084fc' },
+  { id: 'Resident', name: 'Resident', emoji: '👤', description: 'Access fire alerts and evacuation routes', activeBg: '#fef2f2', activeBorder: '#f87171' },
+  { id: 'Municipality', name: 'Municipality', emoji: '🛡️', description: 'Monitor and manage fire events', activeBg: '#eff6ff', activeBorder: '#60a5fa' },
+  { id: 'Responder', name: 'First Responder', emoji: '⚠️', description: 'Real-time command and incident management', activeBg: '#fff7ed', activeBorder: '#fb923c' },
+  { id: 'Admin', name: 'Admin', emoji: '🔒', description: 'System administration and configuration', activeBg: '#faf5ff', activeBorder: '#c084fc' },
 ];
 
 const TRUST_BADGES = [
@@ -26,7 +26,7 @@ const PRIVACY_ITEMS = [
   'Municipality-only access to sensitive fire prediction data',
 ];
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
   const [selectedRole, setSelectedRole] = useState('');
   const [email, setEmail] = useState('');
@@ -42,7 +42,11 @@ export default function LoginScreen() {
     try {
       await login(email, password, selectedRole);
     } catch (e) {
-      Alert.alert('Login Failed', e.message || 'Invalid credentials. Please try again.');
+      if (Platform.OS === 'web') {
+        window.alert('Login Failed: ' + (e.message || 'Invalid credentials. Please try again.'));
+      } else {
+        Alert.alert('Login Failed', e.message || 'Invalid credentials. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -53,7 +57,6 @@ export default function LoginScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-          {/* Header */}
           <View style={styles.header}>
             <View style={styles.logoContainer}>
               <Text style={styles.logoEmoji}>🔥</Text>
@@ -63,10 +66,7 @@ export default function LoginScreen() {
             <Text style={styles.subtitle}>Protecting communities through intelligent fire detection</Text>
           </View>
 
-          {/* Card */}
           <View style={styles.card}>
-
-            {/* Role Selection */}
             <Text style={styles.sectionTitle}>Select Your Role</Text>
             <View style={styles.rolesContainer}>
               {ROLES.map(role => {
@@ -75,12 +75,7 @@ export default function LoginScreen() {
                   <TouchableOpacity
                     key={role.id}
                     onPress={() => setSelectedRole(role.id)}
-                    style={[
-                      styles.roleCard,
-                      isSelected
-                        ? { borderColor: role.activeBorder, backgroundColor: role.activeBg }
-                        : styles.roleCardDefault,
-                    ]}
+                    style={[styles.roleCard, isSelected ? { borderColor: role.activeBorder, backgroundColor: role.activeBg } : styles.roleCardDefault]}
                   >
                     <View style={[styles.roleIconContainer, isSelected ? { backgroundColor: role.activeBg } : styles.roleIconBgDefault]}>
                       <Text style={styles.roleEmoji}>{role.emoji}</Text>
@@ -95,30 +90,12 @@ export default function LoginScreen() {
               })}
             </View>
 
-            {/* Email */}
             <Text style={styles.inputLabel}>Email Address</Text>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="your.email@example.com"
-              placeholderTextColor="#94a3b8"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              style={styles.input}
-            />
+            <TextInput value={email} onChangeText={setEmail} placeholder="your.email@example.com" placeholderTextColor="#94a3b8" keyboardType="email-address" autoCapitalize="none" style={styles.input} />
 
-            {/* Password */}
             <Text style={styles.inputLabel}>Password</Text>
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              placeholder="••••••••"
-              placeholderTextColor="#94a3b8"
-              secureTextEntry
-              style={styles.input}
-            />
+            <TextInput value={password} onChangeText={setPassword} placeholder="••••••••" placeholderTextColor="#94a3b8" secureTextEntry style={styles.input} />
 
-            {/* Privacy Consent */}
             <View style={styles.privacyBox}>
               <View style={styles.privacyHeader}>
                 <Text style={{ fontSize: 18 }}>🛡️</Text>
@@ -134,19 +111,14 @@ export default function LoginScreen() {
                 <View style={[styles.checkbox, agreed ? styles.checkboxChecked : styles.checkboxUnchecked]}>
                   {agreed && <Text style={styles.checkboxTick}>✓</Text>}
                 </View>
-                <Text style={styles.consentText}>
-                  I acknowledge and consent to location tracking, identity verification, and data processing for emergency response purposes.
-                </Text>
+                <Text style={styles.consentText}>I acknowledge and consent to location tracking, identity verification, and data processing for emergency response purposes.</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Trust Badges */}
             <View style={styles.trustBadges}>
               {TRUST_BADGES.map(badge => (
                 <View key={badge.title} style={styles.trustBadge}>
-                  <View style={[styles.trustIcon, { backgroundColor: badge.bg }]}>
-                    <Text>{badge.emoji}</Text>
-                  </View>
+                  <View style={[styles.trustIcon, { backgroundColor: badge.bg }]}><Text>{badge.emoji}</Text></View>
                   <View>
                     <Text style={[styles.trustLabel, { color: badge.titleColor }]}>{badge.title}</Text>
                     <Text style={[styles.trustSub, { color: badge.subColor }]}>{badge.sub}</Text>
@@ -155,16 +127,8 @@ export default function LoginScreen() {
               ))}
             </View>
 
-            {/* Login Button */}
-            <TouchableOpacity
-              onPress={handleLogin}
-              disabled={!canLogin || loading}
-              style={[styles.loginBtn, canLogin ? styles.loginBtnActive : styles.loginBtnDisabled]}
-            >
-              {loading
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.loginBtnText}>🔐  Secure Login to EshMagan</Text>
-              }
+            <TouchableOpacity onPress={handleLogin} disabled={!canLogin || loading} style={[styles.loginBtn, canLogin ? styles.loginBtnActive : styles.loginBtnDisabled]}>
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginBtnText}>🔐  Secure Login to EshMagan</Text>}
             </TouchableOpacity>
 
             <Text style={styles.footer}>Emergency services operating under secure protocols • Available 24/7</Text>

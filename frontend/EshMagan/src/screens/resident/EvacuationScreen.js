@@ -1,7 +1,6 @@
 // src/screens/resident/EvacuationScreen.js
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, Animated } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, Animated, Platform } from 'react-native';
 import styles from '../../styles/screens/EvacuationScreen.styles';
 
 const ROUTES = [
@@ -17,8 +16,12 @@ const STEPS = [
   { instruction: 'Arrive at Safe Zone Assembly Point', distance: '0.9 km', time: '2 min' },
 ];
 
-export default function EvacuationScreen() {
-  const navigation = useNavigation();
+export default function EvacuationScreen({ navigation }) {
+  let nav = navigation;
+  if (Platform.OS !== 'web') {
+    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch {}
+  }
+
   const [selectedRoute, setSelectedRoute] = useState('primary');
   const [voiceOn, setVoiceOn] = useState(false);
   const dot = useRef(new Animated.Value(1)).current;
@@ -34,10 +37,9 @@ export default function EvacuationScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity onPress={() => nav?.goBack()}>
             <Text style={styles.backText}>‹ Back</Text>
           </TouchableOpacity>
           <View style={styles.navBadge}>
@@ -48,7 +50,6 @@ export default function EvacuationScreen() {
         <Text style={styles.headerSub}>To nearest safe zone</Text>
       </View>
 
-      {/* Mock Map */}
       <View style={styles.mapArea}>
         <View style={styles.mapOverlay}>
           <Text style={{ color: '#60a5fa', fontSize: 14 }}>🧭</Text>
@@ -64,26 +65,19 @@ export default function EvacuationScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Route Options */}
         <View style={styles.routesSection}>
           <View style={styles.routesHeaderRow}>
             <Text style={styles.routesTitle}>Available Routes</Text>
-            <TouchableOpacity style={styles.arModeBtn} onPress={() => navigation.navigate('ARMode')}>
+            <TouchableOpacity style={styles.arModeBtn} onPress={() => nav?.navigate('ARMode')}>
               <Text style={styles.arModeBtnText}>⚡ AR Mode</Text>
             </TouchableOpacity>
           </View>
           {ROUTES.map(route => (
-            <TouchableOpacity
-              key={route.id}
-              onPress={() => setSelectedRoute(route.id)}
-              style={[styles.routeCard, selectedRoute === route.id ? styles.routeCardActive : styles.routeCardInactive]}
-            >
+            <TouchableOpacity key={route.id} onPress={() => setSelectedRoute(route.id)} style={[styles.routeCard, selectedRoute === route.id ? styles.routeCardActive : styles.routeCardInactive]}>
               <View style={styles.routeCardTop}>
                 <Text style={styles.routeName}>🛣️ {route.name}</Text>
                 <View style={route.status === 'clear' ? styles.routeStatusClear : styles.routeStatusCaution}>
-                  <Text style={route.status === 'clear' ? styles.routeStatusClearText : styles.routeStatusCautionText}>
-                    {route.status}
-                  </Text>
+                  <Text style={route.status === 'clear' ? styles.routeStatusClearText : styles.routeStatusCautionText}>{route.status}</Text>
                 </View>
               </View>
               <Text style={styles.routeMeta}>{route.distance} • {route.time}</Text>
@@ -92,17 +86,11 @@ export default function EvacuationScreen() {
           ))}
         </View>
 
-        {/* Directions */}
         <View style={styles.directionsSection}>
           <View style={styles.directionsHeaderRow}>
             <Text style={styles.directionsTitle}>Turn-by-Turn Directions</Text>
-            <TouchableOpacity
-              onPress={() => setVoiceOn(!voiceOn)}
-              style={[styles.voiceBtn, voiceOn ? styles.voiceBtnOn : styles.voiceBtnOff]}
-            >
-              <Text style={voiceOn ? styles.voiceBtnTextOn : styles.voiceBtnTextOff}>
-                🔊 {voiceOn ? 'Voice On' : 'Voice Off'}
-              </Text>
+            <TouchableOpacity onPress={() => setVoiceOn(!voiceOn)} style={[styles.voiceBtn, voiceOn ? styles.voiceBtnOn : styles.voiceBtnOff]}>
+              <Text style={voiceOn ? styles.voiceBtnTextOn : styles.voiceBtnTextOff}>🔊 {voiceOn ? 'Voice On' : 'Voice Off'}</Text>
             </TouchableOpacity>
           </View>
           {STEPS.map((step, i) => (
@@ -132,7 +120,6 @@ export default function EvacuationScreen() {
         </View>
       </ScrollView>
 
-      {/* Start Button */}
       <View style={styles.footer}>
         <TouchableOpacity style={styles.startBtn}>
           <Text style={{ fontSize: 18 }}>🧭</Text>

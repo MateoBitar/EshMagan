@@ -1,18 +1,14 @@
 // src/screens/responder/ResponderCommandView.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, SafeAreaView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useQuery } from '@apollo/client';
-import { GET_FIRES, GET_RESPONDERS } from '../../services/api';
+import { View, Text, ScrollView, SafeAreaView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { gqlFetch, GET_FIRES, GET_RESPONDERS } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import styles from '../../styles/screens/ResponderCommandView.styles';
 
 const STATUS_STYLE = {
-  'en-route': { bg: '#eff6ff', text: '#2563eb', emoji: '🚨' },
-  'on-site': { bg: '#f0fdf4', text: '#16a34a', emoji: '✅' },
-  standby: { bg: '#fefce8', text: '#ca8a04', emoji: '⏳' },
-  returning: { bg: '#f5f3ff', text: '#7c3aed', emoji: '↩️' },
-  Active: { bg: '#f0fdf4', text: '#16a34a', emoji: '✅' },
-  Inactive: { bg: '#f8fafc', text: '#94a3b8', emoji: '💤' },
+  'Active': { bg: '#f0fdf4', text: '#16a34a', emoji: '✅' },
+  'Standby': { bg: '#fefce8', text: '#ca8a04', emoji: '⏳' },
+  'Unavailable': { bg: '#f8fafc', text: '#94a3b8', emoji: '💤' },
 };
 
 const LOG_COLOR = { alert: '#dc2626', update: '#2563eb', info: '#16a34a' };
@@ -24,15 +20,56 @@ const MOCK_LOG = [
   { time: '16:35', type: 'update', msg: 'Evacuation of 12 residents completed successfully' },
 ];
 
-export default function ResponderCommandView() {
+function useCommandData() {
+  const [fires, setFires] = useState([]);
+  const [responders, setResponders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') { setLoading(false); return; }
+    const fetch = async () => {
+      try {
+        const [fireData, respData] = await Promise.all([
+          gqlFetch(GET_FIRES),
+          gqlFetch(GET_RESPONDERS),
+        ]);
+        setFires(fireData?.getAllFires || []);
+        setResponders(respData?.getAllResponders || []);
+      } catch (e) { console.error('Failed to fetch command data:', e); }
+      finally { setLoading(false); }
+    };
+    fetch();
+    const interval = setInterval(fetch, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return { fires, responders, loading };
+}
+
+export default function ResponderCommandView({ navigation }) {
   const { logout } = useAuth();
   const [activeTab, setActiveTab] = useState('units');
   const [liveFlash, setLiveFlash] = useState(false);
-  const { data: firesData, loading: firesLoading } = useQuery(GET_FIRES, { pollInterval: 10000 });
-  const { data: respondersData, loading: respondersLoading } = useQuery(GET_RESPONDERS, { pollInterval: 10000 });
+  const webData = useCommandData();
 
-  const fires = firesData?.fires || [];
-  const responders = respondersData?.responders || [];
+  let fires = [], responders = [], loading = false;
+
+  if (Platform.OS !== 'web') {
+    try {
+      const { useQuery, gql } = require('@apollo/client');
+      const FIRES_QUERY = gql`query GetAllFires { getAllFires { fire_id fire_source fire_location fire_severitylevel is_extinguished created_at } }`;
+      const RESP_QUERY = gql`query GetAllResponders { getAllResponders { responder_id unit_nb unit_location assigned_region responder_status last_known_location } }`;
+      const firesResult = useQuery(FIRES_QUERY, { pollInterval: 10000 });
+      const respResult = useQuery(RESP_QUERY, { pollInterval: 10000 });
+      fires = firesResult.data?.getAllFires || [];
+      responders = respResult.data?.getAllResponders || [];
+      loading = firesResult.loading || respResult.loading;
+    } catch {}
+  } else {
+    fires = webData.fires;
+    responders = webData.responders;
+    loading = webData.loading;
+  }
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -67,30 +104,29 @@ export default function ResponderCommandView() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* UNITS */}
         {activeTab === 'units' && (
           <View>
-            <Text style={styles.tabSubtitle}>{respondersLoading ? 'Loading...' : `${responders.length} units in system`}</Text>
-            {respondersLoading ? <ActivityIndicator color="#ef4444" /> : responders.length === 0 ? (
+            <Text style={styles.tabSubtitle}>{loading ? 'Loading...' : `${responders.length} units in system`}</Text>
+            {loading ? <ActivityIndicator color="#ef4444" /> : responders.length === 0 ? (
               <Text style={{ color: '#475569', textAlign: 'center', marginTop: 32 }}>No responder units found</Text>
             ) : (
               responders.map(r => {
-                const s = STATUS_STYLE[r.responder_status] || STATUS_STYLE.Inactive;
+                const s = STATUS_STYLE[r.responder_status] || STATUS_STYLE['Unavailable'];
                 return (
-                  <View key={r.id} style={styles.unitCard}>
+                  <View key={r.responder_id} style={styles.unitCard}>
                     <View style={styles.unitCardTop}>
                       <View style={styles.unitLeft}>
                         <View style={styles.unitIcon}><Text style={{ fontSize: 18 }}>🚒</Text></View>
                         <View>
-                          <Text style={styles.unitName}>{r.responder_name || r.id?.slice(0, 8)}</Text>
-                          <Text style={styles.unitType}>{r.responder_type || 'Unknown Type'}</Text>
+                          <Text style={styles.unitName}>{r.unit_nb || r.responder_id?.slice(0, 8)}</Text>
+                          <Text style={styles.unitType}>{r.assigned_region || 'Unassigned'}</Text>
                         </View>
                       </View>
                       <View style={[styles.unitStatusBadge, { backgroundColor: s.bg }]}>
                         <Text style={[styles.unitStatusText, { color: s.text }]}>{s.emoji} {r.responder_status}</Text>
                       </View>
                     </View>
-                    <Text style={styles.unitLocation}>📍 {r.responder_location || 'Location unavailable'}</Text>
+                    <Text style={styles.unitLocation}>📍 {r.unit_location || r.last_known_location || 'Location unavailable'}</Text>
                   </View>
                 );
               })
@@ -98,32 +134,32 @@ export default function ResponderCommandView() {
           </View>
         )}
 
-        {/* FIRES */}
         {activeTab === 'incidents' && (
           <View>
-            <Text style={styles.tabSubtitle}>{firesLoading ? 'Loading...' : `${fires.length} fire incidents tracked`}</Text>
-            {firesLoading ? <ActivityIndicator color="#ef4444" /> : fires.length === 0 ? (
+            <Text style={styles.tabSubtitle}>{loading ? 'Loading...' : `${fires.length} fire incidents tracked`}</Text>
+            {loading ? <ActivityIndicator color="#ef4444" /> : fires.length === 0 ? (
               <View style={styles.emptyBox}>
                 <Text style={{ fontSize: 32, marginBottom: 8 }}>✅</Text>
                 <Text style={{ color: '#10b981', fontWeight: '600' }}>No active fire incidents</Text>
               </View>
             ) : (
               fires.map(fire => (
-                <View key={fire.id} style={styles.fireCard}>
+                <View key={fire.fire_id} style={styles.fireCard}>
                   <View style={styles.fireCardTop}>
                     <Text style={styles.fireLocation}>{fire.fire_location || 'Unknown Location'}</Text>
                     <View style={styles.fireSeverityBadge}>
                       <Text style={styles.fireSeverityText}>{fire.fire_severitylevel || 'N/A'}</Text>
                     </View>
                   </View>
-                  <Text style={styles.fireMeta}>Status: {fire.fire_status} • Source: {fire.fire_source || 'Manual'}</Text>
+                  <Text style={styles.fireMeta}>
+                    Status: {fire.is_extinguished ? 'Extinguished' : 'Active'} • Source: {fire.fire_source || 'Manual'}
+                  </Text>
                 </View>
               ))
             )}
           </View>
         )}
 
-        {/* LOG */}
         {activeTab === 'log' && (
           <View>
             <Text style={styles.tabSubtitle}>Incident activity log</Text>

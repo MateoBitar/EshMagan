@@ -1,7 +1,6 @@
 // src/screens/resident/SafetyTipsScreen.js
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
 import styles from '../../styles/screens/SafetyTipsScreen.styles';
 
 const PREPARATION = [
@@ -16,13 +15,16 @@ const DURING_FIRE = [
   { emoji: '💧', title: 'After the Fire', tips: ["Return only when authorities say it's safe", 'Avoid ash, charred trees, and smoldering debris', 'Document property damage with photos', 'Contact your insurance company', 'Watch for hot spots that may flare up', 'Beware of hazards like fallen power lines'] },
 ];
 
-export default function SafetyTipsScreen() {
-  const navigation = useNavigation();
+export default function SafetyTipsScreen({ navigation }) {
+  let nav = navigation;
+  if (Platform.OS !== 'web') {
+    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch {}
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => nav?.goBack()}>
           <Text style={styles.backText}>‹ Back</Text>
         </TouchableOpacity>
         <View style={styles.headerRow}>

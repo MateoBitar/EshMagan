@@ -1,6 +1,6 @@
 // src/screens/resident/ResidentProfileScreen.js
 import React from 'react';
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import styles from '../../styles/screens/ResidentProfileScreen.styles';
 
@@ -15,10 +15,14 @@ export default function ResidentProfileScreen() {
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
-    Alert.alert('Log Out', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Log Out', style: 'destructive', onPress: logout },
-    ]);
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to log out?')) logout();
+    } else {
+      Alert.alert('Log Out', 'Are you sure you want to log out?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Log Out', style: 'destructive', onPress: logout },
+      ]);
+    }
   };
 
   return (

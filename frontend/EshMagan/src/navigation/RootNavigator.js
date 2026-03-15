@@ -43,22 +43,15 @@ export default function RootNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName={getInitialRoute()}
         screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
       >
         {!user ? (
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : (
           <>
-            {(user.role === 'resident' || user.role === 'admin') && (
-              <Stack.Screen name="ResidentHome" component={ResidentNavigator} />
-            )}
-            {user.role === 'municipality' && (
-              <Stack.Screen name="MunicipalityDashboard" component={MunicipalityDashboard} />
-            )}
-            {user.role === 'responder' && (
-              <Stack.Screen name="ResponderCommand" component={ResponderCommandView} />
-            )}
+            <Stack.Screen name="ResidentHome" component={ResidentNavigator} />
+            <Stack.Screen name="MunicipalityDashboard" component={MunicipalityDashboard} />
+            <Stack.Screen name="ResponderCommand" component={ResponderCommandView} />
             <Stack.Screen name="Alert" component={AlertScreen} options={{ animation: 'fade' }} />
             <Stack.Screen name="Evacuation" component={EvacuationScreen} />
             <Stack.Screen name="ARMode" component={ARModeScreen} options={{ animation: 'fade' }} />

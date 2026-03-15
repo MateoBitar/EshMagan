@@ -1,9 +1,7 @@
 // src/screens/resident/ResidentAlertsScreen.js
-import React from 'react';
-import { View, Text, ScrollView, SafeAreaView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useQuery } from '@apollo/client';
-import { useNavigation } from '@react-navigation/native';
-import { GET_ALERTS } from '../../services/api';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, SafeAreaView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { gqlFetch, GET_ALERTS } from '../../services/api';
 import styles from '../../styles/screens/ResidentAlertsScreen.styles';
 
 const PRIORITY_STYLE = {
@@ -13,10 +11,50 @@ const PRIORITY_STYLE = {
   low: { bg: '#f0fdf4', border: '#bbf7d0', color: '#16a34a', emoji: '✅' },
 };
 
-export default function ResidentAlertsScreen() {
-  const navigation = useNavigation();
-  const { data, loading } = useQuery(GET_ALERTS, { pollInterval: 15000 });
-  const alerts = data?.alerts || [];
+function useAlertsData() {
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') { setLoading(false); return; }
+    const fetch = async () => {
+      try {
+        const data = await gqlFetch(GET_ALERTS);
+        setAlerts(data?.getAllAlerts || []);
+      } catch (e) { console.error('Failed to fetch alerts:', e); }
+      finally { setLoading(false); }
+    };
+    fetch();
+    const interval = setInterval(fetch, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return { alerts, loading };
+}
+
+export default function ResidentAlertsScreen({ navigation }) {
+  let nav = navigation;
+  if (Platform.OS !== 'web') {
+    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch {}
+  }
+
+  let alerts = [], loading = false;
+  const webData = useAlertsData();
+
+  if (Platform.OS !== 'web') {
+    try {
+      const { useQuery, gql } = require('@apollo/client');
+      const QUERY = gql`query GetAllAlerts {
+        getAllAlerts { alert_id alert_type target_role alert_message expires_at created_at fire_id }
+      }`;
+      const result = useQuery(QUERY, { pollInterval: 15000 });
+      alerts = result.data?.getAllAlerts || [];
+      loading = result.loading;
+    } catch {}
+  } else {
+    alerts = webData.alerts;
+    loading = webData.loading;
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -35,9 +73,9 @@ export default function ResidentAlertsScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {alerts.map(alert => {
-            const s = PRIORITY_STYLE[alert.alert_priority?.toLowerCase()] || PRIORITY_STYLE.low;
+            const s = PRIORITY_STYLE[alert.target_role?.toLowerCase()] || PRIORITY_STYLE.low;
             return (
-              <TouchableOpacity key={alert.id} onPress={() => navigation.navigate('Alert')} style={[styles.alertCard, { backgroundColor: s.bg, borderColor: s.border }]}>
+              <TouchableOpacity key={alert.alert_id} onPress={() => nav?.navigate('Alert')} style={[styles.alertCard, { backgroundColor: s.bg, borderColor: s.border }]}>
                 <View style={styles.alertRow}>
                   <View style={[styles.alertIconWrap, { backgroundColor: s.color + '20' }]}>
                     <Text style={{ fontSize: 22 }}>{s.emoji}</Text>
@@ -46,12 +84,12 @@ export default function ResidentAlertsScreen() {
                     <View style={styles.alertHeaderRow}>
                       <Text style={styles.alertType}>{alert.alert_type?.replace(/_/g, ' ')} Alert</Text>
                       <View style={[styles.alertPriorityBadge, { backgroundColor: s.color + '20' }]}>
-                        <Text style={[styles.alertPriorityText, { color: s.color }]}>{alert.alert_priority?.toUpperCase()}</Text>
+                        <Text style={[styles.alertPriorityText, { color: s.color }]}>{alert.target_role?.toUpperCase()}</Text>
                       </View>
                     </View>
                     <Text style={styles.alertMsg}>{alert.alert_message || 'Fire activity detected in your region.'}</Text>
                     <View style={styles.alertFooter}>
-                      <Text style={styles.alertLocation}>{alert.fire?.fire_location || 'Unknown location'}</Text>
+                      <Text style={styles.alertLocation}>{alert.fire_id || 'Unknown fire'}</Text>
                       <Text style={styles.alertTime}>{alert.created_at ? new Date(alert.created_at).toLocaleTimeString() : ''}</Text>
                     </View>
                   </View>

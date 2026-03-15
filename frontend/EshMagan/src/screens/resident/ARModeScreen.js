@@ -1,11 +1,14 @@
 // src/screens/resident/ARModeScreen.js
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, Animated, Easing, StatusBar } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, TouchableOpacity, SafeAreaView, Animated, Easing, StatusBar, Platform } from 'react-native';
 import styles from '../../styles/screens/ARModeScreen.styles';
 
-export default function ARModeScreen() {
-  const navigation = useNavigation();
+export default function ARModeScreen({ navigation }) {
+  let nav = navigation;
+  if (Platform.OS !== 'web') {
+    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch {}
+  }
+
   const [distance, setDistance] = useState(8.4);
   const arrowY = useRef(new Animated.Value(0)).current;
   const sideX = useRef(new Animated.Value(0)).current;
@@ -39,11 +42,9 @@ export default function ARModeScreen() {
       <StatusBar barStyle="light-content" />
       <View style={styles.cameraBg} />
       <SafeAreaView style={styles.safeArea}>
-
-        {/* Header */}
         <View style={styles.topHeader}>
           <View style={styles.topHeaderRow}>
-            <TouchableOpacity style={styles.exitBtn} onPress={() => navigation.goBack()}>
+            <TouchableOpacity style={styles.exitBtn} onPress={() => nav?.goBack()}>
               <Text style={styles.exitBtnText}>‹ Exit AR</Text>
             </TouchableOpacity>
             <View style={styles.arBadge}>
@@ -55,13 +56,11 @@ export default function ARModeScreen() {
           </View>
         </View>
 
-        {/* Danger Warning */}
         <View style={styles.dangerBanner}>
           <View style={styles.dangerDot} />
           <Text style={styles.dangerText}>Fire zone 2.1 km to the west — stay on route</Text>
         </View>
 
-        {/* AR Center */}
         <View style={styles.arCenter}>
           <View style={styles.distanceCard}>
             <Text style={styles.distanceLabel}>Distance to Safe Zone</Text>
@@ -83,23 +82,18 @@ export default function ARModeScreen() {
           </Animated.View>
         </View>
 
-        {/* Speed Card */}
         <View style={styles.speedCard}>
           <Text style={styles.speedLabel}>Your Speed</Text>
           <Text style={styles.speedValue}>45 <Text style={styles.speedUnit}>km/h</Text></Text>
         </View>
 
-        {/* Compass */}
         <View style={styles.compass}>
           <Text style={styles.compassN}>N</Text>
         </View>
 
-        {/* Bottom Panel */}
         <View style={styles.bottomPanel}>
           <Animated.View style={[styles.safeZoneCard, { transform: [{ scale: safePulse }] }]}>
-            <View style={styles.safeZoneIcon}>
-              <Text style={{ fontSize: 18 }}>📍</Text>
-            </View>
+            <View style={styles.safeZoneIcon}><Text style={{ fontSize: 18 }}>📍</Text></View>
             <View>
               <Text style={styles.safeZoneTitle}>Safe Zone Ahead</Text>
               <Text style={styles.safeZoneSub}>Haifa Bay Assembly Point</Text>
@@ -107,9 +101,7 @@ export default function ARModeScreen() {
           </Animated.View>
 
           <View style={styles.instructionCard}>
-            <View style={styles.instructionIcon}>
-              <Text style={{ fontSize: 18 }}>🧭</Text>
-            </View>
+            <View style={styles.instructionIcon}><Text style={{ fontSize: 18 }}>🧭</Text></View>
             <View style={{ flex: 1 }}>
               <Text style={styles.instructionTitle}>Continue Straight</Text>
               <Text style={styles.instructionBody}>Stay on Highway 75 for 5.2 km</Text>
@@ -121,7 +113,6 @@ export default function ARModeScreen() {
             <Text style={styles.tipText}>ℹ️  Keep phone steady for best AR experience</Text>
           </View>
         </View>
-
       </SafeAreaView>
     </View>
   );

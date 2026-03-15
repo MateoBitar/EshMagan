@@ -27,10 +27,10 @@ const storage = {
 
 // ─── API Base URL ─────────────────────────────────────────────────────────────
 export const API_BASE = Platform.OS === 'android'
-  ? 'http://10.0.2.2:5000'
+  ? 'http://192.168.1.13:5000'
   : 'http://localhost:5000';
 
-// ─── Apollo Client (mobile only) ─────────────────────────────────────────────
+// ─── Apollo Client (native only) ─────────────────────────────────────────────
 let _apolloClient = null;
 
 export function getApolloClient() {
@@ -52,7 +52,6 @@ export function getApolloClient() {
   return _apolloClient;
 }
 
-// Keep named export for App.js compatibility
 export const apolloClient = Platform.OS !== 'web' ? (() => {
   try { return getApolloClient(); } catch { return null; }
 })() : null;
@@ -75,19 +74,25 @@ export async function gqlFetch(query, variables = {}) {
 
 // ─── REST Auth Service ────────────────────────────────────────────────────────
 export const authService = {
-  async login(email, password, role) {
+  async login(email, password) {
     const res = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, role }),
+      body: JSON.stringify({ user_email: email, user_password: password }),
     });
-    if (!res.ok) throw new Error('Login failed');
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Login failed');
+    }
     const data = await res.json();
     await storage.setItem('accessToken', data.accessToken);
     await storage.setItem('refreshToken', data.refreshToken);
-    await storage.setItem('userRole', role);
+    if (data.user?.user_role) {
+      await storage.setItem('userRole', data.user.user_role);
+    }
     return data;
   },
+
   async logout() {
     const refreshToken = await storage.getItem('refreshToken');
     await fetch(`${API_BASE}/api/auth/logout`, {
@@ -97,36 +102,196 @@ export const authService = {
     });
     await storage.multiRemove(['accessToken', 'refreshToken', 'userRole']);
   },
+
+  async refreshAccessToken() {
+    const refreshToken = await storage.getItem('refreshToken');
+    if (!refreshToken) throw new Error('No refresh token');
+    const res = await fetch(`${API_BASE}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+    if (!res.ok) throw new Error('Session expired — please log in again');
+    const data = await res.json();
+    await storage.setItem('accessToken', data.accessToken);
+    await storage.setItem('refreshToken', data.refreshToken);
+    return data;
+  },
+
   async getStoredRole() {
     return storage.getItem('userRole');
   },
 };
 
-// ─── GraphQL Query Strings ────────────────────────────────────────────────────
-export const GET_FIRES = `query GetFires {
-  fires { id fire_location fire_severitylevel fire_status fire_source created_at }
+// ─── GraphQL Queries (matching actual backend schema) ────────────────────────
+
+export const GET_FIRES = `query GetAllFires {
+  getAllFires {
+    fire_id
+    fire_source
+    fire_location
+    fire_severitylevel
+    is_extinguished
+    is_verified
+    created_at
+  }
 }`;
 
-export const GET_ALERTS = `query GetAlerts {
-  alerts { id alert_type alert_priority alert_message created_at fire { id fire_location } }
+export const GET_ACTIVE_FIRES = `query GetActiveFires {
+  getActiveFires {
+    fire_id
+    fire_source
+    fire_location
+    fire_severitylevel
+    is_extinguished
+    is_verified
+    created_at
+  }
 }`;
 
-export const GET_EVACUATION_ROUTES = `query GetEvacuationRoutes {
-  evacuations { id evacuation_route evacuation_status fire { id fire_location } }
+export const GET_FIRE = `query GetFireById($fire_id: ID!) {
+  getFireById(fire_id: $fire_id) {
+    fire_id
+    fire_source
+    fire_location
+    fire_severitylevel
+    is_extinguished
+    is_verified
+    spread_prediction
+    created_at
+    updated_at
+  }
 }`;
 
-export const GET_RESPONDERS = `query GetResponders {
-  responders { id responder_name responder_type responder_status responder_location }
+export const GET_ALERTS = `query GetAllAlerts {
+  getAllAlerts {
+    alert_id
+    alert_type
+    target_role
+    alert_message
+    expires_at
+    created_at
+    fire_id
+  }
 }`;
 
-export const GET_FIRE = `query GetFire($id: ID!) {
-  fire(id: $id) {
-    id fire_location fire_severitylevel fire_status fire_source created_at
-    alerts { id alert_type alert_priority alert_message created_at }
-    fire_assignments { id assignment_status responder { id responder_name responder_type responder_status } }
+export const GET_ALERTS_BY_ROLE = `query GetAlertsByTargetRole($target_role: AlertTargetRole!) {
+  getAlertsByTargetRole(target_role: $target_role) {
+    alert_id
+    alert_type
+    target_role
+    alert_message
+    expires_at
+    created_at
+    fire_id
+  }
+}`;
+
+export const GET_EVACUATION_ROUTES = `query GetAllEvacuations {
+  getAllEvacuations {
+    route_id
+    route_status
+    route_priority
+    route_path
+    safe_zone
+    distance_km
+    estimated_time
+    fire_id
+  }
+}`;
+
+export const GET_EVACUATIONS_BY_FIRE = `query GetEvacuationsByFireId($fire_id: ID!) {
+  getEvacuationsByFireId(fire_id: $fire_id) {
+    route_id
+    route_status
+    route_priority
+    route_path
+    safe_zone
+    distance_km
+    estimated_time
+    fire_id
+  }
+}`;
+
+export const GET_RESPONDERS = `query GetAllResponders {
+  getAllResponders {
+    responder_id
+    unit_nb
+    unit_location
+    assigned_region
+    responder_status
+    last_known_location
+  }
+}`;
+
+export const GET_ASSIGNMENTS_BY_FIRE = `query GetAssignmentsByFireId($fire_id: ID!) {
+  getAssignmentsByFireId(fire_id: $fire_id) {
+    assignment_id
+    assignment_status
+    fire_id
+    responder_id
+    assigned_at
+  }
+}`;
+
+export const GET_NOTIFICATIONS_BY_USER = `query GetNotificationsByUserId($user_id: ID!) {
+  getNotificationsByUserId(user_id: $user_id) {
+    notification_id
+    target_role
+    notification_message
+    notification_status
+    expires_at
+    created_at
+    fire_id
+  }
+}`;
+
+export const GET_RECENT_FIRES = `query GetRecentFires($limit: Int!) {
+  getRecentFires(limit: $limit) {
+    fire_id
+    fire_source
+    fire_location
+    fire_severitylevel
+    is_extinguished
+    is_verified
+    created_at
   }
 }`;
 
 export const CREATE_FIRE = `mutation CreateFire($input: CreateFireInput!) {
-  createFire(input: $input) { id fire_location fire_severitylevel fire_status }
+  createFire(input: $input) {
+    fire_id
+    fire_source
+    fire_location
+    fire_severitylevel
+    is_extinguished
+    is_verified
+  }
+}`;
+
+export const CREATE_FIRE_AND_TRIGGER = `mutation CreateFireAndTriggerSystem($input: CreateFireInput!) {
+  createFireAndTriggerSystem(input: $input) {
+    fire_id
+    fire_source
+    fire_location
+    fire_severitylevel
+    is_extinguished
+    is_verified
+  }
+}`;
+
+export const UPDATE_ASSIGNMENT_STATUS = `mutation UpdateAssignmentStatus($input: UpdateFireAssignmentStatusInput!) {
+  updateAssignmentStatus(input: $input) {
+    assignment_id
+    assignment_status
+  }
+}`;
+
+export const DISPATCH_CLOSEST_RESPONDER = `mutation DispatchClosestResponder($fire_id: ID!) {
+  dispatchClosestResponder(fire_id: $fire_id) {
+    assignment_id
+    assignment_status
+    fire_id
+    responder_id
+  }
 }`;
