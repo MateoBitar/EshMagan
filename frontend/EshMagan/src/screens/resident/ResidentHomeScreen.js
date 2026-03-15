@@ -2,13 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Linking, Platform } from 'react-native';
 import { gqlFetch, GET_ACTIVE_FIRES } from '../../services/api';
+import ResidentSidebar from './ResidentSidebar';
 import styles from '../../styles/screens/ResidentHomeScreen.styles';
 
 const QUICK_ACTIONS = [
   { emoji: '🧭', label: 'Evacuation Routes', screen: 'Evacuation', color: '#3b82f6' },
   { emoji: '📖', label: 'Safety Tips', screen: 'SafetyTips', color: '#8b5cf6' },
-  { emoji: '📞', label: 'Emergency Contacts', screen: null, color: '#f97316' },
-  { emoji: '⚠️', label: 'Report Fire', screen: null, color: '#ef4444' },
+  { emoji: '🔔', label: 'My Alerts', screen: 'ResidentAlerts', color: '#f97316' },
+  { emoji: '👤', label: 'Profile', screen: 'ResidentProfile', color: '#10b981' },
 ];
 
 const EMERGENCY_CONTACTS = [
@@ -38,20 +39,13 @@ function useActiveFires() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (Platform.OS !== 'web') {
-      // Native: use Apollo
-      setLoading(false);
-      return;
-    }
+    if (Platform.OS !== 'web') { setLoading(false); return; }
     const fetchFires = async () => {
       try {
         const data = await gqlFetch(GET_ACTIVE_FIRES);
         setFires(data?.getActiveFires || []);
-      } catch (e) {
-        console.error('Failed to fetch fires:', e);
-      } finally {
-        setLoading(false);
-      }
+      } catch (e) { console.error('Failed to fetch fires:', e); }
+      finally { setLoading(false); }
     };
     fetchFires();
     const interval = setInterval(fetchFires, 30000);
@@ -62,27 +56,22 @@ function useActiveFires() {
 }
 
 export default function ResidentHomeScreen({ navigation }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   let nav = navigation;
   if (Platform.OS !== 'web') {
-    try {
-      const { useNavigation } = require('@react-navigation/native');
-      nav = useNavigation();
-    } catch {}
+    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch {}
   }
 
-  // For native, use Apollo
-  let fires = [];
-  let loading = false;
+  // For native use Apollo, for web use fetch
+  let fires = [], loading = false;
   const webData = useActiveFires();
 
   if (Platform.OS !== 'web') {
     try {
       const { useQuery, gql } = require('@apollo/client');
       const QUERY = gql`query GetActiveFires {
-        getActiveFires {
-          fire_id fire_source fire_location
-          fire_severitylevel is_extinguished is_verified created_at
-        }
+        getActiveFires { fire_id fire_source fire_location fire_severitylevel is_extinguished is_verified created_at }
       }`;
       const result = useQuery(QUERY, { pollInterval: 30000 });
       fires = result.data?.getActiveFires || [];
@@ -101,8 +90,18 @@ export default function ResidentHomeScreen({ navigation }) {
     nav?.navigate(screen, params);
   };
 
+  // currentScreen for sidebar active state
+  const currentScreen = nav?.currentScreen || 'ResidentHome';
+
   return (
     <SafeAreaView style={styles.safeArea}>
+      <ResidentSidebar
+        visible={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        navigation={nav}
+        currentScreen={currentScreen}
+      />
+
       <ScrollView showsVerticalScrollIndicator={false}>
 
         {/* Header Banner */}
@@ -117,9 +116,20 @@ export default function ResidentHomeScreen({ navigation }) {
                 <Text style={styles.headerSub}>Resident Portal</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.bellBtn} onPress={() => navigate('Alert')}>
-              <Text style={styles.bellEmoji}>🔔</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+              <TouchableOpacity style={styles.bellBtn} onPress={() => navigate('Alert')}>
+                <Text style={styles.bellEmoji}>🔔</Text>
+              </TouchableOpacity>
+              {/* Hamburger menu — web/desktop only */}
+              {Platform.OS === 'web' && (
+                <TouchableOpacity
+                  style={[styles.bellBtn, { marginLeft: 4 }]}
+                  onPress={() => setSidebarOpen(true)}
+                >
+                  <Text style={{ fontSize: 20 }}>☰</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* Status Card */}
@@ -129,9 +139,7 @@ export default function ResidentHomeScreen({ navigation }) {
                 <Text style={styles.statusEmoji}>{hasActiveThreat ? '🚨' : '🛡️'}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.statusMsg}>
-                  {hasActiveThreat ? '⚠️ Active Fire Threat' : '✅ You Are Safe'}
-                </Text>
+                <Text style={styles.statusMsg}>{hasActiveThreat ? '⚠️ Active Fire Threat' : '✅ You Are Safe'}</Text>
                 <Text style={styles.statusDesc}>
                   {loading ? 'Checking status...' : hasActiveThreat
                     ? `${activeFires.length} active fire(s) detected nearby`
@@ -200,9 +208,7 @@ export default function ResidentHomeScreen({ navigation }) {
                     </View>
                   </View>
                   <View style={styles.fireCardBottom}>
-                    <Text style={styles.fireStatus}>
-                      📌 {fire.is_extinguished ? 'Extinguished' : 'Active'} • {fire.fire_source || 'Manual'}
-                    </Text>
+                    <Text style={styles.fireStatus}>📌 {fire.is_extinguished ? 'Extinguished' : 'Active'} • {fire.fire_source || 'Manual'}</Text>
                     <Text style={styles.fireArrow}>›</Text>
                   </View>
                 </TouchableOpacity>

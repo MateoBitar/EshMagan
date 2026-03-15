@@ -33,12 +33,11 @@ export default function RootNavigator() {
     );
   }
 
-  const getInitialRoute = () => {
-    if (!user) return 'Login';
-    if (user.role === 'municipality') return 'MunicipalityDashboard';
-    if (user.role === 'responder') return 'ResponderCommand';
-    return 'ResidentHome';
-  };
+  // Backend returns capitalized roles: Resident, Municipality, Responder, Admin
+  const role = user?.role;
+  const isMunicipality = role === 'Municipality';
+  const isResponder = role === 'Responder';
+  const isResident = role === 'Resident' || role === 'Admin';
 
   return (
     <NavigationContainer>
@@ -49,9 +48,9 @@ export default function RootNavigator() {
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : (
           <>
-            <Stack.Screen name="ResidentHome" component={ResidentNavigator} />
-            <Stack.Screen name="MunicipalityDashboard" component={MunicipalityDashboard} />
-            <Stack.Screen name="ResponderCommand" component={ResponderCommandView} />
+            {isResident && <Stack.Screen name="ResidentHome" component={ResidentNavigator} />}
+            {isMunicipality && <Stack.Screen name="MunicipalityDashboard" component={MunicipalityDashboard} />}
+            {isResponder && <Stack.Screen name="ResponderCommand" component={ResponderCommandView} />}
             <Stack.Screen name="Alert" component={AlertScreen} options={{ animation: 'fade' }} />
             <Stack.Screen name="Evacuation" component={EvacuationScreen} />
             <Stack.Screen name="ARMode" component={ARModeScreen} options={{ animation: 'fade' }} />

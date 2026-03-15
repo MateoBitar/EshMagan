@@ -15,7 +15,6 @@ import MunicipalityDashboard from '../screens/municipality/MunicipalityDashboard
 import IncidentDetailsScreen from '../screens/municipality/IncidentDetailsScreen';
 import ResponderCommandView from '../screens/responder/ResponderCommandView';
 
-// Navigation context so any screen can call navigate()
 export const NavigationContext = React.createContext(null);
 
 export default function WebNavigator({ user, loading }) {
@@ -29,9 +28,9 @@ export default function WebNavigator({ user, loading }) {
 
   const goBack = () => {
     if (!user) { setScreen('Login'); return; }
-    if (user.role === 'municipality') setScreen('MunicipalityDashboard');
-    else if (user.role === 'responder') setScreen('ResponderCommand');
-    else setScreen('ResidentHome');
+    if (user.role === 'Municipality') { setScreen('MunicipalityDashboard'); return; }
+    if (user.role === 'Responder') { setScreen('ResponderCommand'); return; }
+    setScreen('ResidentHome');
   };
 
   if (loading) {
@@ -42,26 +41,26 @@ export default function WebNavigator({ user, loading }) {
     );
   }
 
-  // Determine current screen
-  const currentScreen = screen || (
-    !user ? 'Login'
-    : user.role === 'municipality' ? 'MunicipalityDashboard'
-    : user.role === 'responder' ? 'ResponderCommand'
-    : 'ResidentHome'
-  );
+  const getDefaultScreen = () => {
+    if (!user) return 'Login';
+    if (user.role === 'Municipality') return 'MunicipalityDashboard';
+    if (user.role === 'Responder') return 'ResponderCommand';
+    return 'ResidentHome';
+  };
 
-  const nav = { navigate, goBack, params };
+  const currentScreen = screen || getDefaultScreen();
+  const nav = { navigate, goBack, params, currentScreen };
 
   const screens = {
     Login: <LoginScreen navigation={nav} />,
     ResidentHome: <ResidentHomeScreen navigation={nav} />,
+    ResidentMap: <ResidentMapScreen navigation={nav} />,
+    ResidentAlerts: <ResidentAlertsScreen navigation={nav} />,
+    ResidentProfile: <ResidentProfileScreen navigation={nav} />,
     Alert: <AlertScreen navigation={nav} route={{ params }} />,
     Evacuation: <EvacuationScreen navigation={nav} route={{ params }} />,
     ARMode: <ARModeScreen navigation={nav} route={{ params }} />,
     SafetyTips: <SafetyTipsScreen navigation={nav} route={{ params }} />,
-    ResidentAlerts: <ResidentAlertsScreen navigation={nav} route={{ params }} />,
-    ResidentMap: <ResidentMapScreen navigation={nav} route={{ params }} />,
-    ResidentProfile: <ResidentProfileScreen navigation={nav} route={{ params }} />,
     MunicipalityDashboard: <MunicipalityDashboard navigation={nav} route={{ params }} />,
     IncidentDetails: <IncidentDetailsScreen navigation={nav} route={{ params }} />,
     ResponderCommand: <ResponderCommandView navigation={nav} route={{ params }} />,
@@ -69,7 +68,9 @@ export default function WebNavigator({ user, loading }) {
 
   return (
     <NavigationContext.Provider value={nav}>
-      {screens[currentScreen] || screens['Login']}
+      <View style={{ flex: 1 }}>
+        {screens[currentScreen] || screens['Login']}
+      </View>
     </NavigationContext.Provider>
   );
 }

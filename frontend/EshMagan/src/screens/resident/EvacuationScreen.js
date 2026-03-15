@@ -1,13 +1,8 @@
 // src/screens/resident/EvacuationScreen.js
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, Animated, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, Animated, Platform, ActivityIndicator } from 'react-native';
+import { gqlFetch, GET_EVACUATION_ROUTES, GET_EVACUATIONS_BY_FIRE } from '../../services/api';
 import styles from '../../styles/screens/EvacuationScreen.styles';
-
-const ROUTES = [
-  { id: 'primary', name: 'Primary Route', distance: '8.4 km', time: '12 min', status: 'clear', description: 'Via Highway 75 to Haifa Bay Safe Zone' },
-  { id: 'alternative', name: 'Alternative Route', distance: '11.2 km', time: '18 min', status: 'caution', description: 'Via coastal road - potential traffic delays' },
-  { id: 'emergency', name: 'Emergency Route', distance: '6.1 km', time: '15 min', status: 'clear', description: 'Mountain pass - steep terrain but fastest' },
-];
 
 const STEPS = [
   { instruction: 'Head north on Herzl Street', distance: '0.5 km', time: '2 min' },
@@ -16,15 +11,80 @@ const STEPS = [
   { instruction: 'Arrive at Safe Zone Assembly Point', distance: '0.9 km', time: '2 min' },
 ];
 
-export default function EvacuationScreen({ navigation }) {
+function useEvacuationData(fireId) {
+  const [routes, setRoutes] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') { setLoading(false); return; }
+    const fetch = async () => {
+      try {
+        let data;
+        if (fireId) {
+          data = await gqlFetch(GET_EVACUATIONS_BY_FIRE, { fire_id: fireId });
+          setRoutes(data?.getEvacuationsByFireId || []);
+        } else {
+          data = await gqlFetch(GET_EVACUATION_ROUTES);
+          setRoutes(data?.getAllEvacuations || []);
+        }
+      } catch (e) {
+        console.error('Failed to fetch evacuation routes:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetch();
+  }, [fireId]);
+
+  return { routes, loading };
+}
+
+export default function EvacuationScreen({ navigation, route }) {
   let nav = navigation;
+  let routeParams = route?.params || {};
   if (Platform.OS !== 'web') {
-    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch {}
+    try {
+      const { useNavigation, useRoute } = require('@react-navigation/native');
+      nav = useNavigation();
+      routeParams = useRoute().params || {};
+    } catch {}
   }
 
-  const [selectedRoute, setSelectedRoute] = useState('primary');
+  const { fireId } = routeParams;
+  const [selectedRouteId, setSelectedRouteId] = useState(null);
   const [voiceOn, setVoiceOn] = useState(false);
   const dot = useRef(new Animated.Value(1)).current;
+
+  const webData = useEvacuationData(fireId);
+  let routes = [], loading = false;
+
+  if (Platform.OS !== 'web') {
+    try {
+      const { useQuery, gql } = require('@apollo/client');
+      const QUERY = fireId
+        ? gql`query GetEvacuationsByFireId($fire_id: ID!) {
+            getEvacuationsByFireId(fire_id: $fire_id) {
+              route_id route_status route_priority route_path
+              safe_zone distance_km estimated_time fire_id
+            }
+          }`
+        : gql`query GetAllEvacuations {
+            getAllEvacuations {
+              route_id route_status route_priority route_path
+              safe_zone distance_km estimated_time fire_id
+            }
+          }`;
+      const vars = fireId ? { fire_id: fireId } : {};
+      const result = useQuery(QUERY, { variables: vars });
+      routes = (fireId ? result.data?.getEvacuationsByFireId : result.data?.getAllEvacuations) || [];
+      loading = result.loading;
+    } catch {}
+  } else {
+    routes = webData.routes;
+    loading = webData.loading;
+  }
+
+  const selectedRoute = routes.find(r => r.route_id === selectedRouteId) || routes[0];
 
   useEffect(() => {
     Animated.loop(Animated.sequence([
@@ -33,7 +93,10 @@ export default function EvacuationScreen({ navigation }) {
     ])).start();
   }, []);
 
-  const current = ROUTES.find(r => r.id === selectedRoute);
+  const getStatusStyle = (status) => {
+    if (status === 'Active' || status === 'Open' || status === 'Clear') return { view: styles.routeStatusClear, text: styles.routeStatusClearText };
+    return { view: styles.routeStatusCaution, text: styles.routeStatusCautionText };
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -53,14 +116,14 @@ export default function EvacuationScreen({ navigation }) {
       <View style={styles.mapArea}>
         <View style={styles.mapOverlay}>
           <Text style={{ color: '#60a5fa', fontSize: 14 }}>🧭</Text>
-          <Text style={styles.mapOverlayText}>{current?.distance} • {current?.time}</Text>
+          <Text style={styles.mapOverlayText}>
+            {selectedRoute ? `${selectedRoute.distance_km?.toFixed(1) || '?'} km • ${selectedRoute.estimated_time || '?'}` : 'Select a route'}
+          </Text>
         </View>
         <Animated.View style={{ position: 'absolute', bottom: 48, left: 32, transform: [{ scale: dot }] }}>
           <View style={styles.locationDot} />
         </Animated.View>
-        <View style={styles.destinationDot}>
-          <Text style={{ fontSize: 14 }}>📍</Text>
-        </View>
+        <View style={styles.destinationDot}><Text style={{ fontSize: 14 }}>📍</Text></View>
         <Text style={styles.mapLabel}>Map View (react-native-maps)</Text>
       </View>
 
@@ -72,18 +135,35 @@ export default function EvacuationScreen({ navigation }) {
               <Text style={styles.arModeBtnText}>⚡ AR Mode</Text>
             </TouchableOpacity>
           </View>
-          {ROUTES.map(route => (
-            <TouchableOpacity key={route.id} onPress={() => setSelectedRoute(route.id)} style={[styles.routeCard, selectedRoute === route.id ? styles.routeCardActive : styles.routeCardInactive]}>
-              <View style={styles.routeCardTop}>
-                <Text style={styles.routeName}>🛣️ {route.name}</Text>
-                <View style={route.status === 'clear' ? styles.routeStatusClear : styles.routeStatusCaution}>
-                  <Text style={route.status === 'clear' ? styles.routeStatusClearText : styles.routeStatusCautionText}>{route.status}</Text>
-                </View>
-              </View>
-              <Text style={styles.routeMeta}>{route.distance} • {route.time}</Text>
-              <Text style={styles.routeDesc}>{route.description}</Text>
-            </TouchableOpacity>
-          ))}
+
+          {loading ? (
+            <ActivityIndicator color="#60a5fa" style={{ marginVertical: 20 }} />
+          ) : routes.length === 0 ? (
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              <Text style={{ color: '#64748b', fontSize: 14 }}>No evacuation routes available</Text>
+            </View>
+          ) : (
+            routes.map(route => {
+              const isSelected = (selectedRouteId || routes[0]?.route_id) === route.route_id;
+              const statusStyle = getStatusStyle(route.route_status);
+              return (
+                <TouchableOpacity
+                  key={route.route_id}
+                  onPress={() => setSelectedRouteId(route.route_id)}
+                  style={[styles.routeCard, isSelected ? styles.routeCardActive : styles.routeCardInactive]}
+                >
+                  <View style={styles.routeCardTop}>
+                    <Text style={styles.routeName}>🛣️ Route Priority {route.route_priority || '?'}</Text>
+                    <View style={statusStyle.view}>
+                      <Text style={statusStyle.text}>{route.route_status || 'Unknown'}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.routeMeta}>{route.distance_km?.toFixed(1) || '?'} km • {route.estimated_time || '?'}</Text>
+                  <Text style={styles.routeDesc}>Safe zone: {route.safe_zone || 'N/A'}</Text>
+                </TouchableOpacity>
+              );
+            })
+          )}
         </View>
 
         <View style={styles.directionsSection}>
@@ -112,7 +192,7 @@ export default function EvacuationScreen({ navigation }) {
               <Text style={{ fontSize: 20 }}>📍</Text>
               <View>
                 <Text style={styles.safeZoneTitle}>Safe Zone</Text>
-                <Text style={styles.safeZoneName}>Haifa Bay Assembly Point</Text>
+                <Text style={styles.safeZoneName}>{selectedRoute?.safe_zone || 'Assembly Point'}</Text>
                 <Text style={styles.safeZoneSub}>Emergency services and shelter available</Text>
               </View>
             </View>
