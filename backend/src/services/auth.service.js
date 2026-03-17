@@ -2,34 +2,76 @@
 
 import { hashPassword, comparePassword, needsRehash } from '../utils/hash.utils.js';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt.utils.js';
+import { Resident } from '../domain/entities/resident.entity.js';
 
 export class AuthService {
-    constructor(userRepository, refreshTokenRepository) {
+    constructor(userRepository, refreshTokenRepository, residentRepository) {
         this.userRepository         = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.residentRepository     = residentRepository;
     }
 
     async register(data) {
         try {
-            if (!data.user_email)    throw new Error("Missing required field: Email");
-            if (!data.user_password) throw new Error("Missing required field: Password");
-            if (!data.user_phone)    throw new Error("Missing required field: Phone");
-            if (!data.user_role)     throw new Error("Missing required field: Role");
+            if (!data.user_email)          throw new Error("Missing required field: Email");
+            if (!data.user_password)       throw new Error("Missing required field: Password");
+            if (!data.user_phone)          throw new Error("Missing required field: Phone");
+            if (!data.resident_fname)      throw new Error("Missing required field: First Name");
+            if (!data.resident_lname)      throw new Error("Missing required field: Last Name");
+            if (!data.resident_dob)        throw new Error("Missing required field: Date of Birth");
+            if (!data.resident_idnb)       throw new Error("Missing required field: ID Number");
+            if (!data.last_known_location) throw new Error("Missing required field: Location");
 
             const existing = await this.userRepository.getUserByEmail(data.user_email);
             if (existing) throw new Error("Email already registered");
 
             const hashedPassword = await hashPassword(data.user_password);
 
+            // Step 1: Create user
             const createdUser = await this.userRepository.createUser({
                 user_email:    data.user_email,
                 user_password: hashedPassword,
                 user_phone:    data.user_phone,
-                user_role:     data.user_role
+                user_role:     'Resident',
             });
+
+            console.log('[Register] User created:', createdUser.user_id);
+
+            // Step 2: Normalize location — repo expects { longitude, latitude }
+            const loc = data.last_known_location;
+            const locationObj = (loc && loc.latitude != null && loc.longitude != null)
+                ? { latitude: loc.latitude, longitude: loc.longitude }
+                : null;
+
+            if (!locationObj) throw new Error("Invalid location format");
+
+            const homeLoc = (data.home_location && data.home_location.latitude != null)
+                ? { latitude: data.home_location.latitude, longitude: data.home_location.longitude }
+                : locationObj;
+
+            console.log('[Register] Location:', locationObj);
+
+            // Step 3: Create resident — repo handles DOB/ID encryption
+            const resident = new Resident({
+                resident_id:         createdUser.user_id,
+                resident_fname:      data.resident_fname,
+                resident_lname:      data.resident_lname,
+                resident_dob:        data.resident_dob,
+                resident_idnb:       data.resident_idnb,
+                resident_idpic:      data.resident_idpic || 'pending',
+                home_location:       homeLoc,
+                work_location:       null,
+                last_known_location: locationObj,
+                user:                createdUser,
+            });
+
+            console.log('[Register] Creating resident profile...');
+            await this.residentRepository.createResident(resident);
+            console.log('[Register] Resident created successfully');
 
             return createdUser.toDTO();
         } catch (err) {
+            console.error('[Register] FAILED:', err.message);
             throw new Error(`Registration failed: ${err.message}`);
         }
     }
@@ -57,11 +99,7 @@ export class AuthService {
             await this.refreshTokenRepository.saveToken(user.user_id, refreshToken);
             await this.userRepository.updateLastLogin(user.user_id);
 
-            return {
-                accessToken,
-                refreshToken,
-                user: user.toDTO()
-            };
+            return { accessToken, refreshToken, user: user.toDTO() };
         } catch (err) {
             throw new Error(`Login failed: ${err.message}`);
         }
@@ -72,8 +110,7 @@ export class AuthService {
             if (!token) throw new Error("Missing required field: Refresh Token");
 
             const payload = verifyRefreshToken(token);
-
-            const stored = await this.refreshTokenRepository.findToken(token);
+            const stored  = await this.refreshTokenRepository.findToken(token);
             if (!stored) throw new Error("Refresh token not found — please log in again");
 
             await this.refreshTokenRepository.deleteToken(token);
@@ -84,10 +121,7 @@ export class AuthService {
 
             await this.refreshTokenRepository.saveToken(payload.user_id, newRefreshToken);
 
-            return {
-                accessToken:  newAccessToken,
-                refreshToken: newRefreshToken
-            };
+            return { accessToken: newAccessToken, refreshToken: newRefreshToken };
         } catch (err) {
             throw new Error(`Token refresh failed: ${err.message}`);
         }
@@ -126,7 +160,6 @@ export class AuthService {
 
             const hashedPassword = await hashPassword(new_password);
             await this.userRepository.updateUser(user_id, { user_password: hashedPassword });
-
             await this.refreshTokenRepository.deleteAllTokensForUser(user_id);
 
             return true;

@@ -62,6 +62,23 @@ export class ResidentRepository {
             : null;
         const lastKnownWKT = `POINT(${last_known_location.longitude} ${last_known_location.latitude})`;
 
+        // Build params dynamically to avoid PostgreSQL null type inference error
+        // PostgreSQL can't determine the type of a null parameter for geometry columns
+        const residentValues = [
+            resident_id,      // $1
+            resident_fname,   // $2
+            resident_lname,   // $3
+            resident_dob,     // $4
+            encryptedIdNb,    // $5
+            encryptedIdPic,   // $6
+        ];
+
+        let idx = 7;
+        const homeParam    = homeWKT  ? (residentValues.push(homeWKT),  `ST_GeomFromText($${idx++}, 4326)`) : 'NULL';
+        const workParam    = workWKT  ? (residentValues.push(workWKT),  `ST_GeomFromText($${idx++}, 4326)`) : 'NULL';
+        residentValues.push(lastKnownWKT);
+        const lastParam    = `ST_GeomFromText($${idx}, 4326)`;
+
         const residentSql = `
             INSERT INTO residentdetails (
             resident_id, resident_fname, resident_lname, resident_dob,
@@ -69,9 +86,9 @@ export class ResidentRepository {
             home_location, work_location, last_known_location
             ) VALUES (
             $1, $2, $3, $4, $5, $6,
-            ${homeWKT ? `ST_GeomFromText($7, 4326)` : 'NULL'},
-            ${workWKT ? `ST_GeomFromText($8, 4326)` : 'NULL'},
-            ST_GeomFromText($9, 4326)
+            ${homeParam},
+            ${workParam},
+            ${lastParam}
             )
             RETURNING resident_id, resident_fname, resident_lname, resident_dob,
                     resident_idnb, resident_idpic,
@@ -79,18 +96,6 @@ export class ResidentRepository {
                     ST_AsGeoJSON(work_location)       AS work_location,
                     ST_AsGeoJSON(last_known_location) AS last_known_location
         `;
-
-        const residentValues = [
-            resident_id,
-            resident_fname,
-            resident_lname,
-            resident_dob,
-            encryptedIdNb,
-            encryptedIdPic,
-            homeWKT,
-            workWKT,
-            lastKnownWKT
-        ];
 
         const { rows: residentRows } = await pool.query(residentSql, residentValues);
 

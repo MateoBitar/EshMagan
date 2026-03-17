@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 
 import LoginScreen from '../screens/auth/LoginScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
 import ResidentNavigator from './ResidentNavigator';
 import MunicipalityDashboard from '../screens/municipality/MunicipalityDashboard';
 import ResponderCommandView from '../screens/responder/ResponderCommandView';
@@ -33,7 +34,6 @@ export default function RootNavigator() {
     );
   }
 
-  // Backend returns capitalized roles: Resident, Municipality, Responder, Admin
   const role = user?.role;
   const isMunicipality = role === 'Municipality';
   const isResponder = role === 'Responder';
@@ -41,11 +41,12 @@ export default function RootNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
-      >
+      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
         {!user ? (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Register" component={RegisterScreen} />
+          </>
         ) : (
           <>
             {isResident && <Stack.Screen name="ResidentHome" component={ResidentNavigator} />}

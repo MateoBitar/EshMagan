@@ -72,7 +72,7 @@ export default function SafetyTipsScreen({ navigation }) {
             <Text style={{ fontSize: 22 }}>📞</Text>
             <Text style={styles.emergencyTitle}>Emergency Contacts</Text>
           </View>
-          {[{ name: 'Fire Emergency', num: '102' }, { name: 'Police', num: '100' }, { name: 'Medical Emergency', num: '101' }].map(c => (
+          {[{ name: 'Fire Emergency', num: '125' }, { name: 'Medical Emergency', num: '140' },{ name: 'Police', num: '112' }].map(c => (
             <View key={c.name} style={styles.emergencyRow}>
               <Text style={styles.emergencyName}>{c.name}</Text>
               <View style={styles.emergencyNumBadge}><Text style={styles.emergencyNum}>{c.num}</Text></View>
