@@ -124,7 +124,7 @@ export default function EvacuationScreen({ navigation, route }) {
           <View style={styles.locationDot} />
         </Animated.View>
         <View style={styles.destinationDot}><Text style={{ fontSize: 14 }}>📍</Text></View>
-        <Text style={styles.mapLabel}>Map View (react-native-maps)</Text>
+        <Text style={styles.mapLabel}>Map View</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>

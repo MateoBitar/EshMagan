@@ -41,7 +41,7 @@ export default function AlertScreen({ navigation, route }) {
       const { useNavigation, useRoute } = require('@react-navigation/native');
       nav = useNavigation();
       routeParams = useRoute().params || {};
-    } catch {}
+    } catch { }
   }
 
   // Alert can be passed via route params (from alerts list) or fetched fresh
@@ -63,7 +63,7 @@ export default function AlertScreen({ navigation, route }) {
       const alerts = result.data?.getAlertsByTargetRole || [];
       alertData = alerts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0] || null;
       loading = result.loading;
-    } catch {}
+    } catch { }
   } else if (!passedAlert) {
     alertData = webData.alert;
     loading = webData.loading;
@@ -74,8 +74,8 @@ export default function AlertScreen({ navigation, route }) {
 
   useEffect(() => {
     Animated.loop(Animated.sequence([
-      Animated.timing(pulse, { toValue: 1.15, duration: 900, useNativeDriver: true, easing: Easing.inOut(Easing.ease) }),
-      Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true, easing: Easing.inOut(Easing.ease) }),
+      Animated.timing(pulse, { toValue: 1.05, duration: 1000, useNativeDriver: true, easing: Easing.inOut(Easing.ease) }),
+      Animated.timing(pulse, { toValue: 1, duration: 1000, useNativeDriver: true, easing: Easing.inOut(Easing.ease) }),
     ])).start();
     Animated.loop(Animated.sequence([
       Animated.timing(glow, { toValue: 0.7, duration: 1000, useNativeDriver: true }),
@@ -120,16 +120,16 @@ export default function AlertScreen({ navigation, route }) {
               {alertData ? `Issued: ${new Date(alertData.created_at).toLocaleString()}` : 'Based on AI analysis and current fire spread patterns'}
             </Text>
 
-            {detailRows.map(item => (
-              <View key={item.title} style={styles.detailRow}>
-                <Text style={styles.detailIcon}>{item.icon}</Text>
-                <View style={{ flex: 1 }}>
+            <View style={styles.detailRowWrap}>
+              {detailRows.map(item => (
+                <View key={item.title} style={styles.detailRow}>
+                  <Text style={styles.detailIcon}>{item.icon}</Text>
                   <Text style={styles.detailTitle}>{item.title}</Text>
                   <Text style={styles.detailBody}>{item.body}</Text>
                   {item.sub && <Text style={styles.detailSub}>{item.sub}</Text>}
                 </View>
-              </View>
-            ))}
+              ))}
+            </View>
 
             <View style={styles.recsBox}>
               <Text style={styles.recsTitle}>Recommended Actions</Text>
@@ -144,11 +144,6 @@ export default function AlertScreen({ navigation, route }) {
             >
               <Text style={{ fontSize: 18 }}>🧭</Text>
               <Text style={styles.primaryBtnText}>View Evacuation Route</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.secondaryBtn}>
-              <Text style={{ fontSize: 18 }}>📤</Text>
-              <Text style={styles.secondaryBtnText}>Share Location with Family</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -165,7 +160,7 @@ export default function AlertScreen({ navigation, route }) {
 
         <View style={styles.source}>
           <Text style={styles.sourceText}>Alert system powered by EshMagan AI</Text>
-          {alertData && <Text style={styles.sourceText2}>ID: {alertData.alert_id?.slice(0, 12)}...</Text>}
+          {alertData && <Text style={styles.sourceText2}>ID: {alertData.alert_id?.slice(0, 12)}</Text>}
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 import { shadows } from '../global';
 
 export default StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f8fafc' },
+  safeArea: { flex: 1, backgroundColor: '#f8fafc', minHeight: '100vh' },
   topBar: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0', padding: 16 },
   backText: { color: '#64748b', fontSize: 14, marginBottom: 10 },
   topBarTitle: { fontSize: 20, fontWeight: '800', color: '#0f172a' },

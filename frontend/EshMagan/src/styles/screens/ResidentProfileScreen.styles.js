@@ -3,8 +3,8 @@ import { StyleSheet } from 'react-native';
 import { shadows } from '../global';
 
 export default StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f8fafc' },
-  scrollContent: { padding: 20, paddingBottom: 40 },
+  safeArea: { flex: 1, backgroundColor: '#f8fafc', minHeight: '100vh' },
+  scrollContent: { padding: 20, paddingBottom: 40, minHeight: '100vh' },
   title: { fontSize: 24, fontWeight: '800', color: '#0f172a', marginBottom: 20 },
   avatarCard: {
     backgroundColor: '#fff', borderRadius: 24, padding: 24,

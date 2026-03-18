@@ -4,8 +4,8 @@
   "description": "BS Project",
   "type": "module",
   "scripts": {
-  "start": "node backend/server.js",
-  "dev": "concurrently \"nodemon backend/server.js\" \"node backend/src/grpc/server.js\""
+    "start": "node backend/server.js",
+    "dev": "concurrently \"nodemon backend/server.js\" \"node backend/src/grpc/server.js\""
   },
   "repository": {
     "type": "git",
@@ -33,6 +33,7 @@
     "morgan": "^1.10.1",
     "nats": "^2.29.3",
     "pg": "^8.18.0",
+    "react-native-maps": "^1.27.2",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

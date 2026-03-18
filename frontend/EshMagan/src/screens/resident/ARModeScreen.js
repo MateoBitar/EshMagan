@@ -30,7 +30,7 @@ export default function ARModeScreen({ navigation }) {
     ])).start();
 
     Animated.loop(Animated.sequence([
-      Animated.timing(safePulse, { toValue: 1.05, duration: 1000, useNativeDriver: true }),
+      Animated.timing(safePulse, { toValue: 1.01, duration: 1000, useNativeDriver: true }),
       Animated.timing(safePulse, { toValue: 1, duration: 1000, useNativeDriver: true }),
     ])).start();
 
@@ -96,7 +96,7 @@ export default function ARModeScreen({ navigation }) {
             <View style={styles.safeZoneIcon}><Text style={{ fontSize: 18 }}>📍</Text></View>
             <View>
               <Text style={styles.safeZoneTitle}>Safe Zone Ahead</Text>
-              <Text style={styles.safeZoneSub}>Haifa Bay Assembly Point</Text>
+              <Text style={styles.safeZoneSub}>Assembly Point</Text>
             </View>
           </Animated.View>
 

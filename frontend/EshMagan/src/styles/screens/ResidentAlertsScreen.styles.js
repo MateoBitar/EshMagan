@@ -2,7 +2,7 @@
 import { StyleSheet } from 'react-native';
 
 export default StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f8fafc' },
+  safeArea: { flex: 1, backgroundColor: '#f8fafc', minHeight: '100vh' },
   topBar: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0', padding: 16, paddingTop: 20 },
   title: { fontSize: 24, fontWeight: '800', color: '#0f172a' },
   subtitle: { fontSize: 13, color: '#64748b', marginTop: 2 },

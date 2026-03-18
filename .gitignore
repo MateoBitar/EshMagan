@@ -1,3 +1,4 @@
 # Ignore environment variable files
 backend\.env
 backend/.env
+node_modules

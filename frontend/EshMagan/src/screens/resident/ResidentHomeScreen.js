@@ -150,7 +150,7 @@ export default function ResidentHomeScreen({ navigation }) {
             </View>
             <View style={styles.locationRow}>
               <Text>📍</Text>
-              <Text style={styles.locationText}>Your Location: Haifa, Northern District</Text>
+              <Text style={styles.locationText}>Your Location: Qalhat, North Lebanon</Text>
             </View>
           </View>
         </View>
