@@ -7,9 +7,9 @@ import styles from '../../styles/screens/ResidentHomeScreen.styles';
 
 const QUICK_ACTIONS = [
   { emoji: '🧭', label: 'Evacuation Routes', screen: 'Evacuation', color: '#3b82f6' },
-  { emoji: '📖', label: 'Safety Tips', screen: 'SafetyTips', color: '#8b5cf6' },
-  { emoji: '🔔', label: 'My Alerts', screen: 'ResidentAlerts', color: '#f97316' },
-  { emoji: '👤', label: 'Profile', screen: 'ResidentProfile', color: '#10b981' },
+  { emoji: '🗺️', label: 'Interactive Map', screen: 'ResidentMap', color: '#8b5cf6' },
+  { emoji: '📖', label: 'Safety Tips', screen: 'SafetyTips', color: '#f97316' },
+  { emoji: '⚠️', label: 'My Alerts', screen: 'ResidentAlerts', color: '#10b981' }
 ];
 
 const EMERGENCY_CONTACTS = [
@@ -60,7 +60,7 @@ export default function ResidentHomeScreen({ navigation }) {
 
   let nav = navigation;
   if (Platform.OS !== 'web') {
-    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch {}
+    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch { }
   }
 
   // For native use Apollo, for web use fetch
@@ -76,7 +76,7 @@ export default function ResidentHomeScreen({ navigation }) {
       const result = useQuery(QUERY, { pollInterval: 30000 });
       fires = result.data?.getActiveFires || [];
       loading = result.loading;
-    } catch {}
+    } catch { }
   } else {
     fires = webData.fires;
     loading = webData.loading;
@@ -139,7 +139,7 @@ export default function ResidentHomeScreen({ navigation }) {
                 <Text style={styles.statusEmoji}>{hasActiveThreat ? '🚨' : '🛡️'}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.statusMsg}>{hasActiveThreat ? '⚠️ Active Fire Threat' : '✅ You Are Safe'}</Text>
+                <Text style={styles.statusMsg}>{hasActiveThreat ? 'Active Fire Threat' : 'You Are Safe'}</Text>
                 <Text style={styles.statusDesc}>
                   {loading ? 'Checking status...' : hasActiveThreat
                     ? `${activeFires.length} active fire(s) detected nearby`
@@ -196,19 +196,16 @@ export default function ResidentHomeScreen({ navigation }) {
                 <TouchableOpacity
                   key={fire.fire_id}
                   onPress={() => navigate('IncidentDetails', { fireId: fire.fire_id })}
-                  style={styles.fireCard}
+                  style={[styles.fireCard, { borderColor: riskColor }]}
                 >
                   <View style={styles.fireCardTop}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.fireLocation}>{fire.fire_location || 'Unknown Location'}</Text>
                       <Text style={styles.fireId}>ID: {fire.fire_id?.slice(0, 8)}</Text>
                     </View>
-                    <View style={[styles.fireBadge, { backgroundColor: riskColor + '20', borderColor: riskColor }]}>
-                      <Text style={[styles.fireBadgeText, { color: riskColor }]}>{riskLabel}</Text>
-                    </View>
                   </View>
                   <View style={styles.fireCardBottom}>
-                    <Text style={styles.fireStatus}>📌 {fire.is_extinguished ? 'Extinguished' : 'Active'} • {fire.fire_source || 'Manual'}</Text>
+                    <Text style={styles.fireStatus}>{fire.is_extinguished ? 'Extinguished' : 'Active'} • {riskLabel}</Text>
                     <Text style={styles.fireArrow}>›</Text>
                   </View>
                 </TouchableOpacity>

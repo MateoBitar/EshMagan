@@ -5,10 +5,9 @@ import { useAuth } from '../../context/AuthContext';
 
 const NAV_ITEMS = [
   { screen: 'ResidentHome', emoji: '🏠', label: 'Home', desc: 'Dashboard & fire status' },
-  { screen: 'ResidentAlerts', emoji: '🔔', label: 'Alerts', desc: 'Your fire alerts' },
+  { screen: 'ResidentAlerts', emoji: '⚠️', label: 'Alerts', desc: 'Your fire alerts' },
   { screen: 'Evacuation', emoji: '🧭', label: 'Evacuation', desc: 'Evacuation routes' },
   { screen: 'SafetyTips', emoji: '📖', label: 'Safety Tips', desc: 'Preparedness guide' },
-  { screen: 'ResidentMap', emoji: '🗺️', label: 'Map', desc: 'Live fire map' },
   { screen: 'ResidentProfile', emoji: '👤', label: 'Profile', desc: 'Your account' },
 ];
 
@@ -34,28 +33,20 @@ export default function ResidentSidebar({ visible, onClose, navigation, currentS
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationIn="slideInLeft" animationOut="slideOutLeft" animationInTiming={10000} animationOutTiming={10000}
+      backdropTrasnitionInTiming={10000} backdropTrasnitionOutTiming={10000} easing="linear" useNativeDriver={true} hideModalContentWhileAnimating={true}
+      onRequestClose={onClose}>
       <TouchableOpacity
-        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', flexDirection: 'row' }}
+        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0)', flexDirection: 'row' }}
         activeOpacity={1}
         onPress={onClose}
       >
+
         <TouchableOpacity
           activeOpacity={1}
           style={{ width: 280, backgroundColor: '#0f172a', height: '100%', paddingTop: 60, paddingHorizontal: 16, paddingBottom: 32 }}
         >
-          {/* User info */}
-          <View style={{ marginBottom: 24, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#1e293b' }}>
-            <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-              <Text style={{ fontSize: 24 }}>👤</Text>
-            </View>
-            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>{user?.email?.split('@')[0] || 'Resident'}</Text>
-            <Text style={{ color: '#64748b', fontSize: 12 }}>{user?.email}</Text>
-            <View style={{ marginTop: 6, paddingHorizontal: 10, paddingVertical: 3, backgroundColor: '#1e293b', borderRadius: 6, alignSelf: 'flex-start' }}>
-              <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: '600' }}>{user?.role}</Text>
-            </View>
-          </View>
-
+          <Text style={{ color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 20, top: -20, left: 10 }}>EshMagan</Text>
           {/* Nav items */}
           <View style={{ flex: 1 }}>
             {NAV_ITEMS.map(item => {
