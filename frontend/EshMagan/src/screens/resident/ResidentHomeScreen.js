@@ -13,9 +13,9 @@ const QUICK_ACTIONS = [
 ];
 
 const EMERGENCY_CONTACTS = [
-  { name: 'Fire Emergency', number: '102', emoji: '🔥', color: '#ef4444' },
-  { name: 'Police', number: '100', emoji: '🚔', color: '#3b82f6' },
-  { name: 'Medical Emergency', number: '101', emoji: '🚑', color: '#10b981' },
+  { name: 'Fire Emergency', number: '125', emoji: '🔥', color: '#ef4444' },
+  { name: 'Medical Emergency', number: '140', emoji: '🚑', color: '#10b981' },
+  { name: 'Police', number: '112', emoji: '🚔', color: '#3b82f6' },
 ];
 
 function getSeverityColor(level) {

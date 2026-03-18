@@ -12,7 +12,7 @@ module.exports = {
         path: path.resolve(appDirectory, 'web-build'),
     },
     resolve: {
-        extensions: ['.web.js', '.js', '.web.jsx', '.jsx'],
+        extensions: ['.web.js', '.js', '.web.jsx', '.jsx', '.ts', '.tsx'],
         alias: {
             'react-native$': 'react-native-web',
             '@react-navigation/native': path.resolve(appDirectory, 'src/stubs/navigation.js'),
@@ -20,20 +20,24 @@ module.exports = {
             '@react-navigation/bottom-tabs': path.resolve(appDirectory, 'src/stubs/navigation.js'),
             '@apollo/client': path.resolve(appDirectory, 'src/stubs/apollo.js'),
             './NativeNavigator': path.resolve(appDirectory, 'src/stubs/navigation.js'),
+            'react-native-image-picker': path.resolve(appDirectory, 'src/stubs/image-picker.js'),
+            '@react-native-community/geolocation': path.resolve(appDirectory, 'src/stubs/geolocation.js'),
+            '@react-native-async-storage/async-storage': path.resolve(appDirectory, 'src/stubs/async-storage.js'),
         },
         fullySpecified: false,
     },
     module: {
         rules: [
             {
-                test: /\.(js|jsx|mjs|cjs)$/,
-                exclude: /node_modules/,
+                test: /\.(js|jsx|mjs|cjs|ts|tsx)$/,
+                exclude: /node_modules\/(?!(react-native-image-picker|@react-native-community\/geolocation)\/).*/,
                 use: {
                     loader: 'babel-loader',
                     options: {
                         presets: [
                             ['@babel/preset-env', { targets: { browsers: ['last 2 Chrome versions'] }, modules: 'commonjs' }],
                             '@babel/preset-react',
+                            '@babel/preset-typescript',
                         ],
                         plugins: ['react-native-web'],
                     },

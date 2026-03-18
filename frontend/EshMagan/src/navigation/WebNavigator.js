@@ -1,8 +1,9 @@
 // src/navigation/WebNavigator.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 import LoginScreen from '../screens/auth/LoginScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
 import ResidentHomeScreen from '../screens/resident/ResidentHomeScreen';
 import AlertScreen from '../screens/resident/AlertScreen';
 import EvacuationScreen from '../screens/resident/EvacuationScreen';
@@ -17,9 +18,29 @@ import ResponderCommandView from '../screens/responder/ResponderCommandView';
 
 export const NavigationContext = React.createContext(null);
 
+const AUTH_SCREENS = ['Login', 'Register'];
+
 export default function WebNavigator({ user, loading }) {
   const [screen, setScreen] = useState(null);
   const [params, setParams] = useState({});
+
+  const getDefaultScreen = () => {
+    if (!user) return 'Login';
+    if (user.role === 'Municipality') return 'MunicipalityDashboard';
+    if (user.role === 'Responder') return 'ResponderCommand';
+    return 'ResidentHome';
+  };
+
+  // When user state changes (login/logout), reset to the correct screen
+  useEffect(() => {
+    if (user && AUTH_SCREENS.includes(screen)) {
+      // Just logged in — go to their home
+      setScreen(getDefaultScreen());
+    } else if (!user && screen && !AUTH_SCREENS.includes(screen)) {
+      // Just logged out — go to login
+      setScreen('Login');
+    }
+  }, [user]);
 
   const navigate = (screenName, screenParams = {}) => {
     setScreen(screenName);
@@ -41,18 +62,12 @@ export default function WebNavigator({ user, loading }) {
     );
   }
 
-  const getDefaultScreen = () => {
-    if (!user) return 'Login';
-    if (user.role === 'Municipality') return 'MunicipalityDashboard';
-    if (user.role === 'Responder') return 'ResponderCommand';
-    return 'ResidentHome';
-  };
-
   const currentScreen = screen || getDefaultScreen();
   const nav = { navigate, goBack, params, currentScreen };
 
   const screens = {
     Login: <LoginScreen navigation={nav} />,
+    Register: <RegisterScreen navigation={nav} />,
     ResidentHome: <ResidentHomeScreen navigation={nav} />,
     ResidentMap: <ResidentMapScreen navigation={nav} />,
     ResidentAlerts: <ResidentAlertsScreen navigation={nav} />,
