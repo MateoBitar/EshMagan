@@ -2,7 +2,7 @@
 import { StyleSheet } from 'react-native';
 
 export default StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f8fafc' },
+  safeArea: { flex: 1, backgroundColor: '#f8fafc', minHeight: '100vh' },
   headerBannerSafe: { padding: 20, paddingTop: 28, backgroundColor: '#10b981' },
   headerBannerDanger: { padding: 20, paddingTop: 28, backgroundColor: '#dc2626' },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
@@ -23,7 +23,7 @@ export default StyleSheet.create({
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#f1f5f9', borderRadius: 10, padding: 10 },
   locationText: { fontSize: 13, color: '#475569', fontWeight: '500' },
   section: { padding: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 14 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 14, top: 10, left: 3 },
   actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   actionBtn: { width: '47%', padding: 18, borderRadius: 18, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 10, elevation: 6 },
   actionEmoji: { fontSize: 28, marginBottom: 10 },

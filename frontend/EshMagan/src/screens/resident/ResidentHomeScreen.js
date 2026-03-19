@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Linking, Platform } from 'react-native';
 import { gqlFetch, GET_ACTIVE_FIRES } from '../../services/api';
 import ResidentSidebar from './ResidentSidebar';
+import { getPlaceName } from '../auth/RegisterScreen.js';
 import styles from '../../styles/screens/ResidentHomeScreen.styles';
 
 const QUICK_ACTIONS = [
@@ -34,19 +35,47 @@ function getSeverityLabel(level) {
   return 'Low';
 }
 
+
+function parsePoint(pointStr) {
+  if (!pointStr) return null;
+  const match = pointStr.match(/POINT\(([-\d.]+)\s+([-\d.]+)\)/);
+  console.log(match);
+  return match ? { longitude: match[1], latitude: match[2] } : null;
+}
+
 function useActiveFires() {
   const [fires, setFires] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (Platform.OS !== 'web') { setLoading(false); return; }
+    if (Platform.OS !== 'web') {
+      setLoading(false);
+      return;
+    }
+
     const fetchFires = async () => {
       try {
         const data = await gqlFetch(GET_ACTIVE_FIRES);
-        setFires(data?.getActiveFires || []);
-      } catch (e) { console.error('Failed to fetch fires:', e); }
-      finally { setLoading(false); }
+
+        const enriched = await Promise.all(
+          (data?.getActiveFires || []).map(async fire => {
+            const coords = parsePoint(fire.fire_location);
+            let place_name = null;
+            if (coords) {
+              place_name = await getPlaceName(coords.latitude, coords.longitude);
+            }
+            return { ...fire, place_name };
+          })
+        );
+
+        setFires(enriched);
+      } catch (e) {
+        console.error('Failed to fetch fires:', e);
+      } finally {
+        setLoading(false);
+      }
     };
+
     fetchFires();
     const interval = setInterval(fetchFires, 30000);
     return () => clearInterval(interval);
@@ -200,7 +229,7 @@ export default function ResidentHomeScreen({ navigation }) {
                 >
                   <View style={styles.fireCardTop}>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.fireLocation}>{fire.fire_location || 'Unknown Location'}</Text>
+                      <Text style={styles.fireLocation}>{fire.place_name || 'Unknown Location'}</Text>
                       <Text style={styles.fireId}>ID: {fire.fire_id?.slice(0, 8)}</Text>
                     </View>
                   </View>
