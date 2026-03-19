@@ -8,15 +8,14 @@ import { useAuth } from '../../context/AuthContext';
 import styles from '../../styles/screens/LoginScreen.styles';
 
 const TRUST_BADGES = [
-  { bg: '#dcfce7', emoji: '🔒', title: 'Data Encrypted', sub: 'AES-256', titleColor: '#15803d', subColor: '#16a34a' },
-  { bg: '#dbeafe', emoji: '🛡️', title: 'GDPR Compliant', sub: 'Consent Active', titleColor: '#1d4ed8', subColor: '#2563eb' },
+  { emoji: '🔒', title: 'AES-256', sub: 'Encrypted' },
+  { emoji: '🛡️', title: 'GDPR', sub: 'Compliant' },
 ];
 
 const PRIVACY_ITEMS = [
   'Location tracking for emergency alerts and evacuation guidance',
   'Identity verification for secure access to critical systems',
   'End-to-end encrypted data transmission',
-  'Municipality-only access to sensitive fire prediction data',
 ];
 
 export default function LoginScreen({ navigation }) {
@@ -51,6 +50,7 @@ export default function LoginScreen({ navigation }) {
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <View style={{ flex: 1, maxWidth: 480, width: '100%', alignSelf: 'center' }}>
 
           {/* Header */}
           <View style={styles.header}>
@@ -59,38 +59,37 @@ export default function LoginScreen({ navigation }) {
             </View>
             <Text style={styles.appName}>EshMagan</Text>
             <Text style={styles.tagline}>Wildfire Alert & Preparedness System</Text>
-            <Text style={styles.subtitle}>Protecting communities through intelligent fire detection</Text>
           </View>
 
           <View style={styles.card}>
 
             {/* Email */}
-            <Text style={styles.inputLabel}>Email Address</Text>
+            <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
             <TextInput
               value={email}
               onChangeText={setEmail}
               placeholder="your.email@example.com"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="rgba(0,0,0,0.25)"
               keyboardType="email-address"
               autoCapitalize="none"
               style={styles.input}
             />
 
             {/* Password */}
-            <Text style={styles.inputLabel}>Password</Text>
+            <Text style={styles.inputLabel}>PASSWORD</Text>
             <TextInput
               value={password}
               onChangeText={setPassword}
               placeholder="••••••••"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="rgba(0,0,0,0.25)"
               secureTextEntry
               style={styles.input}
             />
 
-            {/* Privacy notice — read only, already agreed at registration */}
+            {/* Privacy box — tangerine bg, white text */}
             <View style={styles.privacyBox}>
               <View style={styles.privacyHeader}>
-                <Text style={{ fontSize: 18 }}>🛡️</Text>
+                <Text style={{ fontSize: 14 }}>🛡️</Text>
                 <Text style={styles.privacyTitle}>Privacy & Data Protection</Text>
               </View>
               {PRIVACY_ITEMS.map((item, i) => (
@@ -99,25 +98,26 @@ export default function LoginScreen({ navigation }) {
                   <Text style={styles.privacyItemText}>{item}</Text>
                 </View>
               ))}
-              {/* Pre-agreed consent — locked, not interactive */}
-              <View style={[styles.consentRow, { opacity: 0.7 }]}>
+              <View style={styles.consentRow}>
                 <View style={[styles.checkbox, styles.checkboxChecked]}>
                   <Text style={styles.checkboxTick}>✓</Text>
                 </View>
                 <Text style={styles.consentText}>
-                  Consent given at registration — you've already agreed to location tracking, identity verification, and data processing for emergency response purposes.
+                  Consent given at registration — you've already agreed to data processing for emergency response.
                 </Text>
               </View>
             </View>
 
-            {/* Trust Badges */}
+            {/* Trust badges — FFF1D6 background behind icons */}
             <View style={styles.trustBadges}>
               {TRUST_BADGES.map(badge => (
                 <View key={badge.title} style={styles.trustBadge}>
-                  <View style={[styles.trustIcon, { backgroundColor: badge.bg }]}><Text>{badge.emoji}</Text></View>
+                  <View style={styles.trustIcon}>
+                    <Text style={{ fontSize: 14 }}>{badge.emoji}</Text>
+                  </View>
                   <View>
-                    <Text style={[styles.trustLabel, { color: badge.titleColor }]}>{badge.title}</Text>
-                    <Text style={[styles.trustSub, { color: badge.subColor }]}>{badge.sub}</Text>
+                    <Text style={styles.trustLabel}>{badge.title}</Text>
+                    <Text style={styles.trustSub}>{badge.sub}</Text>
                   </View>
                 </View>
               ))}
@@ -127,7 +127,7 @@ export default function LoginScreen({ navigation }) {
             <TouchableOpacity
               onPress={handleLogin}
               disabled={!canLogin || loading}
-              style={[styles.loginBtn, canLogin ? styles.loginBtnActive : styles.loginBtnDisabled]}
+              style={[styles.loginBtn, styles.loginBtnActive]}
             >
               {loading
                 ? <ActivityIndicator color="#fff" />
@@ -136,14 +136,18 @@ export default function LoginScreen({ navigation }) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => navigation?.navigate ? navigation.navigate('Register') : navigation?.navigate?.('Register')}
-              style={{ alignItems: 'center', marginTop: 8, marginBottom: 4 }}
+              onPress={() => nav?.navigate ? nav.navigate('Register') : nav?.navigate?.('Register')}
+              style={{ alignItems: 'center', marginTop: 14 }}
             >
-              <Text style={{ fontSize: 13, color: '#64748b' }}>
-                New resident? <Text style={{ color: '#dc2626', fontWeight: '600' }}>Create Account</Text>
+              <Text style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)' }}>
+                New resident?{'  '}
+                <Text style={{ color: '#DC2626', fontWeight: '700' }}>Create Account</Text>
               </Text>
             </TouchableOpacity>
-            <Text style={styles.footer}>Emergency services operating under secure protocols • Available 24/7</Text>
+
+          </View>
+
+          <Text style={styles.footer}>Services operating under secure protocols • Available 24/7</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

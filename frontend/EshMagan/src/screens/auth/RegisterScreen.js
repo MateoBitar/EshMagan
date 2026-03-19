@@ -17,7 +17,6 @@ const PRIVACY_ITEMS = [
   'Municipality-only access to sensitive fire prediction data',
 ];
 
-// Reverse geocode coordinates to a place name using OpenStreetMap Nominatim (free, no API key)
 async function getPlaceName(latitude, longitude) {
   try {
     const res = await fetch(
@@ -25,24 +24,14 @@ async function getPlaceName(latitude, longitude) {
       { headers: { 'Accept-Language': 'en' } }
     );
     const data = await res.json();
-    // Try to get the most meaningful name in order of preference
     const addr = data.address || {};
     return (
-      addr.university ||
-      addr.building ||
-      addr.amenity ||
-      addr.neighbourhood ||
-      addr.suburb ||
-      addr.village ||
-      addr.town ||
-      addr.city ||
-      addr.county ||
-      data.display_name?.split(',')[0] ||
-      'Unknown location'
+      addr.university || addr.building || addr.amenity ||
+      addr.neighbourhood || addr.suburb || addr.village ||
+      addr.town || addr.city || addr.county ||
+      data.display_name?.split(',')[0] || 'Unknown location'
     );
-  } catch {
-    return 'Location detected';
-  }
+  } catch { return 'Location detected'; }
 }
 
 export default function RegisterScreen({ navigation }) {
@@ -52,16 +41,10 @@ export default function RegisterScreen({ navigation }) {
   }
 
   const { login } = useAuth();
-
   const [form, setForm] = useState({
-    user_email: '',
-    user_password: '',
-    confirmPassword: '',
-    user_phone: '',
-    resident_fname: '',
-    resident_lname: '',
-    resident_dob: '',
-    resident_idnb: '',
+    user_email: '', user_password: '', confirmPassword: '',
+    user_phone: '', resident_fname: '', resident_lname: '',
+    resident_dob: '', resident_idnb: '',
   });
   const [idPhoto, setIdPhoto] = useState(null);
   const [agreed, setAgreed] = useState(false);
@@ -74,17 +57,10 @@ export default function RegisterScreen({ navigation }) {
 
   const set = (key, value) => setForm(f => ({ ...f, [key]: value }));
 
-  // Fix: phone is part of personal info section so include it in that check
-  const personalInfoDone = !!(
-    form.resident_fname && form.resident_lname &&
-    form.resident_dob && form.resident_idnb && form.user_phone
-  );
+  const personalInfoDone = !!(form.resident_fname && form.resident_lname && form.resident_dob && form.resident_idnb && form.user_phone);
   const accountDone = !!(form.user_email && form.user_password && form.confirmPassword);
+  const canRegister = agreed && locationGranted && idPhoto && personalInfoDone && accountDone;
 
-  const canRegister = agreed && locationGranted && idPhoto &&
-    personalInfoDone && accountDone;
-
-  // Web: trigger hidden file input
   const handleWebFilePick = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -96,19 +72,10 @@ export default function RegisterScreen({ navigation }) {
       const reader = new FileReader();
       reader.onload = (ev) => {
         const dataUri = ev.target.result;
-        const base64 = dataUri.split(',')[1];
-        setIdPhoto({
-          uri: dataUri,
-          base64,
-          type: file.type || 'image/jpeg',
-          fileName: file.name || 'id_photo.jpg',
-        });
+        setIdPhoto({ uri: dataUri, base64: dataUri.split(',')[1], type: file.type || 'image/jpeg', fileName: file.name });
         setPhotoLoading(false);
       };
-      reader.onerror = () => {
-        window.alert('Failed to read file');
-        setPhotoLoading(false);
-      };
+      reader.onerror = () => { window.alert('Failed to read file'); setPhotoLoading(false); };
       reader.readAsDataURL(file);
     };
     input.click();
@@ -122,14 +89,9 @@ export default function RegisterScreen({ navigation }) {
       const result = fromCamera ? await launchCamera(options) : await launchImageLibrary(options);
       if (result.didCancel || result.errorCode) return;
       const asset = result.assets?.[0];
-      if (asset) {
-        setIdPhoto({ uri: asset.uri, base64: asset.base64, type: asset.type || 'image/jpeg', fileName: asset.fileName || 'id_photo.jpg' });
-      }
-    } catch (e) {
-      Alert.alert('Error', 'Failed to pick photo: ' + e.message);
-    } finally {
-      setPhotoLoading(false);
-    }
+      if (asset) setIdPhoto({ uri: asset.uri, base64: asset.base64, type: asset.type || 'image/jpeg', fileName: asset.fileName });
+    } catch (e) { Alert.alert('Error', 'Failed to pick photo: ' + e.message); }
+    finally { setPhotoLoading(false); }
   };
 
   const showPhotoPicker = () => {
@@ -149,16 +111,11 @@ export default function RegisterScreen({ navigation }) {
       setCurrentLocation(location);
       setLocationGranted(true);
       setAgreed(true);
-      // Reverse geocode in background
       getPlaceName(location.latitude, location.longitude).then(setPlaceName);
     } catch (e) {
-      const msg = 'Location permission is required to use EshMagan. Please enable it in your device settings.';
+      const msg = 'Location permission is required to use EshMagan.';
       Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Permission Required', msg);
-      setLocationGranted(false);
-      setAgreed(false);
-    } finally {
-      setLocationLoading(false);
-    }
+    } finally { setLocationLoading(false); }
   };
 
   const handleRegister = async () => {
@@ -180,46 +137,34 @@ export default function RegisterScreen({ navigation }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_email:          form.user_email,
-          user_password:       form.user_password,
-          user_phone:          form.user_phone,
-          user_role:           'Resident',
-          resident_fname:      form.resident_fname,
-          resident_lname:      form.resident_lname,
-          resident_dob:        form.resident_dob,
-          resident_idnb:       form.resident_idnb,
-          resident_idpic:      idPicData,
+          user_email: form.user_email, user_password: form.user_password,
+          user_phone: form.user_phone, user_role: 'Resident',
+          resident_fname: form.resident_fname, resident_lname: form.resident_lname,
+          resident_dob: form.resident_dob, resident_idnb: form.resident_idnb,
+          resident_idpic: idPicData,
           last_known_location: currentLocation || { latitude: 0, longitude: 0 },
-          home_location:       currentLocation || { latitude: 0, longitude: 0 },
+          home_location: currentLocation || { latitude: 0, longitude: 0 },
         }),
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Registration failed');
-      }
-      // Registration successful — redirect to login
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Registration failed'); }
       nav?.navigate ? nav.navigate('Login') : nav?.goBack?.();
     } catch (e) {
       const msg = e.message || 'Registration failed. Please try again.';
       Platform.OS === 'web' ? window.alert('Registration Failed: ' + msg) : Alert.alert('Registration Failed', msg);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
-  // Checklist item with circle style
   const CheckItem = ({ label, done }) => (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
       <View style={{
-        width: 18, height: 18, borderRadius: 9,
-        borderWidth: 2,
-        borderColor: done ? '#16a34a' : '#cbd5e1',
-        backgroundColor: done ? '#16a34a' : 'transparent',
+        width: 18, height: 18, borderRadius: 9, borderWidth: 2,
+        borderColor: done ? '#EC7742' : 'rgba(236,119,66,0.3)',
+        backgroundColor: done ? '#EC7742' : 'transparent',
         alignItems: 'center', justifyContent: 'center',
       }}>
         {done && <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>✓</Text>}
       </View>
-      <Text style={{ fontSize: 12, color: done ? '#16a34a' : '#94a3b8', fontWeight: done ? '600' : '400' }}>
+      <Text style={{ fontSize: 12, color: done ? '#EC7742' : 'rgba(0,0,0,0.35)', fontWeight: done ? '600' : '400' }}>
         {label}
       </Text>
     </View>
@@ -229,149 +174,149 @@ export default function RegisterScreen({ navigation }) {
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <View style={{ maxWidth: 480, width: '100%', alignSelf: 'center' }}>
 
-          <View style={styles.header}>
-            <View style={styles.logoContainer}><Text style={styles.logoEmoji}>🔥</Text></View>
-            <Text style={styles.appName}>EshMagan</Text>
-            <Text style={styles.tagline}>Create Your Resident Account</Text>
-            <Text style={styles.subtitle}>Join the wildfire alert network in your area</Text>
-          </View>
-
-          <View style={styles.card}>
-
-            {/* Personal Info */}
-            <Text style={styles.sectionTitle}>Personal Information</Text>
-
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.inputLabel}>First Name</Text>
-                <TextInput value={form.resident_fname} onChangeText={v => set('resident_fname', v)} placeholder="Jane" placeholderTextColor="#94a3b8" style={styles.input} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.inputLabel}>Last Name</Text>
-                <TextInput value={form.resident_lname} onChangeText={v => set('resident_lname', v)} placeholder="Doe" placeholderTextColor="#94a3b8" style={styles.input} />
-              </View>
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={styles.logoContainer}><Text style={styles.logoEmoji}>🔥</Text></View>
+              <Text style={styles.appName}>EshMagan</Text>
+              <Text style={styles.tagline}>Create Your Resident Account</Text>
             </View>
 
-            <Text style={styles.inputLabel}>Date of Birth</Text>
-            <TextInput value={form.resident_dob} onChangeText={v => set('resident_dob', v)} placeholder="YYYY-MM-DD" placeholderTextColor="#94a3b8" style={styles.input} />
+            <View style={styles.card}>
 
-            <Text style={styles.inputLabel}>Phone Number</Text>
-            <TextInput value={form.user_phone} onChangeText={v => set('user_phone', v)} placeholder="+961 70 000 000" placeholderTextColor="#94a3b8" keyboardType="phone-pad" style={styles.input} />
+              {/* Personal Info */}
+              <Text style={styles.sectionTitle}>Personal Information</Text>
 
-            <Text style={styles.inputLabel}>National ID Number</Text>
-            <TextInput value={form.resident_idnb} onChangeText={v => set('resident_idnb', v)} placeholder="e.g. 123456789" placeholderTextColor="#94a3b8" style={styles.input} />
-
-            {/* ID Photo */}
-            <Text style={styles.inputLabel}>ID Photo</Text>
-            <TouchableOpacity
-              onPress={showPhotoPicker}
-              disabled={photoLoading}
-              style={{
-                borderWidth: 2,
-                borderColor: idPhoto ? '#16a34a' : '#cbd5e1',
-                borderStyle: idPhoto ? 'solid' : 'dashed',
-                borderRadius: 12,
-                height: idPhoto ? 180 : 100,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 16,
-                overflow: 'hidden',
-                backgroundColor: idPhoto ? '#f0fdf4' : '#f8fafc',
-              }}
-            >
-              {photoLoading ? (
-                <ActivityIndicator color="#dc2626" />
-              ) : idPhoto ? (
-                <>
-                  <Image source={{ uri: idPhoto.uri }} style={{ width: '100%', height: '100%', borderRadius: 10 }} resizeMode="cover" />
-                  <View style={{ position: 'absolute', bottom: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
-                    <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>Tap to change</Text>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <Text style={{ fontSize: 32, marginBottom: 8 }}>📷</Text>
-                  <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '600' }}>Tap to add ID photo</Text>
-                  <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Camera or gallery</Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            {/* Account Credentials */}
-            <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Account Credentials</Text>
-
-            <Text style={styles.inputLabel}>Email Address</Text>
-            <TextInput value={form.user_email} onChangeText={v => set('user_email', v)} placeholder="your.email@example.com" placeholderTextColor="#94a3b8" keyboardType="email-address" autoCapitalize="none" style={styles.input} />
-
-            <Text style={styles.inputLabel}>Password</Text>
-            <TextInput value={form.user_password} onChangeText={v => set('user_password', v)} placeholder="Min. 8 characters" placeholderTextColor="#94a3b8" secureTextEntry style={styles.input} />
-
-            <Text style={styles.inputLabel}>Confirm Password</Text>
-            <TextInput value={form.confirmPassword} onChangeText={v => set('confirmPassword', v)} placeholder="Repeat your password" placeholderTextColor="#94a3b8" secureTextEntry style={styles.input} />
-
-            {/* Privacy & Location Consent */}
-            <View style={styles.privacyBox}>
-              <View style={styles.privacyHeader}>
-                <Text style={{ fontSize: 18 }}>🛡️</Text>
-                <Text style={styles.privacyTitle}>Privacy & Location Consent</Text>
-              </View>
-              {PRIVACY_ITEMS.map((item, i) => (
-                <View key={i} style={styles.privacyItem}>
-                  <Text style={styles.privacyCheck}>✓</Text>
-                  <Text style={styles.privacyItemText}>{item}</Text>
-                </View>
-              ))}
-              <TouchableOpacity onPress={handleConsentToggle} style={styles.consentRow} disabled={agreed || locationLoading}>
-                <View style={[styles.checkbox, agreed ? styles.checkboxChecked : styles.checkboxUnchecked]}>
-                  {locationLoading
-                    ? <ActivityIndicator size="small" color="#fff" />
-                    : agreed && <Text style={styles.checkboxTick}>✓</Text>
-                  }
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.inputLabel}>FIRST NAME</Text>
+                  <TextInput value={form.resident_fname} onChangeText={v => set('resident_fname', v)} placeholder="Jane" placeholderTextColor="rgba(0,0,0,0.25)" style={styles.input} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.consentText}>
-                    I consent to location tracking, identity verification, and data processing for emergency response.
-                  </Text>
-                  {locationGranted && (
-                    <Text style={{ fontSize: 11, color: '#16a34a', marginTop: 4, fontWeight: '600' }}>
-                      📍 {placeName || 'Detecting location...'}
-                    </Text>
-                  )}
-                  {!locationGranted && !locationLoading && (
-                    <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                      Tapping this will request your device location
-                    </Text>
-                  )}
+                  <Text style={styles.inputLabel}>LAST NAME</Text>
+                  <TextInput value={form.resident_lname} onChangeText={v => set('resident_lname', v)} placeholder="Doe" placeholderTextColor="rgba(0,0,0,0.25)" style={styles.input} />
                 </View>
+              </View>
+
+              <Text style={styles.inputLabel}>DATE OF BIRTH</Text>
+              <TextInput value={form.resident_dob} onChangeText={v => set('resident_dob', v)} placeholder="YYYY-MM-DD" placeholderTextColor="rgba(0,0,0,0.25)" style={styles.input} />
+
+              <Text style={styles.inputLabel}>PHONE NUMBER</Text>
+              <TextInput value={form.user_phone} onChangeText={v => set('user_phone', v)} placeholder="+961 70 000 000" placeholderTextColor="rgba(0,0,0,0.25)" keyboardType="phone-pad" style={styles.input} />
+
+              <Text style={styles.inputLabel}>NATIONAL ID NUMBER</Text>
+              <TextInput value={form.resident_idnb} onChangeText={v => set('resident_idnb', v)} placeholder="e.g. 123456789" placeholderTextColor="rgba(0,0,0,0.25)" style={styles.input} />
+
+              {/* ID Photo */}
+              <Text style={styles.inputLabel}>ID PHOTO</Text>
+              <TouchableOpacity
+                onPress={showPhotoPicker}
+                disabled={photoLoading}
+                style={{
+                  borderWidth: 2,
+                  borderColor: idPhoto ? '#EC7742' : 'rgba(236,119,66,0.4)',
+                  borderStyle: idPhoto ? 'solid' : 'dashed',
+                  borderRadius: 12, height: idPhoto ? 180 : 100,
+                  alignItems: 'center', justifyContent: 'center',
+                  marginBottom: 16, overflow: 'hidden',
+                  backgroundColor: idPhoto ? '#FFF1D6' : '#ffffff',
+                }}
+              >
+                {photoLoading ? <ActivityIndicator color="#EC7742" /> :
+                  idPhoto ? (
+                    <>
+                      <Image source={{ uri: idPhoto.uri }} style={{ width: '100%', height: '100%', borderRadius: 10 }} resizeMode="cover" />
+                      <View style={{ position: 'absolute', bottom: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                        <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>Tap to change</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={{ fontSize: 28, marginBottom: 6 }}>📷</Text>
+                      <Text style={{ fontSize: 13, color: '#EC7742', fontWeight: '600' }}>Tap to add ID photo</Text>
+                      <Text style={{ fontSize: 11, color: 'rgba(0,0,0,0.35)', marginTop: 2 }}>Camera or gallery</Text>
+                    </>
+                  )
+                }
               </TouchableOpacity>
+
+              {/* Account Credentials */}
+              <Text style={[styles.sectionTitle, { marginTop: 4 }]}>Account Credentials</Text>
+
+              <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
+              <TextInput value={form.user_email} onChangeText={v => set('user_email', v)} placeholder="your.email@example.com" placeholderTextColor="rgba(0,0,0,0.25)" keyboardType="email-address" autoCapitalize="none" style={styles.input} />
+
+              <Text style={styles.inputLabel}>PASSWORD</Text>
+              <TextInput value={form.user_password} onChangeText={v => set('user_password', v)} placeholder="Min. 8 characters" placeholderTextColor="rgba(0,0,0,0.25)" secureTextEntry style={styles.input} />
+
+              <Text style={styles.inputLabel}>CONFIRM PASSWORD</Text>
+              <TextInput value={form.confirmPassword} onChangeText={v => set('confirmPassword', v)} placeholder="Repeat your password" placeholderTextColor="rgba(0,0,0,0.25)" secureTextEntry style={styles.input} />
+
+              {/* Privacy & Location Consent — tangerine bg like login */}
+              <View style={styles.privacyBox}>
+                <View style={styles.privacyHeader}>
+                  <Text style={{ fontSize: 14 }}>🛡️</Text>
+                  <Text style={styles.privacyTitle}>Privacy & Location Consent</Text>
+                </View>
+                {PRIVACY_ITEMS.map((item, i) => (
+                  <View key={i} style={styles.privacyItem}>
+                    <Text style={styles.privacyCheck}>✓</Text>
+                    <Text style={styles.privacyItemText}>{item}</Text>
+                  </View>
+                ))}
+                <TouchableOpacity onPress={handleConsentToggle} style={styles.consentRow} disabled={agreed || locationLoading}>
+                  <View style={[styles.checkbox, agreed ? styles.checkboxChecked : styles.checkboxUnchecked]}>
+                    {locationLoading
+                      ? <ActivityIndicator size="small" color="#EC7742" />
+                      : agreed && <Text style={styles.checkboxTick}>✓</Text>
+                    }
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.consentText}>
+                      I consent to location tracking, identity verification, and data processing for emergency response.
+                    </Text>
+                    {locationGranted ? (
+                      <Text style={{ fontSize: 11, color: '#FFF1D6', marginTop: 4, fontWeight: '600' }}>
+                        📍 {placeName || 'Detecting location...'}
+                      </Text>
+                    ) : !locationLoading && (
+                      <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>
+                        Tap to request your device location
+                      </Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {/* Checklist */}
+              <View style={{ backgroundColor: '#FFF1D6', borderRadius: 12, padding: 12, marginBottom: 16, gap: 8, borderWidth: 1, borderColor: 'rgba(236,119,66,0.25)' }}>
+                <CheckItem label="Personal info & phone filled" done={personalInfoDone} />
+                <CheckItem label="ID photo added" done={!!idPhoto} />
+                <CheckItem label="Account credentials set" done={accountDone} />
+                <CheckItem label="Location & consent granted" done={agreed && locationGranted} />
+              </View>
+
+              {/* Register Button — always red */}
+              <TouchableOpacity
+                onPress={handleRegister}
+                disabled={loading}
+                style={[styles.loginBtn, styles.loginBtnActive]}
+              >
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginBtnText}>🔐  Create My Account</Text>}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => nav?.navigate ? nav.navigate('Login') : nav?.goBack?.()}
+                style={{ alignItems: 'center', marginTop: 14 }}
+              >
+                <Text style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)' }}>
+                  Already have an account?{'  '}
+                  <Text style={{ color: '#DC2626', fontWeight: '700' }}>Sign In</Text>
+                </Text>
+              </TouchableOpacity>
+
             </View>
-
-            {/* Checklist — circles */}
-            <View style={{ backgroundColor: '#f8fafc', borderRadius: 12, padding: 12, marginBottom: 16, gap: 8 }}>
-              <CheckItem label="Personal info & phone filled" done={personalInfoDone} />
-              <CheckItem label="ID photo added" done={!!idPhoto} />
-              <CheckItem label="Account credentials set" done={accountDone} />
-              <CheckItem label="Location & consent granted" done={agreed && locationGranted} />
-            </View>
-
-            {/* Register Button */}
-            <TouchableOpacity
-              onPress={handleRegister}
-              disabled={!canRegister || loading}
-              style={[styles.loginBtn, canRegister ? styles.loginBtnActive : styles.loginBtnDisabled]}
-            >
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginBtnText}>🔐  Create My Account</Text>}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => nav?.navigate ? nav.navigate('Login') : nav?.goBack?.()}
-              style={{ alignItems: 'center', marginTop: 12 }}
-            >
-              <Text style={{ color: '#64748b', fontSize: 13 }}>
-                Already have an account? <Text style={{ color: '#dc2626', fontWeight: '700' }}>Sign In</Text>
-              </Text>
-            </TouchableOpacity>
 
             <Text style={styles.footer}>Resident registration only • For other roles contact your municipality</Text>
           </View>
