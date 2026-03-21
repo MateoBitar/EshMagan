@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Linking, Platform } from 'react-native';
 import { gqlFetch, GET_ACTIVE_FIRES } from '../../services/api';
 import ResidentSidebar from './ResidentSidebar';
-import { getPlaceName } from '../auth/RegisterScreen.js';
+import { getPlaceName } from '../../services/location.service';
 import styles from '../../styles/screens/ResidentHomeScreen.styles';
 
 const QUICK_ACTIONS = [
@@ -35,12 +35,35 @@ function getSeverityLabel(level) {
   return 'Low';
 }
 
+function parsePoint(raw) {
+  if (!raw) return null;
+  if (raw.startsWith('{')) {
+    try {
+      const g = JSON.parse(raw);
+      if (g.type === 'Point' && Array.isArray(g.coordinates)) {
+        return { longitude: g.coordinates[0], latitude: g.coordinates[1] };
+      }
+    } catch {}
+    return null;
+  }
+  const wkt = raw.match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
+  if (wkt) return { longitude: parseFloat(wkt[1]), latitude: parseFloat(wkt[2]) };
+  if (/^[0-9a-fA-F]{20,}$/.test(raw.trim())) return null;
+  return null;
+}
 
-function parsePoint(pointStr) {
-  if (!pointStr) return null;
-  const match = pointStr.match(/POINT\(([-\d.]+)\s+([-\d.]+)\)/);
-  console.log(match);
-  return match ? { longitude: match[1], latitude: match[2] } : null;
+// Small delay helper to respect Nominatim's 1 req/sec rate limit
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// Cache so repeated renders / 30s refresh don't re-query the same coords
+const _placeCache = new Map();
+
+async function getPlaceNameCached(latitude, longitude) {
+  const key = `${latitude.toFixed(4)},${longitude.toFixed(4)}`;
+  if (_placeCache.has(key)) return _placeCache.get(key);
+  const name = await getPlaceName(latitude, longitude);
+  _placeCache.set(key, name);
+  return name;
 }
 
 function useActiveFires() {
@@ -48,26 +71,24 @@ function useActiveFires() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (Platform.OS !== 'web') {
-      setLoading(false);
-      return;
-    }
+    if (Platform.OS !== 'web') { setLoading(false); return; }
 
     const fetchFires = async () => {
       try {
         const data = await gqlFetch(GET_ACTIVE_FIRES);
+        const rawFires = data?.getActiveFires || [];
 
-        const enriched = await Promise.all(
-          (data?.getActiveFires || []).map(async fire => {
-            const coords = parsePoint(fire.fire_location);
-            let place_name = null;
-            if (coords) {
-              place_name = await getPlaceName(coords.latitude, coords.longitude);
-            }
-            return { ...fire, place_name };
-          })
-        );
-
+        // Sequential calls with 1.1s gap to respect Nominatim rate limit
+        const enriched = [];
+        for (const fire of rawFires) {
+          const coords = parsePoint(fire.fire_location);
+          let place_name = null;
+          if (coords) {
+            place_name = await getPlaceNameCached(coords.latitude, coords.longitude);
+            await sleep(1100); // 1 request per second max
+          }
+          enriched.push({ ...fire, place_name });
+        }
         setFires(enriched);
       } catch (e) {
         console.error('Failed to fetch fires:', e);
@@ -86,13 +107,41 @@ function useActiveFires() {
 
 export default function ResidentHomeScreen({ navigation }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userPlaceName, setUserPlaceName] = useState('Locating…');
 
   let nav = navigation;
   if (Platform.OS !== 'web') {
-    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch { }
+    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch {}
   }
 
-  // For native use Apollo, for web use fetch
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      if (!navigator.geolocation) { setUserPlaceName('Location unavailable'); return; }
+      navigator.geolocation.getCurrentPosition(
+        async pos => {
+          const name = await getPlaceNameCached(pos.coords.latitude, pos.coords.longitude);
+          setUserPlaceName(name);
+        },
+        () => setUserPlaceName('Location unavailable'),
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else {
+      try {
+        const Geolocation = require('@react-native-community/geolocation').default;
+        Geolocation.getCurrentPosition(
+          async pos => {
+            const name = await getPlaceNameCached(pos.coords.latitude, pos.coords.longitude);
+            setUserPlaceName(name);
+          },
+          () => setUserPlaceName('Location unavailable'),
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      } catch {
+        setUserPlaceName('Location unavailable');
+      }
+    }
+  }, []);
+
   let fires = [], loading = false;
   const webData = useActiveFires();
 
@@ -105,7 +154,7 @@ export default function ResidentHomeScreen({ navigation }) {
       const result = useQuery(QUERY, { pollInterval: 30000 });
       fires = result.data?.getActiveFires || [];
       loading = result.loading;
-    } catch { }
+    } catch {}
   } else {
     fires = webData.fires;
     loading = webData.loading;
@@ -114,22 +163,12 @@ export default function ResidentHomeScreen({ navigation }) {
   const activeFires = fires.filter(f => f.is_extinguished === false);
   const hasActiveThreat = activeFires.length > 0;
 
-  const navigate = (screen, params) => {
-    if (!screen) return;
-    nav?.navigate(screen, params);
-  };
-
-  // currentScreen for sidebar active state
+  const navigate = (screen, params) => { if (!screen) return; nav?.navigate(screen, params); };
   const currentScreen = nav?.currentScreen || 'ResidentHome';
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ResidentSidebar
-        visible={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        navigation={nav}
-        currentScreen={currentScreen}
-      />
+      <ResidentSidebar visible={sidebarOpen} onClose={() => setSidebarOpen(false)} navigation={nav} currentScreen={currentScreen} />
 
       <ScrollView showsVerticalScrollIndicator={false}>
 
@@ -149,19 +188,14 @@ export default function ResidentHomeScreen({ navigation }) {
               <TouchableOpacity style={styles.bellBtn} onPress={() => navigate('Alert')}>
                 <Text style={styles.bellEmoji}>🔔</Text>
               </TouchableOpacity>
-              {/* Hamburger menu — web/desktop only */}
               {Platform.OS === 'web' && (
-                <TouchableOpacity
-                  style={[styles.bellBtn, { marginLeft: 4 }]}
-                  onPress={() => setSidebarOpen(true)}
-                >
+                <TouchableOpacity style={[styles.bellBtn, { marginLeft: 4 }]} onPress={() => setSidebarOpen(true)}>
                   <Text style={{ fontSize: 20 }}>☰</Text>
                 </TouchableOpacity>
               )}
             </View>
           </View>
 
-          {/* Status Card */}
           <View style={styles.statusCard}>
             <View style={styles.statusRow}>
               <View style={hasActiveThreat ? styles.statusIconWrapDanger : styles.statusIconWrapSafe}>
@@ -179,7 +213,7 @@ export default function ResidentHomeScreen({ navigation }) {
             </View>
             <View style={styles.locationRow}>
               <Text>📍</Text>
-              <Text style={styles.locationText}>Your Location: Qalhat, North Lebanon</Text>
+              <Text style={styles.locationText}>Your Location: {userPlaceName}</Text>
             </View>
           </View>
         </View>
@@ -192,7 +226,7 @@ export default function ResidentHomeScreen({ navigation }) {
               <TouchableOpacity
                 key={action.label}
                 onPress={() => navigate(action.screen)}
-                style={[styles.actionBtn, { backgroundColor: action.color, shadowColor: action.color }]}
+                style={[styles.actionBtn, { backgroundColor: action.color }]}
               >
                 <Text style={styles.actionEmoji}>{action.emoji}</Text>
                 <Text style={styles.actionLabel}>{action.label}</Text>
@@ -260,9 +294,7 @@ export default function ResidentHomeScreen({ navigation }) {
               </View>
               <View style={styles.contactRight}>
                 <Text style={styles.contactNumber}>{contact.number}</Text>
-                <View style={styles.contactPhoneBtn}>
-                  <Text>📞</Text>
-                </View>
+                <View style={styles.contactPhoneBtn}><Text>📞</Text></View>
               </View>
             </TouchableOpacity>
           ))}

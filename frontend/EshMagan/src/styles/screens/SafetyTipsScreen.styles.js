@@ -1,6 +1,5 @@
 // src/styles/screens/SafetyTipsScreen.styles.js
 import { StyleSheet } from 'react-native';
-import { shadows } from '../global';
 
 export default StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff7ed' },
@@ -12,7 +11,7 @@ export default StyleSheet.create({
   headerSub: { color: 'rgba(255,255,255,0.85)', fontSize: 14 },
   scrollContent: { padding: 16, paddingBottom: 40 },
   sectionTitle: { fontSize: 20, fontWeight: '700', color: '#0f172a', marginBottom: 14, marginTop: 4 },
-  prepCard: { backgroundColor: '#fff', borderWidth: 2, borderRadius: 20, padding: 18, marginBottom: 14, ...shadows.sm },
+  prepCard: { backgroundColor: '#fff', borderWidth: 2, borderRadius: 20, padding: 18, marginBottom: 14, boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)' },
   prepCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
   prepIconWrap: { width: 44, height: 44, backgroundColor: '#f8fafc', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   prepCardTitle: { fontSize: 16, fontWeight: '700', color: '#0f172a' },

@@ -268,7 +268,7 @@ export const GET_ALERTS_BY_FIRE = `query GetAlertsByFireId($fire_id: ID!) {
 export const GET_ALL_EVACUATIONS = `query GetAllEvacuations {
   getAllEvacuations {
     route_id route_status route_priority route_path
-    safe_zone distance_km estimated_time fire_id created_at
+    safe_zone distance_km estimated_time fire_id
   }
 }`;
 

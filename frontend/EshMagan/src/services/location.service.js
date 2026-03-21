@@ -1,13 +1,52 @@
 // src/services/location.service.js
-// Handles device location permission, tracking, and updating backend via GraphQL
-
 import { Platform } from 'react-native';
-import { gqlFetch, UPDATE_RESIDENT } from './api';
+import { gqlFetch, UPDATE_RESIDENT, API_BASE } from './api';
 
 let _watchId = null;
 let _residentId = null;
 
-// Request location permission and get current position
+// ─── Reverse geocoding via backend proxy ──────────────────────────────────────
+// Calls /api/geo/reverse on our own Express server which proxies to Nominatim.
+// This avoids CORS issues and keeps the rate limit per-server not per-browser.
+export async function getPlaceName(latitude, longitude) {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/geo/reverse?lat=${latitude}&lon=${longitude}`
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const a = data.address || {};
+
+    const place =
+      a.village        ||
+      a.hamlet         ||
+      a.suburb         ||
+      a.neighbourhood  ||
+      a.city_district  ||
+      a.town           ||
+      a.municipality   ||
+      a.city           ||
+      null;
+
+    let resolvedPlace = place;
+    if (!resolvedPlace) {
+      const SKIP = new Set(['lebanon', 'north lebanon', 'south lebanon', 'mount lebanon', 'bekaa', 'nabatieh', 'akkar', 'baalbek-hermel']);
+      const tokens = (data.display_name || '').split(',').map(t => t.trim()).filter(Boolean);
+      for (const token of tokens) {
+        if (!SKIP.has(token.toLowerCase())) { resolvedPlace = token; break; }
+      }
+    }
+
+    const district = a.county || a.state_district || null;
+    const country  = a.country || null;
+    const parts    = [resolvedPlace, district, country].filter(Boolean);
+    if (parts.length > 0) return parts.join(', ');
+  } catch {}
+
+  return `${Math.abs(latitude).toFixed(4)}°${latitude >= 0 ? 'N' : 'S'}, ${Math.abs(longitude).toFixed(4)}°${longitude >= 0 ? 'E' : 'W'}`;
+}
+
+// ─── Request location permission and get current position ────────────────────
 export async function requestLocationPermission() {
   if (Platform.OS === 'web') {
     return new Promise((resolve, reject) => {
@@ -48,24 +87,21 @@ export async function requestLocationPermission() {
   });
 }
 
-// Update resident location in backend via GraphQL updateResident mutation
-// ResidentRepository expects last_known_location as { longitude, latitude } object
+// ─── Push location to backend ─────────────────────────────────────────────────
 async function pushLocationToBackend(residentId, latitude, longitude) {
   try {
     await gqlFetch(UPDATE_RESIDENT, {
       resident_id: residentId,
-      input: {
-        last_known_location: { latitude, longitude },
-      },
+      input: { last_known_location: { latitude, longitude } },
     });
   } catch (e) {
     console.warn('[Location] Failed to push location to backend:', e.message);
   }
 }
 
-// Start continuous location tracking (every 30 seconds)
+// ─── Start continuous location tracking (every 30 seconds) ───────────────────
 export function startLocationTracking(residentId) {
-  if (_watchId !== null) stopLocationTracking(); // clear any existing watch
+  if (_watchId !== null) stopLocationTracking();
   _residentId = residentId;
 
   if (Platform.OS === 'web') {
@@ -85,34 +121,24 @@ export function startLocationTracking(residentId) {
       pushLocationToBackend(residentId, latitude, longitude);
     },
     err => console.warn('[Location] Watch error:', err.message),
-    {
-      enableHighAccuracy: true,
-      distanceFilter: 10,
-      interval: 30000,
-      fastestInterval: 15000,
-    }
+    { enableHighAccuracy: true, distanceFilter: 10, interval: 30000, fastestInterval: 15000 }
   );
-
-  console.log('[Location] Tracking started for resident:', residentId);
 }
 
-// Stop location tracking
+// ─── Stop location tracking ───────────────────────────────────────────────────
 export function stopLocationTracking() {
   if (_watchId === null) return;
-
   if (Platform.OS === 'web') {
     navigator.geolocation?.clearWatch(_watchId);
   } else {
     const Geolocation = require('@react-native-community/geolocation').default;
     Geolocation.clearWatch(_watchId);
   }
-
   _watchId = null;
   _residentId = null;
-  console.log('[Location] Tracking stopped');
 }
 
-// Get current location once (no continuous tracking)
+// ─── Get current location once (no continuous tracking) ──────────────────────
 export async function getCurrentLocation() {
   return requestLocationPermission();
 }

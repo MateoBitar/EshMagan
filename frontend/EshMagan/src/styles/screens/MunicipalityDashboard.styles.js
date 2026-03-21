@@ -1,13 +1,9 @@
 // src/styles/screens/MunicipalityDashboard.styles.js
 import { StyleSheet } from 'react-native';
-import { shadows } from '../global';
 
 export default StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f8fafc' },
-  topBar: {
-    backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0',
-    flexDirection: 'row', alignItems: 'center', padding: 16,
-  },
+  topBar: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0', flexDirection: 'row', alignItems: 'center', padding: 16 },
   logoIcon: { width: 40, height: 40, backgroundColor: '#dc2626', borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
   appName: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
   portalLabel: { fontSize: 12, color: '#64748b' },
@@ -30,10 +26,7 @@ export default StyleSheet.create({
   statValue: { fontSize: 28, fontWeight: '800' },
   firesTitle: { fontSize: 16, fontWeight: '700', color: '#0f172a', marginBottom: 12 },
   emptyBox: { backgroundColor: '#f0fdf4', borderWidth: 2, borderColor: '#bbf7d0', borderRadius: 16, padding: 24, alignItems: 'center' },
-  fireCard: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12,
-    borderWidth: 1, borderColor: '#e2e8f0', ...shadows.sm,
-  },
+  fireCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)' },
   fireCardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   fireLocation: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
   fireMeta: { fontSize: 11, color: '#94a3b8', marginTop: 2 },

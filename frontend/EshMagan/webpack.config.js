@@ -23,6 +23,7 @@ module.exports = {
             'react-native-image-picker': path.resolve(appDirectory, 'src/stubs/image-picker.js'),
             '@react-native-community/geolocation': path.resolve(appDirectory, 'src/stubs/geolocation.js'),
             '@react-native-async-storage/async-storage': path.resolve(appDirectory, 'src/stubs/async-storage.js'),
+            'react-native-maps': path.resolve(appDirectory, 'src/stubs/maps.js'),
         },
         fullySpecified: false,
     },

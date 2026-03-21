@@ -6,7 +6,7 @@ import {
   SafeAreaView, Image, Linking,
 } from 'react-native';
 import { API_BASE } from '../../services/api';
-import { requestLocationPermission, stopLocationTracking } from '../../services/location.service';
+import { requestLocationPermission, stopLocationTracking, getPlaceName } from '../../services/location.service';
 import styles from '../../styles/screens/LoginScreen.styles';
 
 const PRIVACY_ITEMS = [
@@ -15,24 +15,6 @@ const PRIVACY_ITEMS = [
   'End-to-end encrypted data transmission',
   'Municipality-only access to sensitive fire prediction data',
 ];
-
-async function getPlaceName(latitude, longitude) {
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&zoom=14`,
-      { headers: { 'Accept-Language': 'en', 'User-Agent': 'EshMagan/1.0' } }
-    );
-    if (!res.ok) return 'Unknown location';
-    const data = await res.json();
-    const addr = data.address || {};
-    return (
-      addr.university || addr.building || addr.amenity ||
-      addr.neighbourhood || addr.suburb || addr.village ||
-      addr.town || addr.city || addr.county ||
-      data.display_name?.split(',')[0] || 'Unknown location'
-    );
-  } catch { return 'Unknown location'; }
-}
 
 function validateDOB(dob) {
   if (dob.length !== 10) return null;
@@ -115,21 +97,10 @@ function colorRatio(data, width, height, x0p, y0p, x1p, y1p, rMin, rMax, gMin, g
   return total > 0 ? hit / total : 0;
 }
 
-// ─── MAIN PIXEL ANALYSIS — 15 checks ─────────────────────────────────────────
 function analyzePixels(data, width, height) {
-
-  // ── BASIC QUALITY CHECKS (1–7) ────────────────────────────────────────────
-
-  // CHECK 1 — Minimum resolution: must be at least 400×300px
-  // Filters out tiny thumbnails or very low quality images
   if (width < 400 || height < 300) return 'Photo is too small. Please take a clearer, closer photo of your ID.';
-
-  // CHECK 2 — Aspect ratio: Lebanese ID is ~1.58:1 (credit card standard), allow 1.2–2.2
-  // Rejects portrait orientation or square photos since IDs are always landscape
   const ratio = width / height;
   if (ratio < 1.2 || ratio > 2.2) return 'Please photograph your ID horizontally — it should be wider than it is tall.';
-
-  // CHECK 3 — Global brightness & color channel sums (used by checks 4, 5, 6, 12)
   let totalBrightness = 0, rSum = 0, gSum = 0, bSum = 0, count = 0;
   for (let i = 0; i < data.length; i += 4 * 8) {
     const r = data[i], g = data[i + 1], bv = data[i + 2];
@@ -138,26 +109,14 @@ function analyzePixels(data, width, height) {
   }
   const avgBrightness = totalBrightness / count;
   const avgR = rSum / count, avgG = gSum / count, avgB = bSum / count;
-
-  // CHECK 4 — Too dark: average brightness below 35/255
-  // Filters out photos taken in dark conditions
   if (avgBrightness < 35) return 'Photo is too dark. Please take the photo in better lighting.';
-
-  // CHECK 5 — Overexposed: average brightness above 235/255
-  // Filters out photos with direct flash or extreme lighting
   if (avgBrightness > 235) return 'Photo is overexposed. Please avoid direct flash or bright light.';
-
-  // CHECK 6 — Blank / solid color: low color variance across all pixels
-  // Filters out screenshots of blank screens, solid color images, or walls
   let variance = 0;
   for (let i = 0; i < data.length; i += 4 * 8) {
     variance += Math.pow(data[i] - avgR, 2) + Math.pow(data[i + 1] - avgG, 2) + Math.pow(data[i + 2] - avgB, 2);
   }
   variance /= count;
   if (variance < 150) return 'Photo appears blank or solid. Please photograph your actual ID card.';
-
-  // CHECK 7 — Blurriness: measure edge sharpness between adjacent pixels
-  // Compares each pixel to its right and bottom neighbors — blurry images have low edge intensity
   let edgeSum = 0, edgeCount = 0;
   for (let y = 1; y < height - 1; y += 6) {
     for (let x = 1; x < width - 1; x += 6) {
@@ -171,48 +130,22 @@ function analyzePixels(data, width, height) {
     }
   }
   if (edgeSum / edgeCount < 8) return 'Photo is too blurry. Please hold your phone steady and retake the photo.';
-
-  // ── LEBANESE ID SPECIFIC CHECKS (8–15) ───────────────────────────────────
-  // Based on pixel color analysis of the actual Lebanese National ID layout:
-  // Left ~35%: portrait photo area | Right ~65%: cream/pink bg + Arabic text + cedar watermark
-  // Bottom strip: olive/golden ID number area | Top-left: small cedar logo
-
-  // CHECK 8 — Right side warm tone: right 60% of card (x:40%–100%, y:5%–80%)
-  // Lebanese IDs have cream-white to salmon background — R must be >= B (warm, not cold/blue)
   const rightMid = sampleRegion(data, width, height, 0.4, 0.05, 1.0, 0.80);
   const isWarm = rightMid.r >= rightMid.b && rightMid.r > 130 && rightMid.g > 120;
   if (!isWarm) return 'This does not appear to be a Lebanese National ID — the background should be warm/cream colored.';
-
-  // CHECK 9 — Cedar logo green pixels: top-left corner (x:1%–26%, y:1%–38%)
-  // All Lebanese IDs have a green cedar tree logo in the top-left — detects green pixel presence
   const greenFraction = colorRatio(data, width, height, 0.01, 0.01, 0.26, 0.38, 30, 160, 90, 210, 20, 130);
   if (greenFraction < 0.006) return 'Could not detect the Lebanese cedar logo in the top-left. Make sure the full ID is visible and well-lit.';
-
-  // CHECK 10 — Left zone darker than right zone
-  // The portrait photo area (left) is always darker than the light cream/pink background (right)
   const leftZone = sampleRegion(data, width, height, 0.02, 0.12, 0.37, 0.88);
   const rightZone = sampleRegion(data, width, height, 0.42, 0.05, 0.98, 0.75);
   const leftBright = leftZone.r * 0.299 + leftZone.g * 0.587 + leftZone.b * 0.114;
   const rightBright = rightZone.r * 0.299 + rightZone.g * 0.587 + rightZone.b * 0.114;
   if (leftBright > rightBright + 30) return 'ID layout mismatch — the photo should be on the left and the text/background on the right.';
-
-  // CHECK 11 — Bottom strip golden/olive tone: bottom-right region (x:38%–97%, y:80%–97%)
-  // The ID number decorative strip has a warm golden/olive color — R>110, G>90, B<160, R>B+15
   const bottomStrip = sampleRegion(data, width, height, 0.38, 0.80, 0.97, 0.97);
   const isGolden = bottomStrip.r > 110 && bottomStrip.g > 90 && bottomStrip.b < 160 && bottomStrip.r > bottomStrip.b + 15;
   if (!isGolden) return 'Could not detect the ID number strip at the bottom. Make sure the entire ID is in frame.';
-
-  // CHECK 12 — Overall warm tone: blue channel should not dominate red
-  // Lebanese IDs are warm documents — a blue-dominant image is not a Lebanese ID front
   if (avgB > avgR + 15) return 'Overall color tone does not match a Lebanese ID. Please photograph the front side of your ID card.';
-
-  // CHECK 13 — Large cedar watermark green pixels: center-right region (x:40%–92%, y:15%–78%)
-  // Every Lebanese ID has a large faint green cedar watermark covering the center-right area
   const watermarkGreen = colorRatio(data, width, height, 0.40, 0.15, 0.92, 0.78, 40, 170, 100, 220, 30, 140);
   if (watermarkGreen < 0.015) return 'Could not detect the cedar watermark on the ID. Please ensure this is a Lebanese National ID card.';
-
-  // CHECK 14 — Portrait area has high color variance: left zone (x:2%–37%, y:12%–88%)
-  // The portrait photo of a person must have significant color variation — not a blank/cut-out area
   let photoVariance = 0, pvCount = 0;
   const px0 = Math.floor(width * 0.02), px1 = Math.floor(width * 0.37);
   const py0 = Math.floor(height * 0.12), py1 = Math.floor(height * 0.88);
@@ -225,36 +158,22 @@ function analyzePixels(data, width, height) {
   }
   photoVariance /= pvCount;
   if (photoVariance < 100) return 'The photo area on the ID appears blank. Make sure your portrait photo is clearly visible.';
-
-  // CHECK 15 — Top-right header area brightness: top-right region (x:45%–99%, y:1%–18%)
-  // The الجمهورية اللبنانية / وزارة الداخلية header sits on a light background — must be bright
   const topRight = sampleRegion(data, width, height, 0.45, 0.01, 0.99, 0.18);
   const topRightBright = topRight.r * 0.299 + topRight.g * 0.587 + topRight.b * 0.114;
   if (topRightBright < 100) return 'The top of the ID appears too dark. Make sure the ID header (الجمهورية اللبنانية) is clearly visible.';
-
-  // CHECK 16 — ID coverage: verify the ID fills most of the frame
-  // Sample the far edges of the image — if the ID covers ~90% of the frame,
-  // the edge strips should also have warm tones (not plain background/table color)
-  // Left edge strip (x:0–5%), right edge strip (x:95%–100%), top strip (y:0–8%), bottom strip (y:92%–100%)
   const leftEdge   = sampleRegion(data, width, height, 0.00, 0.10, 0.05, 0.90);
   const rightEdge  = sampleRegion(data, width, height, 0.95, 0.10, 1.00, 0.90);
   const topEdge    = sampleRegion(data, width, height, 0.10, 0.00, 0.90, 0.08);
   const bottomEdge = sampleRegion(data, width, height, 0.10, 0.92, 0.90, 1.00);
-
-  // Each edge must be reasonably bright (not a dark table/floor) and warm (not a cold/neutral bg)
-  // If any edge is very dark or very cold/blue, the ID is too far away and there's background showing
-  // At least 3 out of 4 edges must pass — allows one edge to show slight background
   const edgeResults = [leftEdge, rightEdge, topEdge, bottomEdge].map(e => {
     const brightness = e.r * 0.299 + e.g * 0.587 + e.b * 0.114;
-    return brightness > 60 && e.r >= e.b - 30; // loosened: brightness >60, allow slightly cool tone
+    return brightness > 60 && e.r >= e.b - 30;
   });
   const passingEdges = edgeResults.filter(Boolean).length;
   if (passingEdges < 2) return 'The ID is too far away or not filling the frame. Please get closer and make sure the ID covers most of the photo.';
-
-  return null; // ✅ All 16 checks passed — likely a valid Lebanese National ID filling the frame
+  return null;
 }
 
-// ─── ROTATE IMAGE IF PORTRAIT (web only via canvas) ───────────────────────────
 async function rotateIfPortrait(base64, type) {
   if (typeof document === 'undefined' || typeof window === 'undefined') {
     return { base64, uri: `data:${type};base64,${base64}` };
@@ -263,11 +182,7 @@ async function rotateIfPortrait(base64, type) {
     const img = new window.Image();
     img.onload = () => {
       const w = img.naturalWidth, h = img.naturalHeight;
-      if (w >= h) {
-        resolve({ base64, uri: `data:${type};base64,${base64}` });
-        return;
-      }
-      // Portrait — rotate 90° counter-clockwise
+      if (w >= h) { resolve({ base64, uri: `data:${type};base64,${base64}` }); return; }
       const canvas = document.createElement('canvas');
       canvas.width = h; canvas.height = w;
       const ctx = canvas.getContext('2d');
@@ -282,7 +197,6 @@ async function rotateIfPortrait(base64, type) {
   });
 }
 
-// ─── VALIDATE ID PHOTO (web + native) ────────────────────────────────────────
 async function validateIDPhoto(base64, type) {
   if (typeof document !== 'undefined' && typeof window !== 'undefined') {
     return new Promise((resolve) => {
@@ -302,7 +216,6 @@ async function validateIDPhoto(base64, type) {
   }
   try {
     const jpegjs = require('jpeg-js');
-    // Custom base64 decoder — works on both Android and iOS regardless of JS engine
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
     const clean = base64.replace(/[^A-Za-z0-9+/]/g, '');
     const byteLen = Math.floor(clean.length * 3 / 4);
@@ -325,7 +238,6 @@ async function validateIDPhoto(base64, type) {
   }
 }
 
-// ─── COMPONENT ────────────────────────────────────────────────────────────────
 export default function RegisterScreen({ navigation }) {
   let nav = navigation;
   if (Platform.OS !== 'web') {
@@ -356,11 +268,7 @@ export default function RegisterScreen({ navigation }) {
   const idValid = form.resident_idnb.length === 12;
   const phoneValid = form.user_phone.replace(/\D/g, '').length >= 10;
   const emailValid = !!form.user_email && !emailError;
-  const personalInfoDone = !!(
-    form.resident_fname && form.resident_lname &&
-    form.resident_dob.length === 10 && !dobError &&
-    idValid && phoneValid
-  );
+  const personalInfoDone = !!(form.resident_fname && form.resident_lname && form.resident_dob.length === 10 && !dobError && idValid && phoneValid);
   const accountDone = !!(emailValid && form.user_password.length >= 8 && form.confirmPassword && form.confirmPassword === form.user_password);
   const canRegister = agreed && locationGranted && idPhoto && !photoError && personalInfoDone && accountDone;
 
@@ -377,7 +285,6 @@ export default function RegisterScreen({ navigation }) {
         const dataUri = ev.target.result;
         const rawB64 = dataUri.split(',')[1];
         const mtype = file.type || 'image/jpeg';
-        // Auto-rotate portrait to landscape before validating
         const { base64: b64, uri: finalUri } = await rotateIfPortrait(rawB64, mtype);
         const err = await validateIDPhoto(b64, mtype);
         if (err) { setPhotoError(err); setPhotoLoading(false); return; }
@@ -401,7 +308,6 @@ export default function RegisterScreen({ navigation }) {
       const asset = result.assets?.[0];
       if (asset) {
         const mtype = asset.type || 'image/jpeg';
-        // Camera delivers correct landscape pixels — build data URI to bypass EXIF display issues
         const finalUri = `data:${mtype};base64,${asset.base64}`;
         const err = await validateIDPhoto(asset.base64, mtype);
         if (err) { setPhotoError(err); return; }
@@ -475,17 +381,10 @@ export default function RegisterScreen({ navigation }) {
 
   const CheckItem = ({ label, done }) => (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <View style={{
-        width: 18, height: 18, borderRadius: 9, borderWidth: 2,
-        borderColor: done ? '#EC7742' : 'rgba(236,119,66,0.3)',
-        backgroundColor: done ? '#EC7742' : 'transparent',
-        alignItems: 'center', justifyContent: 'center',
-      }}>
+      <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: done ? '#EC7742' : 'rgba(236,119,66,0.3)', backgroundColor: done ? '#EC7742' : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
         {done && <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>✓</Text>}
       </View>
-      <Text style={{ fontSize: 12, color: done ? '#EC7742' : 'rgba(0,0,0,0.35)', fontWeight: done ? '600' : '400' }}>
-        {label}
-      </Text>
+      <Text style={{ fontSize: 12, color: done ? '#EC7742' : 'rgba(0,0,0,0.35)', fontWeight: done ? '600' : '400' }}>{label}</Text>
     </View>
   );
 
@@ -493,66 +392,36 @@ export default function RegisterScreen({ navigation }) {
     <Text style={{ fontSize: 11, color: '#DC2626', marginTop: -12, marginBottom: 12 }}>{msg}</Text>
   ) : null;
 
-  // ID Guide Modal — tips + layout preview before camera opens
   const IDGuideModal = () => (
-    <View style={{
-      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 999,
-      alignItems: 'center', justifyContent: 'center', padding: 24,
-    }}>
+    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 999, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800', marginBottom: 4 }}>How to photograph your ID</Text>
-      <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, marginBottom: 20, textAlign: 'center' }}>
-        Make sure your Lebanese National ID looks like this
-      </Text>
-
-      {/* ID layout preview */}
-      <View style={{
-        width: 300, height: 190,
-        borderWidth: 2, borderColor: '#EC7742', borderRadius: 12,
-        overflow: 'hidden', marginBottom: 24,
-        backgroundColor: 'rgba(240,225,200,0.1)',
-      }}>
+      <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, marginBottom: 20, textAlign: 'center' }}>Make sure your Lebanese National ID looks like this</Text>
+      <View style={{ width: 300, height: 190, borderWidth: 2, borderColor: '#EC7742', borderRadius: 12, overflow: 'hidden', marginBottom: 24, backgroundColor: 'rgba(240,225,200,0.1)' }}>
         <View style={{ flex: 1, flexDirection: 'row' }}>
-
-          {/* LEFT SIDE — portrait */}
           <View style={{ width: 95, backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 8, paddingTop: 8, paddingBottom: 8, alignItems: 'center' }}>
-            <View style={{ width: 68, height: 90, backgroundColor: 'rgba(255,255,255,0.13)', borderRadius: 3, alignItems: 'center', justifyContent: 'center',
-              borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', marginTop: 40 }}>
+            <View style={{ width: 68, height: 90, backgroundColor: 'rgba(255,255,255,0.13)', borderRadius: 3, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', marginTop: 40 }}>
               <Text style={{ fontSize: 30 }}>👤</Text>
             </View>
           </View>
-
-          {/* RIGHT SIDE — header + data fields + number strip */}
           <View style={{ flex: 1, paddingHorizontal: 8, paddingTop: 7, paddingBottom: 6, justifyContent: 'space-between' }}>
-
             <View style={{ alignItems: 'flex-end', marginBottom: 4 }}>
               <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 18, fontWeight: '800', textAlign: 'right', letterSpacing: 0.3 }}>الجمهورية اللبنانية</Text>
               <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 14, textAlign: 'right' }}>وزارة الداخلية</Text>
             </View>
-
             <View style={{ gap: 3, flex: 1, justifyContent: 'center' }}>
-              {[
-                { label: 'الاسم', value: '───────' },
-                { label: 'الشهرة', value: '──────' },
-                { label: 'اسم الاب', value: '─────' },
-                { label: 'تاريخ الولادة', value: '────' },
-              ].map((row, i) => (
+              {[{ label: 'الاسم', value: '───────' }, { label: 'الشهرة', value: '──────' }, { label: 'اسم الاب', value: '─────' }, { label: 'تاريخ الولادة', value: '────' }].map((row, i) => (
                 <View key={i} style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 4 }}>
                   <Text style={{ color: 'rgba(255,255,255,0.2)', fontSize: 10 }}>{row.value}</Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 10, fontWeight: '600'}}>{row.label} :</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 10, fontWeight: '600' }}>{row.label} :</Text>
                 </View>
               ))}
             </View>
-
             <View style={{ backgroundColor: 'rgba(200,160,60,0.4)', borderRadius: 3, paddingVertical: 3, paddingHorizontal: 4, marginTop: 14 }}>
               <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 7, textAlign: 'center', letterSpacing: 2, fontWeight: '700' }}>0 0 0 0 0 0 0 0 0 0 0 0</Text>
             </View>
-
           </View>
         </View>
       </View>
-
-      {/* Tips */}
       <View style={{ width: '100%', gap: 8, marginBottom: 24 }}>
         {[
           { icon: '💡', tip: 'Use good lighting — avoid shadows, glare, and flash reflections' },
@@ -566,17 +435,10 @@ export default function RegisterScreen({ navigation }) {
           </View>
         ))}
       </View>
-
-      <TouchableOpacity
-        onPress={() => { setShowGuide(false); handlePickPhoto(true); }}
-        style={{ width: '100%', height: 48, backgroundColor: '#DC2626', borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}
-      >
+      <TouchableOpacity onPress={() => { setShowGuide(false); handlePickPhoto(true); }} style={{ width: '100%', height: 48, backgroundColor: '#DC2626', borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
         <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>  Take Photo</Text>
       </TouchableOpacity>
-      <TouchableOpacity
-        onPress={() => { setShowGuide(false); handlePickPhoto(false); }}
-        style={{ width: '100%', height: 48, backgroundColor: '#EC7742', borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}
-      >
+      <TouchableOpacity onPress={() => { setShowGuide(false); handlePickPhoto(false); }} style={{ width: '100%', height: 48, backgroundColor: '#EC7742', borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
         <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>  Choose from Gallery</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={() => setShowGuide(false)}>
@@ -591,17 +453,13 @@ export default function RegisterScreen({ navigation }) {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={{ maxWidth: 480, width: '100%', alignSelf: 'center' }}>
-
             <View style={styles.header}>
               <View style={styles.logoContainer}><Text style={styles.logoEmoji}>🔥</Text></View>
               <Text style={styles.appName}>EshMagan</Text>
               <Text style={styles.tagline}>Create Your Resident Account</Text>
             </View>
-
             <View style={styles.card}>
-
               <Text style={styles.sectionTitle}>Personal Information</Text>
-
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.inputLabel}>FIRST NAME</Text>
@@ -612,79 +470,38 @@ export default function RegisterScreen({ navigation }) {
                   <TextInput value={form.resident_lname} onChangeText={v => set('resident_lname', v.replace(/[^a-zA-ZÀ-ÿ\s'-]/g, ''))} placeholder="Doe" placeholderTextColor="rgba(0,0,0,0.25)" style={styles.input} />
                 </View>
               </View>
-
               <Text style={styles.inputLabel}>DATE OF BIRTH</Text>
-              <TextInput
-                value={form.resident_dob}
-                onChangeText={v => set('resident_dob', formatDOB(v))}
-                placeholder="YYYY-MM-DD" placeholderTextColor="rgba(0,0,0,0.25)"
-                keyboardType="numeric" maxLength={10}
-                style={[styles.input, form.resident_dob.length === 10 && dobError ? { borderColor: '#DC2626' } : {}]}
-              />
+              <TextInput value={form.resident_dob} onChangeText={v => set('resident_dob', formatDOB(v))} placeholder="YYYY-MM-DD" placeholderTextColor="rgba(0,0,0,0.25)" keyboardType="numeric" maxLength={10} style={[styles.input, form.resident_dob.length === 10 && dobError ? { borderColor: '#DC2626' } : {}]} />
               <FieldError msg={form.resident_dob.length === 10 ? dobError : null} />
-
               <Text style={styles.inputLabel}>PHONE NUMBER</Text>
-              <TextInput
-                value={form.user_phone}
-                onChangeText={v => { if (v === '') { set('user_phone', ''); return; } set('user_phone', formatPhone(v.replace(/\D/g, ''))); }}
-                placeholder="+961 70 000 000" placeholderTextColor="rgba(0,0,0,0.25)"
-                keyboardType="phone-pad" style={styles.input}
-              />
-
+              <TextInput value={form.user_phone} onChangeText={v => { if (v === '') { set('user_phone', ''); return; } set('user_phone', formatPhone(v.replace(/\D/g, ''))); }} placeholder="+961 70 000 000" placeholderTextColor="rgba(0,0,0,0.25)" keyboardType="phone-pad" style={styles.input} />
               <Text style={styles.inputLabel}>NATIONAL ID NUMBER</Text>
-              <TextInput
-                value={form.resident_idnb}
-                onChangeText={v => set('resident_idnb', v.replace(/\D/g, '').slice(0, 12))}
-                placeholder="12-digit ID number" placeholderTextColor="rgba(0,0,0,0.25)"
-                keyboardType="numeric" maxLength={12}
-                style={[styles.input, form.resident_idnb.length > 0 && !idValid ? { borderColor: '#DC2626' } : {}]}
-              />
-              {form.resident_idnb.length > 0 && !idValid && (
-                <FieldError msg={`${12 - form.resident_idnb.length} digit${12 - form.resident_idnb.length !== 1 ? 's' : ''} remaining`} />
-              )}
-
+              <TextInput value={form.resident_idnb} onChangeText={v => set('resident_idnb', v.replace(/\D/g, '').slice(0, 12))} placeholder="12-digit ID number" placeholderTextColor="rgba(0,0,0,0.25)" keyboardType="numeric" maxLength={12} style={[styles.input, form.resident_idnb.length > 0 && !idValid ? { borderColor: '#DC2626' } : {}]} />
+              {form.resident_idnb.length > 0 && !idValid && (<FieldError msg={`${12 - form.resident_idnb.length} digit${12 - form.resident_idnb.length !== 1 ? 's' : ''} remaining`} />)}
               <Text style={styles.inputLabel}>ID PHOTO</Text>
-
               <View style={{ backgroundColor: '#FFF1D6', borderRadius: 10, padding: 10, marginBottom: 10, borderLeftWidth: 3, borderLeftColor: '#EC7742', flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
                 <Text style={{ fontSize: 14 }}>ℹ️</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 11, color: '#000', fontWeight: '700', marginBottom: 2 }}>Lebanese National ID required</Text>
-                  <Text style={{ fontSize: 10, color: 'rgba(0,0,0,0.6)', lineHeight: 15 }}>
-                    Take a flat, horizontal photo of the front of your ID in good lighting. Make sure the cedar logo (top-left), portrait photo (left side), and ID number strip (bottom) are all clearly visible.
-                  </Text>
+                  <Text style={{ fontSize: 10, color: 'rgba(0,0,0,0.6)', lineHeight: 15 }}>Take a flat, horizontal photo of the front of your ID in good lighting. Make sure the cedar logo (top-left), portrait photo (left side), and ID number strip (bottom) are all clearly visible.</Text>
                 </View>
               </View>
-
-              <TouchableOpacity
-                onPress={showPhotoPicker} disabled={photoLoading}
-                style={{
-                  borderWidth: 2,
-                  borderColor: idPhoto && !photoError ? '#EC7742' : photoError ? '#DC2626' : 'rgba(236,119,66,0.4)',
-                  borderStyle: idPhoto ? 'solid' : 'dashed',
-                  borderRadius: 12, height: idPhoto ? 180 : 100,
-                  alignItems: 'center', justifyContent: 'center',
-                  marginBottom: 12, overflow: 'hidden',
-                  backgroundColor: idPhoto ? '#FFF1D6' : '#ffffff',
-                }}
-              >
-                {photoLoading ? <ActivityIndicator color="#EC7742" /> :
-                  idPhoto ? (
-                    <>
-                      <Image source={{ uri: idPhoto.uri }} style={{ width: '100%', height: '100%', borderRadius: 10 }} resizeMode="cover" />
-                      <View style={{ position: 'absolute', bottom: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
-                        <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>Tap to change</Text>
-                      </View>
-                    </>
-                  ) : (
-                    <>
-                      <Text style={{ fontSize: 28, marginBottom: 6 }}>📷</Text>
-                      <Text style={{ fontSize: 13, color: '#EC7742', fontWeight: '600' }}>Tap to add ID photo</Text>
-                      <Text style={{ fontSize: 11, color: 'rgba(0,0,0,0.35)', marginTop: 2 }}>Camera or gallery</Text>
-                    </>
-                  )
-                }
+              <TouchableOpacity onPress={showPhotoPicker} disabled={photoLoading} style={{ borderWidth: 2, borderColor: idPhoto && !photoError ? '#EC7742' : photoError ? '#DC2626' : 'rgba(236,119,66,0.4)', borderStyle: idPhoto ? 'solid' : 'dashed', borderRadius: 12, height: idPhoto ? 180 : 100, alignItems: 'center', justifyContent: 'center', marginBottom: 12, overflow: 'hidden', backgroundColor: idPhoto ? '#FFF1D6' : '#ffffff' }}>
+                {photoLoading ? <ActivityIndicator color="#EC7742" /> : idPhoto ? (
+                  <>
+                    <Image source={{ uri: idPhoto.uri }} style={{ width: '100%', height: '100%', borderRadius: 10 }} resizeMode="cover" />
+                    <View style={{ position: 'absolute', bottom: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                      <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>Tap to change</Text>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <Text style={{ fontSize: 28, marginBottom: 6 }}>📷</Text>
+                    <Text style={{ fontSize: 13, color: '#EC7742', fontWeight: '600' }}>Tap to add ID photo</Text>
+                    <Text style={{ fontSize: 11, color: 'rgba(0,0,0,0.35)', marginTop: 2 }}>Camera or gallery</Text>
+                  </>
+                )}
               </TouchableOpacity>
-
               {photoError ? (
                 <View style={{ backgroundColor: '#FFF1D6', borderRadius: 10, padding: 12, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: '#DC2626', flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
                   <Text style={{ fontSize: 14 }}>📷</Text>
@@ -697,35 +514,16 @@ export default function RegisterScreen({ navigation }) {
                   </TouchableOpacity>
                 </View>
               ) : null}
-
               <Text style={[styles.sectionTitle, { marginTop: 4 }]}>Account Credentials</Text>
-
               <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
-              <TextInput
-                value={form.user_email} onChangeText={v => set('user_email', v.toLowerCase().trim())}
-                placeholder="your.email@example.com" placeholderTextColor="rgba(0,0,0,0.25)"
-                keyboardType="email-address" autoCapitalize="none" autoCorrect={false}
-                style={[styles.input, form.user_email.length > 0 && emailError ? { borderColor: '#DC2626' } : {}]}
-              />
+              <TextInput value={form.user_email} onChangeText={v => set('user_email', v.toLowerCase().trim())} placeholder="your.email@example.com" placeholderTextColor="rgba(0,0,0,0.25)" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} style={[styles.input, form.user_email.length > 0 && emailError ? { borderColor: '#DC2626' } : {}]} />
               <FieldError msg={form.user_email.length > 0 ? emailError : null} />
-
               <Text style={styles.inputLabel}>PASSWORD</Text>
-              <TextInput
-                value={form.user_password} onChangeText={v => set('user_password', v)}
-                placeholder="Min. 8 characters" placeholderTextColor="rgba(0,0,0,0.25)" secureTextEntry
-                style={[styles.input, form.user_password.length > 0 && form.user_password.length < 8 ? { borderColor: '#DC2626' } : {}]}
-              />
-              {form.user_password.length > 0 && form.user_password.length < 8 && (
-                <FieldError msg={`${8 - form.user_password.length} more character${8 - form.user_password.length !== 1 ? 's' : ''} required`} />
-              )}
+              <TextInput value={form.user_password} onChangeText={v => set('user_password', v)} placeholder="Min. 8 characters" placeholderTextColor="rgba(0,0,0,0.25)" secureTextEntry style={[styles.input, form.user_password.length > 0 && form.user_password.length < 8 ? { borderColor: '#DC2626' } : {}]} />
+              {form.user_password.length > 0 && form.user_password.length < 8 && (<FieldError msg={`${8 - form.user_password.length} more character${8 - form.user_password.length !== 1 ? 's' : ''} required`} />)}
               {form.user_password.length >= 8 && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: -12, marginBottom: 12 }}>
-                  {[
-                    { check: form.user_password.length >= 8, label: '8+ chars' },
-                    { check: /[A-Z]/.test(form.user_password), label: 'Uppercase' },
-                    { check: /[0-9]/.test(form.user_password), label: 'Number' },
-                    { check: /[^a-zA-Z0-9]/.test(form.user_password), label: 'Symbol' },
-                  ].map((item, i) => (
+                  {[{ check: form.user_password.length >= 8, label: '8+ chars' }, { check: /[A-Z]/.test(form.user_password), label: 'Uppercase' }, { check: /[0-9]/.test(form.user_password), label: 'Number' }, { check: /[^a-zA-Z0-9]/.test(form.user_password), label: 'Symbol' }].map((item, i) => (
                     <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                       <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: item.check ? '#EC7742' : 'rgba(0,0,0,0.15)' }} />
                       <Text style={{ fontSize: 10, color: item.check ? '#EC7742' : 'rgba(0,0,0,0.3)', fontWeight: item.check ? '600' : '400' }}>{item.label}</Text>
@@ -733,17 +531,9 @@ export default function RegisterScreen({ navigation }) {
                   ))}
                 </View>
               )}
-
               <Text style={styles.inputLabel}>CONFIRM PASSWORD</Text>
-              <TextInput
-                value={form.confirmPassword} onChangeText={v => set('confirmPassword', v)}
-                placeholder="Repeat your password" placeholderTextColor="rgba(0,0,0,0.25)" secureTextEntry
-                style={[styles.input, form.confirmPassword.length > 0 && form.confirmPassword !== form.user_password ? { borderColor: '#DC2626' } : {}]}
-              />
-              {form.confirmPassword.length > 0 && form.confirmPassword !== form.user_password && (
-                <FieldError msg="Passwords do not match" />
-              )}
-
+              <TextInput value={form.confirmPassword} onChangeText={v => set('confirmPassword', v)} placeholder="Repeat your password" placeholderTextColor="rgba(0,0,0,0.25)" secureTextEntry style={[styles.input, form.confirmPassword.length > 0 && form.confirmPassword !== form.user_password ? { borderColor: '#DC2626' } : {}]} />
+              {form.confirmPassword.length > 0 && form.confirmPassword !== form.user_password && (<FieldError msg="Passwords do not match" />)}
               <View style={styles.privacyBox}>
                 <View style={styles.privacyHeader}>
                   <Text style={{ fontSize: 14 }}>🛡️</Text>
@@ -769,7 +559,6 @@ export default function RegisterScreen({ navigation }) {
                   </View>
                 </TouchableOpacity>
               </View>
-
               {revokeMsg && (
                 <View style={{ backgroundColor: '#FFF1D6', borderRadius: 10, padding: 12, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: '#DC2626', flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
                   <Text style={{ fontSize: 14 }}>ℹ️</Text>
@@ -782,27 +571,22 @@ export default function RegisterScreen({ navigation }) {
                   </TouchableOpacity>
                 </View>
               )}
-
               <View style={{ backgroundColor: '#FFF1D6', borderRadius: 12, padding: 12, marginBottom: 16, gap: 8, borderWidth: 1, borderColor: 'rgba(236,119,66,0.25)' }}>
                 <CheckItem label="Personal info & phone filled" done={personalInfoDone} />
                 <CheckItem label="ID photo verified" done={!!idPhoto && !photoError} />
                 <CheckItem label="Account credentials set" done={accountDone} />
                 <CheckItem label="Location & consent granted" done={agreed && locationGranted} />
               </View>
-
               <TouchableOpacity onPress={handleRegister} disabled={loading} style={[styles.loginBtn, styles.loginBtnActive]}>
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginBtnText}>🔐  Create My Account</Text>}
               </TouchableOpacity>
-
               <TouchableOpacity onPress={() => nav?.navigate ? nav.navigate('Login') : nav?.goBack?.()} style={{ alignItems: 'center', marginTop: 14 }}>
                 <Text style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)' }}>
                   Already have an account?{'  '}
                   <Text style={{ color: '#DC2626', fontWeight: '700' }}>Sign In</Text>
                 </Text>
               </TouchableOpacity>
-
             </View>
-
             <Text style={styles.footer}>Resident registration only • For other roles contact your municipality</Text>
           </View>
         </ScrollView>
