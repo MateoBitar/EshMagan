@@ -43,7 +43,7 @@ export async function requestLocationPermission() {
     Geolocation.getCurrentPosition(
       pos => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
       err => reject(new Error(err.message || 'Failed to get location')),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   });
 }
@@ -73,7 +73,7 @@ export function startLocationTracking(residentId) {
     _watchId = navigator.geolocation.watchPosition(
       pos => pushLocationToBackend(residentId, pos.coords.latitude, pos.coords.longitude),
       err => console.warn('[Location] Web watch error:', err),
-      { enableHighAccuracy: true, maximumAge: 30000 }
+      { enableHighAccuracy: true, maximumAge: 0 }
     );
     return;
   }
@@ -87,7 +87,7 @@ export function startLocationTracking(residentId) {
     err => console.warn('[Location] Watch error:', err.message),
     {
       enableHighAccuracy: true,
-      distanceFilter: 20,
+      distanceFilter: 10,
       interval: 30000,
       fastestInterval: 15000,
     }
