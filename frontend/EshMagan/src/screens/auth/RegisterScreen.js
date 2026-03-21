@@ -16,7 +16,12 @@ const PRIVACY_ITEMS = [
   'Municipality-only access to sensitive fire prediction data',
 ];
 
-async function getPlaceName(latitude, longitude) {
+const cache = {};
+
+export async function getPlaceName(latitude, longitude) {
+  const key = `${latitude},${longitude}`;
+  if (cache[key]) return cache[key];
+
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&zoom=14`,
@@ -24,11 +29,14 @@ async function getPlaceName(latitude, longitude) {
     );
     if (!res.ok) return 'Unknown location';
     const data = await res.json();
+    console.log('Reverse geocode result:', data);
     const addr = data.address || {};
-    return (
-      addr.university || addr.building || addr.amenity ||
-      addr.neighbourhood || addr.suburb || addr.village ||
-      addr.town || addr.city || addr.county ||
+    const place = (
+      addr.building || addr.university || addr.amenity || 
+      addr.neighbourhood || addr.suburb || 
+      addr.village || addr.town || addr.city || 
+      addr.county || addr.state || 
+      addr.country || 
       data.display_name?.split(',')[0] || 'Unknown location'
     );
   } catch { return 'Unknown location'; }
@@ -317,7 +325,7 @@ async function validateIDPhoto(base64, type) {
 export default function RegisterScreen({ navigation }) {
   let nav = navigation;
   if (Platform.OS !== 'web') {
-    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch {}
+    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch { }
   }
 
   const [form, setForm] = useState({
