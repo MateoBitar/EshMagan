@@ -16,12 +16,7 @@ const PRIVACY_ITEMS = [
   'Municipality-only access to sensitive fire prediction data',
 ];
 
-const cache = {};
-
-export async function getPlaceName(latitude, longitude) {
-  const key = `${latitude},${longitude}`;
-  if (cache[key]) return cache[key];
-
+async function getPlaceName(latitude, longitude) {
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&zoom=14`,
@@ -29,14 +24,11 @@ export async function getPlaceName(latitude, longitude) {
     );
     if (!res.ok) return 'Unknown location';
     const data = await res.json();
-    console.log('Reverse geocode result:', data);
     const addr = data.address || {};
-    const place = (
-      addr.building || addr.university || addr.amenity || 
-      addr.neighbourhood || addr.suburb || 
-      addr.village || addr.town || addr.city || 
-      addr.county || addr.state || 
-      addr.country || 
+    return (
+      addr.university || addr.building || addr.amenity ||
+      addr.neighbourhood || addr.suburb || addr.village ||
+      addr.town || addr.city || addr.county ||
       data.display_name?.split(',')[0] || 'Unknown location'
     );
   } catch { return 'Unknown location'; }
@@ -310,9 +302,21 @@ async function validateIDPhoto(base64, type) {
   }
   try {
     const jpegjs = require('jpeg-js');
-    const binaryStr = atob(base64);
-    const bytes = new Uint8Array(binaryStr.length);
-    for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+    // Custom base64 decoder — works on both Android and iOS regardless of JS engine
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    const clean = base64.replace(/[^A-Za-z0-9+/]/g, '');
+    const byteLen = Math.floor(clean.length * 3 / 4);
+    const bytes = new Uint8Array(byteLen);
+    let p = 0;
+    for (let i = 0; i < clean.length; i += 4) {
+      const a = chars.indexOf(clean[i]);
+      const b = chars.indexOf(clean[i + 1]);
+      const c = chars.indexOf(clean[i + 2]);
+      const d = chars.indexOf(clean[i + 3]);
+      bytes[p++] = (a << 2) | (b >> 4);
+      if (c !== -1) bytes[p++] = ((b & 15) << 4) | (c >> 2);
+      if (d !== -1) bytes[p++] = ((c & 3) << 6) | d;
+    }
     const decoded = jpegjs.decode(bytes, { useTArray: true, maxMemoryUsageInMB: 64 });
     return analyzePixels(decoded.data, decoded.width, decoded.height);
   } catch (e) {
@@ -325,7 +329,7 @@ async function validateIDPhoto(base64, type) {
 export default function RegisterScreen({ navigation }) {
   let nav = navigation;
   if (Platform.OS !== 'web') {
-    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch { }
+    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch {}
   }
 
   const [form, setForm] = useState({
