@@ -276,6 +276,15 @@ export default function EvacuationScreen({ navigation, route }) {
   // ── User location (web only — native uses showsUserLocation) ──────────────
   useEffect(() => {
     if (Platform.OS !== 'web' || !navigator.geolocation) return;
+
+    // Get a fast rough position immediately (cached, low accuracy)
+    navigator.geolocation.getCurrentPosition(
+      pos => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => { },
+      { enableHighAccuracy: false, maximumAge: 60000, timeout: 5000 }
+    );
+
+    // Then watch for a precise position in the background
     const wid = navigator.geolocation.watchPosition(
       pos => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
       err => console.warn('[Geolocation]', err.message),
