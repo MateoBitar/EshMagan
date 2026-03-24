@@ -366,9 +366,10 @@ export default function EvacuationScreen({ navigation, route }) {
             polyline={routePolyline}
           />
         ) : (
-          <NativeMap
+          <WebMap
             safeCoords={safeCoords}
-            polylineCoords={routePolyline}
+            userCoords={userCoords}
+            polyline={routePolyline}
           />
         )}
 
