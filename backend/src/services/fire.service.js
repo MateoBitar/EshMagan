@@ -305,6 +305,24 @@ export class FireService {
             const fire = await this.fireRepository.updateFireStatus(fire_id, true);
             if (!fire) return null;
 
+            // Complete all assignments linked to this fire
+            try {
+                const assignments = await this.fireAssignmentService.getAssignmentsByFireId(fire_id);
+
+                for (const assignment of assignments) {
+                    if (!['Completed', 'Cancelled'].includes(assignment.assignment_status)) {
+                        await this.fireAssignmentService.updateAssignmentStatus(
+                            assignment.assignment_id,
+                            'Completed'
+                        );
+                    }
+                }
+            } catch (assignmentErr) {
+                console.warn(
+                    `Failed to complete assignments for fire ${fire_id}: ${assignmentErr.message}`
+                );
+            }
+
             // Deactivate evacuation routes for this fire
             try {
                 await this.evacuationRepository.deleteEvacuationsByFireId(fire_id);
