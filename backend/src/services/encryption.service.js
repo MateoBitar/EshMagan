@@ -9,8 +9,8 @@
 import crypto from 'crypto';
 import { ENCRYPTION_KEY } from '../config/env.js';
 
-const ALGORITHM  = 'aes-256-gcm';
-const IV_LENGTH  = 12;   // 96-bit IV — recommended for GCM
+const ALGORITHM = 'aes-256-gcm';
+const IV_LENGTH = 12;   // 96-bit IV — recommended for GCM
 const TAG_LENGTH = 16;   // 128-bit auth tag — GCM default
 
 export class EncryptionService {
@@ -63,25 +63,22 @@ export class EncryptionService {
     // Returns the original plaintext string.
     decrypt(ciphertext) {
         try {
-            if (ciphertext === null || ciphertext === undefined) return null;
+            if (!ciphertext) return null;
 
-            // Step 1: Decode base64 back to buffer
             const combined = Buffer.from(ciphertext, 'base64');
 
-            // Step 2: Slice out iv, authTag, encrypted data
-            const iv         = combined.subarray(0, IV_LENGTH);
-            const authTag    = combined.subarray(IV_LENGTH, IV_LENGTH + TAG_LENGTH);
-            const encrypted  = combined.subarray(IV_LENGTH + TAG_LENGTH);
+            // If data too small → not encrypted → return original
+            if (combined.length < 28) {
+                return ciphertext;
+            }
 
-            // Step 3: Create decipher
-            const decipher = crypto.createDecipheriv(ALGORITHM, this.key, iv, {
-                authTagLength: TAG_LENGTH
-            });
+            const iv = combined.subarray(0, 12);
+            const authTag = combined.subarray(12, 28);
+            const encrypted = combined.subarray(28);
 
-            // Step 4: Set auth tag for tamper verification
+            const decipher = crypto.createDecipheriv(ALGORITHM, this.key, iv);
             decipher.setAuthTag(authTag);
 
-            // Step 5: Decrypt
             const decrypted = Buffer.concat([
                 decipher.update(encrypted),
                 decipher.final()
@@ -89,7 +86,8 @@ export class EncryptionService {
 
             return decrypted.toString('utf8');
         } catch (err) {
-            throw new Error(`Decryption failed: ${err.message}`);
+            // If decryption fails, return original value instead of crashing
+            return ciphertext;
         }
     }
 }

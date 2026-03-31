@@ -2,7 +2,7 @@
 import { StyleSheet } from 'react-native';
 
 export default StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f8fafc', minHeight: '100vh' },
+  safeArea: { flex: 1, backgroundColor: '#f8fafc', height: '100vh', overflow: 'hidden' },
   header: { backgroundColor: '#dc2626', borderBottomWidth: 1, borderBottomColor: '#dc2626', padding: 16 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   backText: { color: '#f8fafc', fontSize: 14 },
@@ -10,7 +10,7 @@ export default StyleSheet.create({
   navBadgeText: { color: '#000', fontSize: 12, fontWeight: '600' },
   headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
   headerSub: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
-  mapArea: { height: 460, backgroundColor: '#cbd1d2', position: 'relative', overflow: 'hidden' },
+  mapArea: { height: 460, backgroundColor: '#cbd1d2', position: 'relative', overflow: 'hidden' , flexShrink: 0 },
   mapOverlay: { position: 'absolute', bottom: 16, alignSelf: 'center', backgroundColor: '#dc2626', borderWidth: 1, borderColor: '#dc2626', borderRadius: 100, paddingHorizontal: 16, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 8, zIndex: 1000 },
   mapOverlayText: { color: '#f8fafc', fontSize: 13, fontWeight: '600', zIndex: 1000 },
   locationDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#3b82f6', borderWidth: 2, borderColor: '#000' },
@@ -35,8 +35,8 @@ export default StyleSheet.create({
   routeStatusCautionText: { fontSize: 9, fontWeight: '600', color: '#fbbf24' },
   arModeBtn: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1.5, borderColor: '#dc2626', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
   arModeBtnText: { color: '#dc2626', fontSize: 12, fontWeight: '600' },
-  directionsSection: { padding: 16 },
-  directionsHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  directionsSection: { padding: 16, paddingTop: 2, flex: 1, minHeight: 0 },
+  directionsHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 36,marginBottom: 5 },
   directionsTitle: { color: '#000', fontWeight: '600', fontSize: 14 },
   voiceBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1 },
   voiceBtnOn: { backgroundColor: '#dc2626', borderColor: '#dc2626' },
@@ -62,7 +62,7 @@ export default StyleSheet.create({
   safeZoneName: { color: '#475569', fontSize: 13, marginTop: 2 },
   safeZoneSub: { color: '#475569', fontSize: 11, marginTop: 2 },
   attribution: { fontSize: 10, color: '#94a3b8', textAlign: 'center', marginTop: 8 },
-  footer: { padding: 16, borderTopWidth: 1, borderTopColor: '#fff', backgroundColor: '#f8fafc' },
+  footer: { padding: 16, paddingTop: 0, paddingBottom: 14, borderTopColor: '#fff', backgroundColor: '#f8fafc' },
   startBtn: { height: 52, backgroundColor: '#dc2626', borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
   startBtnText: { color: '#f8fafc', fontWeight: '700', fontSize: 16 },
 });

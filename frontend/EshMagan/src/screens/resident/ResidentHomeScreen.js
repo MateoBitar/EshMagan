@@ -1,10 +1,16 @@
 // src/screens/resident/ResidentHomeScreen.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Linking, Platform } from 'react-native';
-import { gqlFetch, GET_ACTIVE_FIRES } from '../../services/api';
+import {
+  getCurrentLocation,
+  getPlaceName,
+  startResidentLocationTracking,
+  stopLocationTracking,
+} from '../../services/location.service';
+import { gqlFetch, UPDATE_RESIDENT, GET_ACTIVE_FIRES } from '../../services/api';
 import ResidentSidebar from './ResidentSidebar';
-import { getPlaceName } from '../../services/location.service';
 import styles from '../../styles/screens/ResidentHomeScreen.styles';
+import { useAuth } from '../../context/AuthContext';
 
 const QUICK_ACTIONS = [
   { emoji: '🧭', label: 'Evacuation Routes', screen: 'Evacuation', color: '#3b82f6' },
@@ -43,13 +49,40 @@ function parsePoint(raw) {
       if (g.type === 'Point' && Array.isArray(g.coordinates)) {
         return { longitude: g.coordinates[0], latitude: g.coordinates[1] };
       }
-    } catch {}
+    } catch { }
     return null;
   }
   const wkt = raw.match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
   if (wkt) return { longitude: parseFloat(wkt[1]), latitude: parseFloat(wkt[2]) };
   if (/^[0-9a-fA-F]{20,}$/.test(raw.trim())) return null;
   return null;
+}
+
+function distanceInMeters(a, b) {
+  if (!a || !b) return Infinity;
+
+  const toRad = deg => (deg * Math.PI) / 180;
+  const R = 6371000;
+
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLng = toRad(b.longitude - a.longitude);
+  const lat1 = toRad(a.latitude);
+  const lat2 = toRad(b.latitude);
+
+  const x =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+  const y = 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+  return R * y;
+}
+
+function getFireZoneRadiusMeters(level) {
+  if (level >= 8) return 1000;
+  if (level >= 6) return 800;
+  if (level >= 3) return 500;
+  return 400;
 }
 
 // Small delay helper to respect Nominatim's 1 req/sec rate limit
@@ -106,12 +139,14 @@ function useActiveFires() {
 }
 
 export default function ResidentHomeScreen({ navigation }) {
+  const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userPlaceName, setUserPlaceName] = useState('Locating…');
+  const [currentLocation, setCurrentLocation] = useState(null);
 
   let nav = navigation;
   if (Platform.OS !== 'web') {
-    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch {}
+    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch { }
   }
 
   useEffect(() => {
@@ -142,6 +177,46 @@ export default function ResidentHomeScreen({ navigation }) {
     }
   }, []);
 
+  useEffect(() => {
+    if (!user?.id) return;
+
+    let mounted = true;
+
+    const initLocation = async () => {
+      try {
+        const loc = await getCurrentLocation();
+        if (mounted) setCurrentLocation(loc);
+        if (!mounted || !loc) return;
+
+        try {
+          const place = await getPlaceName(loc.latitude, loc.longitude);
+          if (mounted) setUserPlaceName(place);
+        } catch { }
+
+        await gqlFetch(UPDATE_RESIDENT, {
+          resident_id: user.id,
+          input: {
+            last_known_location: {
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+            },
+          },
+        });
+
+        startResidentLocationTracking(user.id);
+      } catch (e) {
+        console.warn('[ResidentHomeScreen location]', e.message);
+      }
+    };
+
+    initLocation();
+
+    return () => {
+      mounted = false;
+      stopLocationTracking();
+    };
+  }, [user?.id]);
+
   let fires = [], loading = false;
   const webData = useActiveFires();
 
@@ -154,14 +229,25 @@ export default function ResidentHomeScreen({ navigation }) {
       const result = useQuery(QUERY, { pollInterval: 30000 });
       fires = result.data?.getActiveFires || [];
       loading = result.loading;
-    } catch {}
+    } catch { }
   } else {
     fires = webData.fires;
     loading = webData.loading;
   }
 
   const activeFires = fires.filter(f => f.is_extinguished === false);
-  const hasActiveThreat = activeFires.length > 0;
+
+  const dangerousFires = activeFires.filter(fire => {
+    const fireCoords = parsePoint(fire.fire_location);
+    if (!fireCoords || !currentLocation) return false;
+
+    const dist = distanceInMeters(currentLocation, fireCoords);
+    const radius = getFireZoneRadiusMeters(fire.fire_severitylevel);
+
+    return dist <= radius;
+  });
+
+  const hasActiveThreat = dangerousFires.length > 0;
 
   const navigate = (screen, params) => { if (!screen) return; nav?.navigate(screen, params); };
   const currentScreen = nav?.currentScreen || 'ResidentHome';
@@ -225,7 +311,7 @@ export default function ResidentHomeScreen({ navigation }) {
             {QUICK_ACTIONS.map(action => (
               <TouchableOpacity
                 key={action.label}
-                onPress={() => navigate(action.screen)}
+                onPress={() => navigate(action.screen, { isUnsafe: hasActiveThreat })}
                 style={[styles.actionBtn, { backgroundColor: action.color }]}
               >
                 <Text style={styles.actionEmoji}>{action.emoji}</Text>

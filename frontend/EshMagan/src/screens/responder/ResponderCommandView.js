@@ -1,299 +1,408 @@
-// src/screens/responder/ResponderCommandView.js
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, SafeAreaView, TouchableOpacity, ActivityIndicator, Platform, Alert } from 'react-native';
-import { gqlFetch, GET_ALL_FIRES, GET_ALL_RESPONDERS, GET_ACTIVE_ASSIGNMENTS, UPDATE_ASSIGNMENT_STATUS, DISPATCH_CLOSEST_RESPONDER, GET_NOTIFICATIONS_BY_ROLE } from '../../services/api';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  SafeAreaView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Platform,
+  Alert,
+  Animated,
+} from 'react-native';
 import { useAuth } from '../../context/AuthContext';
-import styles from '../../styles/screens/ResponderCommandView.styles';
+import {
+  gqlFetch,
+  GET_RESPONDER_BY_ID,
+  GET_ALL_RESPONDERS,
+  GET_ALL_FIRES,
+  GET_ALL_ASSIGNMENTS,
+  GET_ASSIGNMENTS_BY_RESPONDER,
+  GET_ALERTS_BY_ROLE,
+  GET_NOTIFICATIONS_BY_USER,
+  UPDATE_ASSIGNMENT_STATUS,
+  UPDATE_RESPONDER_STATUS,
+  UPDATE_NOTIFICATION_STATUS,
+  EXTINGUISH_FIRE,
+} from '../../services/api';
+import { getCurrentLocation } from '../../services/location.service';
+import styles, { C } from '../../styles/screens/ResponderCommandView.styles';
 
-const STATUS_STYLE = {
-  Active: { bg: '#f0fdf4', text: '#16a34a', emoji: '✅' },
-  Standby: { bg: '#fefce8', text: '#ca8a04', emoji: '⏳' },
-  Unavailable: { bg: '#f8fafc', text: '#94a3b8', emoji: '💤' },
-};
+import DashboardHeader from './components/DashboardHeader';
+import StatusBar from './components/StatusBar';
+import TabBar from './components/TabBar';
 
-const ASSIGNMENT_STATUS_COLORS = {
-  Assigned: '#2563eb', EnRoute: '#f59e0b', OnScene: '#dc2626', Completed: '#16a34a', Cancelled: '#94a3b8',
-};
+import AlertsTab from './tabs/AlertsTab';
+import AssignmentsTab from './tabs/AssignmentsTab';
+import NotificationsTab from './tabs/NotificationsTab';
+import UnitsTab from './tabs/UnitsTab';
 
-function useCommandData() {
-  const [fires, setFires] = useState([]);
-  const [responders, setResponders] = useState([]);
-  const [assignments, setAssignments] = useState([]);
+import { fmtDate, getResponderCoords, getFireCoords, getDistanceMeters } from './utils/helpers';
+
+export default function ResponderCommandView({ navigation }) {
+  const { user, logout } = useAuth();
+
+  const responderId = user?.id;
+  const userId = user?.id;
+
+  const [activeTab, setActiveTab] = useState('units');
+  const [myAssignments, setMyAssignments] = useState([]);
+  const [allResponders, setAllResponders] = useState([]);
+  const [allFires, setAllFires] = useState([]);
+  const [allAssignments, setAllAssignments] = useState([]);
+  const [alerts, setAlerts] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [myResponder, setMyResponder] = useState(null);
+  const [myLocation, setMyLocation] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(null);
+  const [myStatus, setMyStatus] = useState('Active');
+  const [fireLocations, setFireLocations] = useState({});
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  const refresh = async () => {
+  const ALERT_RADIUS_METERS = 50000;
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+
+    if (!document.getElementById('responder-scrollbar-style')) {
+      const styleTag = document.createElement('style');
+      styleTag.id = 'responder-scrollbar-style';
+      styleTag.innerHTML = `
+      .responder-scroll-area::-webkit-scrollbar {
+        width: 10px;
+      }
+
+      .responder-scroll-area::-webkit-scrollbar-track {
+        background: transparent;
+        border-radius: 999px;
+      }
+
+      .responder-scroll-area::-webkit-scrollbar-thumb {
+        background: #EC7742;
+        border-radius: 999px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+      }
+
+      .responder-scroll-area::-webkit-scrollbar-thumb:hover {
+        background: #d96532;
+        border-radius: 999px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+      }
+    `;
+      document.head.appendChild(styleTag);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!responderId) return;
+
+    let mounted = true;
+
+    const initResponderLocation = async () => {
+      try {
+        const loc = await getCurrentLocation();
+        if (mounted && loc) {
+          setMyLocation({ lat: loc.latitude, lng: loc.longitude });
+        }
+      } catch (e) {
+        console.warn('[Responder initial location]', e.message);
+      }
+    };
+
+    initResponderLocation();
+
+    return () => {
+      mounted = false;
+    };
+  }, [responderId]);
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 0.3, duration: 800, useNativeDriver: false }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: false }),
+      ])
+    ).start();
+  }, [pulseAnim]);
+
+  const fetchAll = async () => {
     try {
-      const [fireData, respData, assignData, notifData] = await Promise.all([
-        gqlFetch(GET_ALL_FIRES),
+      let loc = myLocation;
+
+      if (responderId) {
+        const respData = await gqlFetch(GET_RESPONDER_BY_ID, { responder_id: responderId });
+        const me = respData?.getResponderById;
+
+        if (me) {
+          setMyResponder(me);
+          setMyStatus(me.responder_status || 'Active');
+
+          const locObj = me.last_known_location;
+          if (locObj?.latitude && locObj?.longitude) {
+            loc = { lat: locObj.latitude, lng: locObj.longitude };
+            setMyLocation(loc);
+          }
+        }
+      }
+
+      const [assignData, allAssignData, respListData, fireData, alertData, notifData] = await Promise.all([
+        responderId ? gqlFetch(GET_ASSIGNMENTS_BY_RESPONDER, { responder_id: responderId }) : Promise.resolve(null),
+        gqlFetch(GET_ALL_ASSIGNMENTS),
         gqlFetch(GET_ALL_RESPONDERS),
-        gqlFetch(GET_ACTIVE_ASSIGNMENTS),
-        gqlFetch(GET_NOTIFICATIONS_BY_ROLE, { target_role: 'Responder' }),
+        gqlFetch(GET_ALL_FIRES),
+        gqlFetch(GET_ALERTS_BY_ROLE, { target_role: 'Responder' }),
+        userId ? gqlFetch(GET_NOTIFICATIONS_BY_USER, { user_id: userId }) : Promise.resolve(null),
       ]);
-      setFires(fireData?.getAllFires || []);
-      setResponders(respData?.getAllResponders || []);
-      setAssignments(assignData?.getActiveAssignments || []);
-      setNotifications(notifData?.getNotificationsByTargetRole || []);
-    } catch (e) { console.error('Command data fetch error:', e); }
-    finally { setLoading(false); }
+
+      const assignments = assignData?.getAssignmentsByResponderId || [];
+      setMyAssignments(assignments);
+
+      const allAssignmentsList = allAssignData?.getAllAssignments || [];
+      setAllAssignments(allAssignmentsList);
+
+      const responders = respListData?.getAllResponders || [];
+      setAllResponders(responders);
+
+      const fires = (fireData?.getAllFires || []).filter(f => !f.is_extinguished);
+      setAllFires(fires);
+
+      const fireMap = {};
+      fires.forEach(fire => {
+        fireMap[fire.fire_id] = {
+          source: fire.fire_source || 'Active Fire',
+          raw: fire.fire_location,
+          coords: getFireCoords(fire),
+          severity: fire.fire_severitylevel,
+        };
+      });
+      setFireLocations(fireMap);
+
+      setAlerts(alertData?.getAlertsByTargetRole || []);
+      setNotifications(notifData?.getNotificationsByUserId || []);
+    } catch (e) {
+      console.error('ResponderDashboard fetch error:', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    if (Platform.OS !== 'web') { setLoading(false); return; }
-    refresh();
-    const interval = setInterval(refresh, 10000);
+    fetchAll();
+    const interval = setInterval(() => fetchAll(), 10000);
     return () => clearInterval(interval);
   }, []);
 
-  return { fires, responders, assignments, notifications, loading, refresh };
-}
-
-export default function ResponderCommandView({ navigation }) {
-  const { logout } = useAuth();
-  const [activeTab, setActiveTab] = useState('units');
-  const [liveFlash, setLiveFlash] = useState(false);
-  const [actionLoading, setActionLoading] = useState(null);
-  const webData = useCommandData();
-
-  let fires = [], responders = [], assignments = [], notifications = [], loading = false, refresh = webData.refresh;
-
-  if (Platform.OS !== 'web') {
+  const handleUpdateAssignment = async (assignment_id, fire_id, status) => {
+    setActionLoading(assignment_id + status);
     try {
-      const { useQuery, gql } = require('@apollo/client');
-      const FIRES_Q = gql`query GetAllFires { getAllFires { fire_id fire_source fire_location fire_severitylevel is_extinguished created_at } }`;
-      const RESP_Q = gql`query GetAllResponders { getAllResponders { responder_id unit_nb unit_location assigned_region responder_status last_known_location } }`;
-      const ASSIGN_Q = gql`query GetActiveAssignments { getActiveAssignments { assignment_id assignment_status fire_id responder_id assigned_at } }`;
-      const NOTIF_Q = gql`query GetNotificationsByTargetRole($target_role: NotificationTargetRole!) { getNotificationsByTargetRole(target_role: $target_role) { notification_id notification_message notification_status created_at fire_id } }`;
-      const fr = useQuery(FIRES_Q, { pollInterval: 10000 });
-      const rr = useQuery(RESP_Q, { pollInterval: 10000 });
-      const ar = useQuery(ASSIGN_Q, { pollInterval: 10000 });
-      const nr = useQuery(NOTIF_Q, { variables: { target_role: 'Responder' }, pollInterval: 10000 });
-      fires = fr.data?.getAllFires || [];
-      responders = rr.data?.getAllResponders || [];
-      assignments = ar.data?.getActiveAssignments || [];
-      notifications = nr.data?.getNotificationsByTargetRole || [];
-      loading = fr.loading;
-      refresh = () => { fr.refetch(); rr.refetch(); ar.refetch(); nr.refetch(); };
-    } catch {}
-  } else {
-    fires = webData.fires;
-    responders = webData.responders;
-    assignments = webData.assignments;
-    notifications = webData.notifications;
-    loading = webData.loading;
-  }
+      if ((status === 'Completed' || status === 'Cancelled') && fire_id) {
+        await gqlFetch(EXTINGUISH_FIRE, { fire_id });
+        await gqlFetch(UPDATE_ASSIGNMENT_STATUS, { input: { assignment_id, status } });
+      } else {
+        await gqlFetch(UPDATE_ASSIGNMENT_STATUS, { input: { assignment_id, status } });
+      }
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLiveFlash(true);
-      setTimeout(() => setLiveFlash(false), 500);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleUpdateAssignment = async (assignment_id, status) => {
-    setActionLoading(assignment_id);
-    try {
-      await gqlFetch(UPDATE_ASSIGNMENT_STATUS, { input: { assignment_id, status } });
-      refresh();
+      fetchAll();
     } catch (e) {
       const msg = e.message || 'Update failed';
       Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Error', msg);
-    } finally { setActionLoading(null); }
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const handleDispatch = async (fire_id) => {
-    setActionLoading(fire_id);
+  const handleUpdateMyStatus = async status => {
+    const activeAssignmentsNow = myAssignments.filter(
+      a => !['Completed', 'Cancelled'].includes(a.assignment_status)
+    );
+
+    if (status === 'Unavailable' && activeAssignmentsNow.length > 0) {
+      const msg = 'You have active assignments. Complete or cancel them before going Unavailable.';
+      Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Cannot Go Unavailable', msg);
+      return;
+    }
+
+    if (!responderId) return;
+
+    setActionLoading('status');
     try {
-      await gqlFetch(DISPATCH_CLOSEST_RESPONDER, { fire_id });
-      refresh();
-      Platform.OS === 'web' ? window.alert('Closest responder dispatched!') : Alert.alert('Dispatched', 'Closest responder has been dispatched.');
+      await gqlFetch(UPDATE_RESPONDER_STATUS, {
+        responder_id: responderId,
+        responder_status: status,
+      });
+      setMyStatus(status);
+      fetchAll();
     } catch (e) {
-      const msg = e.message || 'Dispatch failed';
+      const msg = e.message || 'Status update failed';
       Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Error', msg);
-    } finally { setActionLoading(null); }
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const activeFires = fires.filter(f => !f.is_extinguished);
-  const TABS = [
-    { id: 'units', label: '🚒 Units' },
-    { id: 'fires', label: `🔥 Fires${activeFires.length > 0 ? ` (${activeFires.length})` : ''}` },
-    { id: 'assignments', label: `📋 Active${assignments.length > 0 ? ` (${assignments.length})` : ''}` },
-    { id: 'alerts', label: `🔔 Alerts${notifications.length > 0 ? ` (${notifications.length})` : ''}` },
+  const handleMarkNotifRead = async notification_id => {
+    try {
+      await gqlFetch(UPDATE_NOTIFICATION_STATUS, {
+        notification_id,
+        notification_status: 'Delivered',
+      });
+
+      setNotifications(prev =>
+        prev.map(n =>
+          n.notification_id === notification_id
+            ? { ...n, notification_status: 'Delivered' }
+            : n
+        )
+      );
+    } catch {
+      console.warn('Failed to mark notification read');
+    }
+  };
+
+  const activeAssignments = myAssignments.filter(
+    a => !['Completed', 'Cancelled'].includes(a.assignment_status)
+  );
+  const unreadNotifs = notifications.filter(n => n.notification_status !== 'Delivered');
+  const activeAlerts = alerts.filter(alert => {
+    if (new Date(alert.expires_at) <= new Date()) return false;
+    if (!alert.fire_id) return false;
+    if (!myLocation) return false;
+
+    const fire = allFires.find(f => f.fire_id === alert.fire_id);
+    if (!fire) return false;
+
+    const fireCoords = getFireCoords(fire);
+    if (!fireCoords) return false;
+
+    const distance = getDistanceMeters(
+      myLocation.lat,
+      myLocation.lng,
+      fireCoords.lat,
+      fireCoords.lng
+    );
+
+    return distance <= ALERT_RADIUS_METERS;
+  });
+  const selfResponderId = myResponder?.responder_id;
+  const otherResponders = allResponders.filter(r => r.responder_id !== selfResponderId);
+
+  const unitsForMap = allResponders.map(r => {
+    const coords = getResponderCoords(r);
+
+    let unitCoords = null;
+    if (r.unit_location?.latitude && r.unit_location?.longitude) {
+      unitCoords = {
+        lat: r.unit_location.latitude,
+        lng: r.unit_location.longitude,
+      };
+    }
+
+    return {
+      responder_id: r.responder_id,
+      unit_nb: r.unit_nb,
+      status: r.responder_status,
+      coords,
+      unitCoords,
+      isMe: r.responder_id === myResponder?.responder_id,
+    };
+  });
+
+  const firesForMap = allFires
+    .map(fire => ({
+      fire_id: fire.fire_id,
+      severity: fire.fire_severitylevel,
+      coords: getFireCoords(fire),
+    }))
+    .filter(fire => fire.coords);
+
+  const tabs = [
+    { id: 'units', emoji: '🚒', title: 'Units', count: null },
+    { id: 'assignments', emoji: '📋', title: 'My Jobs', count: activeAssignments.length || null },
+    { id: 'alerts', emoji: '🔥', title: 'Alerts', count: activeAlerts.length || null },
+    { id: 'notifications', emoji: '🔔', title: 'Inbox', count: unreadNotifs.length || null },
   ];
+
+  const renderMainContent = () => (
+    <>
+      {activeTab === 'units' && (
+        <UnitsTab
+          myResponder={myResponder}
+          myStatus={myStatus}
+          otherResponders={otherResponders}
+          unitsForMap={unitsForMap}
+          firesForMap={firesForMap}
+        />
+      )}
+
+      {activeTab === 'assignments' && (
+        <AssignmentsTab
+          myAssignments={myAssignments}
+          activeAssignments={activeAssignments}
+          fireLocations={fireLocations}
+          myStatus={myStatus}
+          actionLoading={actionLoading}
+          fmtDate={fmtDate}
+          handleUpdateAssignment={handleUpdateAssignment}
+        />
+      )}
+
+      {activeTab === 'alerts' && (
+        <AlertsTab
+          alerts={alerts}
+          activeAlerts={activeAlerts}
+          myLocation={myLocation}
+          alertRadiusMeters={ALERT_RADIUS_METERS}
+          fmtDate={fmtDate}
+        />
+      )}
+
+      {activeTab === 'notifications' && (
+        <NotificationsTab
+          notifications={notifications}
+          unreadNotifs={unreadNotifs}
+          handleMarkNotifRead={handleMarkNotifRead}
+        />
+      )}
+    </>
+  );
+
+  const isUnitsTab = activeTab === 'units';
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator color={C.tangerine} size="large" />
+        <Text style={styles.loadingText}>Loading responder dashboard...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <View style={styles.headerIcon}><Text style={{ fontSize: 20 }}>🔥</Text></View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Responder Command</Text>
-          <View style={styles.liveRow}>
-            <View style={[styles.liveDot, { backgroundColor: liveFlash ? '#ef4444' : '#22c55e' }]} />
-            <Text style={styles.liveText}>Live Feed Active</Text>
-          </View>
+      <View style={styles.container}>
+        <DashboardHeader
+          myLocation={myLocation}
+          alertRadiusMeters={ALERT_RADIUS_METERS}
+          pulseAnim={pulseAnim}
+          logout={logout}
+        />
+
+        <StatusBar
+          myResponder={myResponder}
+          myStatus={myStatus}
+          actionLoading={actionLoading}
+          handleUpdateMyStatus={handleUpdateMyStatus}
+        />
+
+        <TabBar activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs} />
+
+        <View style={styles.contentContainer}>
+          {renderMainContent()}
         </View>
-        <TouchableOpacity onPress={logout}><Text style={{ fontSize: 20 }}>🚪</Text></TouchableOpacity>
       </View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ backgroundColor: '#0f172a', borderBottomWidth: 1, borderBottomColor: '#1e293b' }}>
-        <View style={{ flexDirection: 'row' }}>
-          {TABS.map(tab => (
-            <TouchableOpacity key={tab.id} onPress={() => setActiveTab(tab.id)} style={[styles.tab, { paddingHorizontal: 16 }, activeTab === tab.id ? styles.tabActive : styles.tabInactive]}>
-              <Text style={[styles.tabText, activeTab === tab.id ? styles.tabTextActive : styles.tabTextInactive]}>{tab.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
-
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-
-        {/* UNITS */}
-        {activeTab === 'units' && (
-          <View>
-            <Text style={styles.tabSubtitle}>{loading ? 'Loading...' : `${responders.length} units registered`}</Text>
-            {loading ? <ActivityIndicator color="#ef4444" /> : responders.length === 0 ? (
-              <Text style={{ color: '#475569', textAlign: 'center', marginTop: 32 }}>No responder units found</Text>
-            ) : (
-              responders.map(r => {
-                const s = STATUS_STYLE[r.responder_status] || STATUS_STYLE.Unavailable;
-                return (
-                  <View key={r.responder_id} style={styles.unitCard}>
-                    <View style={styles.unitCardTop}>
-                      <View style={styles.unitLeft}>
-                        <View style={styles.unitIcon}><Text style={{ fontSize: 18 }}>🚒</Text></View>
-                        <View>
-                          <Text style={styles.unitName}>{r.unit_nb || r.responder_id?.slice(0, 8)}</Text>
-                          <Text style={styles.unitType}>{r.assigned_region || 'Unassigned'}</Text>
-                        </View>
-                      </View>
-                      <View style={[styles.unitStatusBadge, { backgroundColor: s.bg }]}>
-                        <Text style={[styles.unitStatusText, { color: s.text }]}>{s.emoji} {r.responder_status}</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.unitLocation}>📍 {r.unit_location || r.last_known_location || 'Unknown'}</Text>
-                  </View>
-                );
-              })
-            )}
-          </View>
-        )}
-
-        {/* ACTIVE FIRES */}
-        {activeTab === 'fires' && (
-          <View>
-            <Text style={styles.tabSubtitle}>{loading ? 'Loading...' : `${activeFires.length} active fires`}</Text>
-            {loading ? <ActivityIndicator color="#ef4444" /> : activeFires.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Text style={{ fontSize: 32, marginBottom: 8 }}>✅</Text>
-                <Text style={{ color: '#10b981', fontWeight: '600' }}>No active fire incidents</Text>
-              </View>
-            ) : (
-              activeFires.map(fire => (
-                <View key={fire.fire_id} style={styles.fireCard}>
-                  <View style={styles.fireCardTop}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.fireLocation}>{fire.fire_location || 'Unknown Location'}</Text>
-                      <Text style={styles.fireMeta}>{fire.fire_id?.slice(0, 10)} • {fire.fire_source}</Text>
-                    </View>
-                    <View style={styles.fireSeverityBadge}>
-                      <Text style={styles.fireSeverityText}>Sev {fire.fire_severitylevel || 'N/A'}</Text>
-                    </View>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => handleDispatch(fire.fire_id)}
-                    disabled={actionLoading === fire.fire_id}
-                    style={{ marginTop: 10, backgroundColor: '#dc2626', borderRadius: 8, padding: 8, alignItems: 'center' }}
-                  >
-                    {actionLoading === fire.fire_id
-                      ? <ActivityIndicator color="#fff" size="small" />
-                      : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>🚒 Dispatch Closest Responder</Text>
-                    }
-                  </TouchableOpacity>
-                </View>
-              ))
-            )}
-          </View>
-        )}
-
-        {/* ACTIVE ASSIGNMENTS */}
-        {activeTab === 'assignments' && (
-          <View>
-            <Text style={styles.tabSubtitle}>{loading ? 'Loading...' : `${assignments.length} active assignments`}</Text>
-            {loading ? <ActivityIndicator color="#ef4444" /> : assignments.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Text style={{ fontSize: 32, marginBottom: 8 }}>📋</Text>
-                <Text style={{ color: '#64748b', fontWeight: '600' }}>No active assignments</Text>
-              </View>
-            ) : (
-              assignments.map(a => {
-                const statusColor = ASSIGNMENT_STATUS_COLORS[a.assignment_status] || '#64748b';
-                return (
-                  <View key={a.assignment_id} style={styles.unitCard}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <View>
-                        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>🚒 Responder {a.responder_id?.slice(0, 8)}</Text>
-                        <Text style={{ color: '#64748b', fontSize: 11 }}>Fire: {a.fire_id?.slice(0, 10)}</Text>
-                      </View>
-                      <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: statusColor + '20' }}>
-                        <Text style={{ fontSize: 11, fontWeight: '700', color: statusColor }}>{a.assignment_status}</Text>
-                      </View>
-                    </View>
-                    <Text style={{ color: '#475569', fontSize: 11, marginBottom: 10 }}>
-                      Assigned: {a.assigned_at ? new Date(a.assigned_at).toLocaleString() : 'N/A'}
-                    </Text>
-                    <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-                      {['EnRoute', 'OnScene', 'Completed', 'Cancelled'].map(status => (
-                        <TouchableOpacity
-                          key={status}
-                          onPress={() => handleUpdateAssignment(a.assignment_id, status)}
-                          disabled={actionLoading === a.assignment_id || a.assignment_status === status}
-                          style={{
-                            paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6,
-                            backgroundColor: a.assignment_status === status ? statusColor : '#1e293b',
-                          }}
-                        >
-                          {actionLoading === a.assignment_id
-                            ? <ActivityIndicator color="#fff" size="small" />
-                            : <Text style={{ fontSize: 11, fontWeight: '600', color: a.assignment_status === status ? '#fff' : '#64748b' }}>{status}</Text>
-                          }
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                );
-              })
-            )}
-          </View>
-        )}
-
-        {/* ALERTS/NOTIFICATIONS */}
-        {activeTab === 'alerts' && (
-          <View>
-            <Text style={styles.tabSubtitle}>{loading ? 'Loading...' : `${notifications.length} notifications for responders`}</Text>
-            {loading ? <ActivityIndicator color="#ef4444" /> : notifications.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Text style={{ fontSize: 32, marginBottom: 8 }}>🔔</Text>
-                <Text style={{ color: '#64748b', fontWeight: '600' }}>No notifications</Text>
-              </View>
-            ) : (
-              notifications.map(n => (
-                <View key={n.notification_id} style={styles.fireCard}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: n.notification_status === 'Sent' ? 'rgba(239,68,68,0.15)' : 'rgba(100,116,139,0.15)' }}>
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: n.notification_status === 'Sent' ? '#ef4444' : '#64748b' }}>{n.notification_status}</Text>
-                    </View>
-                    <Text style={{ color: '#475569', fontSize: 11 }}>{n.created_at ? new Date(n.created_at).toLocaleTimeString() : ''}</Text>
-                  </View>
-                  <Text style={{ color: '#cbd5e1', fontSize: 13 }}>{n.notification_message}</Text>
-                  {n.fire_id && <Text style={{ color: '#475569', fontSize: 11, marginTop: 4 }}>Fire: {n.fire_id?.slice(0, 10)}</Text>}
-                </View>
-              ))
-            )}
-          </View>
-        )}
-
-      </ScrollView>
     </SafeAreaView>
   );
 }

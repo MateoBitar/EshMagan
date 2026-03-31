@@ -34,11 +34,11 @@ function validateDOB(dob) {
 }
 
 const KNOWN_DOMAINS = [
-  'gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com',
-  'live.com','msn.com','protonmail.com','proton.me','mail.com',
-  'aol.com','ymail.com','googlemail.com','me.com','mac.com',
-  'hotmail.fr','hotmail.co.uk','yahoo.fr','yahoo.co.uk','yahoo.com.au',
-  'edu.lb','ul.edu.lb','balamand.edu.lb','usj.edu.lb','lau.edu.lb',
+  'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com',
+  'live.com', 'msn.com', 'protonmail.com', 'proton.me', 'mail.com',
+  'aol.com', 'ymail.com', 'googlemail.com', 'me.com', 'mac.com',
+  'hotmail.fr', 'hotmail.co.uk', 'yahoo.fr', 'yahoo.co.uk', 'yahoo.com.au',
+  'edu.lb', 'ul.edu.lb', 'balamand.edu.lb', 'usj.edu.lb', 'lau.edu.lb',
 ];
 
 function validateEmail(email) {
@@ -161,9 +161,9 @@ function analyzePixels(data, width, height) {
   const topRight = sampleRegion(data, width, height, 0.45, 0.01, 0.99, 0.18);
   const topRightBright = topRight.r * 0.299 + topRight.g * 0.587 + topRight.b * 0.114;
   if (topRightBright < 100) return 'The top of the ID appears too dark. Make sure the ID header (الجمهورية اللبنانية) is clearly visible.';
-  const leftEdge   = sampleRegion(data, width, height, 0.00, 0.10, 0.05, 0.90);
-  const rightEdge  = sampleRegion(data, width, height, 0.95, 0.10, 1.00, 0.90);
-  const topEdge    = sampleRegion(data, width, height, 0.10, 0.00, 0.90, 0.08);
+  const leftEdge = sampleRegion(data, width, height, 0.00, 0.10, 0.05, 0.90);
+  const rightEdge = sampleRegion(data, width, height, 0.95, 0.10, 1.00, 0.90);
+  const topEdge = sampleRegion(data, width, height, 0.10, 0.00, 0.90, 0.08);
   const bottomEdge = sampleRegion(data, width, height, 0.10, 0.92, 0.90, 1.00);
   const edgeResults = [leftEdge, rightEdge, topEdge, bottomEdge].map(e => {
     const brightness = e.r * 0.299 + e.g * 0.587 + e.b * 0.114;
@@ -241,7 +241,7 @@ async function validateIDPhoto(base64, type) {
 export default function RegisterScreen({ navigation }) {
   let nav = navigation;
   if (Platform.OS !== 'web') {
-    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch {}
+    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch { }
   }
 
   const [form, setForm] = useState({

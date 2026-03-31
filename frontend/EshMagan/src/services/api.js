@@ -27,7 +27,7 @@ const storage = {
 
 // ─── API Base URL ─────────────────────────────────────────────────────────────
 export const API_BASE = Platform.OS === 'android'
-  ? 'http://192.168.1.13:5000'
+  ? 'http://192.168.1.3:5000'
   : 'http://localhost:5000';
 
 // ─── Apollo Client (native only) ─────────────────────────────────────────────
@@ -121,7 +121,7 @@ export const authService = {
 export const GET_ALL_FIRES = `query GetAllFires {
   getAllFires {
     fire_id fire_source fire_location fire_severitylevel
-    is_extinguished is_verified spread_prediction created_at updated_at
+    is_extinguished is_verified created_at updated_at
   }
 }`;
 
@@ -137,7 +137,7 @@ export const GET_ACTIVE_FIRES = `query GetActiveFires {
 export const GET_FIRE = `query GetFireById($fire_id: ID!) {
   getFireById(fire_id: $fire_id) {
     fire_id fire_source fire_location fire_severitylevel
-    is_extinguished is_verified spread_prediction created_at updated_at
+    is_extinguished is_verified created_at updated_at
   }
 }`;
 
@@ -172,11 +172,19 @@ export const COUNT_FIRES = `query CountFires($filters: FireFilterInput) {
   countFires(filters: $filters)
 }`;
 
-export const FIND_RESIDENTS_NEAR_FIRE = `query FindResidentsNearFire($fire_id: ID!, $radiusMeters: Int) {
-  findResidentsNearFire(fire_id: $fire_id, radiusMeters: $radiusMeters) {
-    resident_id resident_fname resident_lname last_known_location
+export const FIND_RESIDENTS_NEAR_FIRE = `
+  query FindResidentsNearFire($fire_id: ID!, $radiusMeters: Int) {
+    findResidentsNearFire(fire_id: $fire_id, radiusMeters: $radiusMeters) {
+      resident_id
+      resident_fname
+      resident_lname
+      last_known_location {
+        longitude
+        latitude
+      }
+    }
   }
-}`;
+`;
 
 // ─── FIRE MUTATIONS ───────────────────────────────────────────────────────────
 export const CREATE_FIRE = `mutation CreateFire($input: CreateFireInput!) {
@@ -193,7 +201,7 @@ export const CREATE_FIRE_AND_TRIGGER = `mutation CreateFireAndTriggerSystem($inp
 
 export const UPDATE_FIRE = `mutation UpdateFire($fire_id: ID!, $input: UpdateFireInput!) {
   updateFire(fire_id: $fire_id, input: $input) {
-    fire_id fire_severitylevel is_extinguished is_verified spread_prediction
+    fire_id fire_severitylevel is_extinguished is_verified
   }
 }`;
 
@@ -252,11 +260,13 @@ export const GET_ALERTS_BY_TYPE = `query GetAlertsByAlertType($alert_type: Alert
   }
 }`;
 
-export const GET_ALERTS_BY_ROLE = `query GetAlertsByTargetRole($target_role: AlertTargetRole!) {
-  getAlertsByTargetRole(target_role: $target_role) {
-    alert_id alert_type target_role alert_message expires_at created_at fire_id
+export const GET_ALERTS_BY_ROLE = `
+  query GetAlertsByTargetRole($target_role: AlertTargetRole!) {
+    getAlertsByTargetRole(target_role: $target_role) {
+      alert_id alert_type alert_message expires_at created_at fire_id
+    }
   }
-}`;
+`;
 
 export const GET_ALERTS_BY_FIRE = `query GetAlertsByFireId($fire_id: ID!) {
   getAlertsByFireId(fire_id: $fire_id) {
@@ -308,46 +318,93 @@ export const UPDATE_EVACUATION_STATUS = `mutation UpdateEvacuationStatus($route_
 }`;
 
 // ─── RESPONDER QUERIES ────────────────────────────────────────────────────────
-export const GET_ALL_RESPONDERS = `query GetAllResponders {
-  getAllResponders {
-    responder_id unit_nb unit_location assigned_region
-    responder_status last_known_location
+export const GET_ALL_RESPONDERS = `
+  query GetAllResponders {
+    getAllResponders {
+      responder_id unit_nb assigned_region responder_status
+      unit_location { latitude longitude }
+      last_known_location { latitude longitude }
+    }
   }
-}`;
+`;
 
 export const GET_RESPONDERS = GET_ALL_RESPONDERS; // alias
 
-export const GET_RESPONDER_BY_ID = `query GetResponderById($responder_id: ID!) {
-  getResponderById(responder_id: $responder_id) {
-    responder_id unit_nb unit_location assigned_region
-    responder_status last_known_location
+export const GET_RESPONDER_BY_ID = `
+  query GetResponderById($responder_id: ID!) {
+    getResponderById(responder_id: $responder_id) {
+      responder_id unit_nb assigned_region responder_status
+      unit_location { latitude longitude }
+      last_known_location { latitude longitude }
+    }
   }
-}`;
+`;
 
-export const GET_RESPONDERS_BY_STATUS = `query GetRespondersByResponderStatus($responder_status: String!) {
-  getRespondersByResponderStatus(responder_status: $responder_status) {
-    responder_id unit_nb unit_location assigned_region responder_status last_known_location
+export const GET_RESPONDERS_BY_STATUS = `
+  query GetRespondersByResponderStatus($responder_status: String!) {
+    getRespondersByResponderStatus(responder_status: $responder_status) {
+      responder_id
+      unit_nb
+      assigned_region
+      responder_status
+      unit_location {
+        latitude
+        longitude
+      }
+      last_known_location {
+        latitude
+        longitude
+      }
+      updated_at
+    }
   }
-}`;
+`;
 
-export const GET_NEAREST_RESPONDER = `query GetNearestResponder($fire_location: String!) {
-  getNearestResponder(fire_location: $fire_location) {
-    responder_id unit_nb unit_location assigned_region responder_status last_known_location
+export const GET_NEAREST_RESPONDER = `
+  query GetNearestResponder($fire_location: LocationInput!) {
+    getNearestResponder(fire_location: $fire_location) {
+      responder_id
+      unit_nb
+      assigned_region
+      responder_status
+      unit_location {
+        latitude
+        longitude
+      }
+      last_known_location {
+        latitude
+        longitude
+      }
+      updated_at
+    }
   }
-}`;
+`;
 
 // ─── RESPONDER MUTATIONS ──────────────────────────────────────────────────────
-export const UPDATE_RESPONDER_STATUS = `mutation UpdateResponderStatus($responder_id: ID!, $responder_status: String!) {
-  updateResponderStatus(responder_id: $responder_id, responder_status: $responder_status) {
-    responder_id responder_status
+export const UPDATE_RESPONDER_STATUS = `
+  mutation UpdateResponderStatus($responder_id: ID!, $responder_status: String!) {
+    updateResponderStatus(responder_id: $responder_id, responder_status: $responder_status) {
+      responder_id responder_status
+    }
   }
-}`;
+`;
 
-export const UPDATE_RESPONDER_LOCATION = `mutation UpdateResponderLocation($responder_id: ID!, $latitude: Float!, $longitude: Float!) {
-  updateResponderLocation(responder_id: $responder_id, latitude: $latitude, longitude: $longitude) {
-    responder_id last_known_location updated_at
+export const UPDATE_RESPONDER_LOCATION = `
+  mutation UpdateResponderLocation($responder_id: ID!, $latitude: Float!, $longitude: Float!) {
+    updateResponderLocation(
+      responder_id: $responder_id,
+      latitude: $latitude,
+      longitude: $longitude
+    ) {
+      responder_id
+      last_known_location {
+        latitude
+        longitude
+      }
+      updated_at
+    }
   }
-}`;
+`;
 
 // ─── FIRE ASSIGNMENT QUERIES ──────────────────────────────────────────────────
 export const GET_ALL_ASSIGNMENTS = `query GetAllAssignments {
@@ -362,11 +419,13 @@ export const GET_ASSIGNMENTS_BY_FIRE = `query GetAssignmentsByFireId($fire_id: I
   }
 }`;
 
-export const GET_ASSIGNMENTS_BY_RESPONDER = `query GetAssignmentsByResponderId($responder_id: ID!) {
-  getAssignmentsByResponderId(responder_id: $responder_id) {
-    assignment_id assignment_status fire_id responder_id assigned_at
+export const GET_ASSIGNMENTS_BY_RESPONDER = `
+  query GetAssignmentsByResponderId($responder_id: ID!) {
+    getAssignmentsByResponderId(responder_id: $responder_id) {
+      assignment_id assignment_status fire_id responder_id assigned_at
+    }
   }
-}`;
+`;
 
 export const GET_ACTIVE_ASSIGNMENTS = `query GetActiveAssignments {
   getActiveAssignments {
@@ -381,11 +440,13 @@ export const CREATE_ASSIGNMENT = `mutation CreateAssignment($input: CreateFireAs
   }
 }`;
 
-export const UPDATE_ASSIGNMENT_STATUS = `mutation UpdateAssignmentStatus($input: UpdateFireAssignmentStatusInput!) {
-  updateAssignmentStatus(input: $input) {
-    assignment_id assignment_status
+export const UPDATE_ASSIGNMENT_STATUS = `
+  mutation UpdateAssignmentStatus($input: UpdateFireAssignmentStatusInput!) {
+    updateAssignmentStatus(input: $input) {
+      assignment_id assignment_status
+    }
   }
-}`;
+`;
 
 export const DELETE_ASSIGNMENT = `mutation DeleteAssignment($assignment_id: ID!) {
   deleteAssignment(assignment_id: $assignment_id)
@@ -399,12 +460,13 @@ export const GET_ALL_NOTIFICATIONS = `query GetAllNotifications {
   }
 }`;
 
-export const GET_NOTIFICATIONS_BY_USER = `query GetNotificationsByUserId($user_id: ID!) {
-  getNotificationsByUserId(user_id: $user_id) {
-    notification_id target_role notification_message
-    notification_status expires_at created_at fire_id user_id
+export const GET_NOTIFICATIONS_BY_USER = `
+  query GetNotificationsByUserId($user_id: ID!) {
+    getNotificationsByUserId(user_id: $user_id) {
+      notification_id notification_message notification_status expires_at fire_id
+    }
   }
-}`;
+`;
 
 export const GET_NOTIFICATIONS_BY_ROLE = `query GetNotificationsByTargetRole($target_role: NotificationTargetRole!) {
   getNotificationsByTargetRole(target_role: $target_role) {
@@ -421,25 +483,56 @@ export const GET_NOTIFICATIONS_BY_FIRE = `query GetNotificationsByFireId($fire_i
 }`;
 
 // ─── NOTIFICATION MUTATIONS ───────────────────────────────────────────────────
-export const UPDATE_NOTIFICATION_STATUS = `mutation UpdateNotificationStatus($notification_id: ID!, $notification_status: NotificationStatus!) {
-  updateNotificationStatus(notification_id: $notification_id, notification_status: $notification_status) {
-    notification_id notification_status
+export const UPDATE_NOTIFICATION_STATUS = `
+  mutation UpdateNotificationStatus($notification_id: ID!, $notification_status: NotificationStatus!) {
+    updateNotificationStatus(notification_id: $notification_id, notification_status: $notification_status) {
+      notification_id notification_status
+    }
   }
-}`;
+`;
 
 // ─── RESIDENT QUERIES ─────────────────────────────────────────────────────────
-export const GET_RESIDENT_BY_ID = `query GetResidentById($resident_id: ID!) {
-  getResidentById(resident_id: $resident_id) {
-    resident_id resident_fname resident_lname resident_dob
-    resident_idnb home_location work_location last_known_location
+export const GET_RESIDENT_BY_ID = `
+  query GetResidentById($resident_id: ID!) {
+    getResidentById(resident_id: $resident_id) {
+      resident_id
+      resident_fname
+      resident_lname
+      resident_dob
+      resident_idnb
+      home_location {
+        longitude
+        latitude
+      }
+      work_location {
+        longitude
+        latitude
+      }
+      last_known_location {
+        longitude
+        latitude
+      }
+    }
   }
-}`;
+`;
 
-export const GET_RESIDENT_BY_EMAIL = `query GetResidentByEmail($user_email: String!) {
-  getResidentByEmail(user_email: $user_email) {
-    resident_id resident_fname resident_lname home_location last_known_location
+export const GET_RESIDENT_BY_EMAIL = `
+  query GetResidentByEmail($user_email: String!) {
+    getResidentByEmail(user_email: $user_email) {
+      resident_id
+      resident_fname
+      resident_lname
+      home_location {
+        longitude
+        latitude
+      }
+      last_known_location {
+        longitude
+        latitude
+      }
+    }
   }
-}`;
+`;
 
 // ─── RESIDENT MUTATIONS ───────────────────────────────────────────────────────
 export const UPDATE_RESIDENT = `mutation UpdateResident($resident_id: ID!, $input: UpdateResidentInput!) {
@@ -449,17 +542,35 @@ export const UPDATE_RESIDENT = `mutation UpdateResident($resident_id: ID!, $inpu
 }`;
 
 // ─── MUNICIPALITY QUERIES ─────────────────────────────────────────────────────
-export const GET_ALL_MUNICIPALITIES = `query GetAllMunicipalities {
-  getAllMunicipalities {
-    municipality_id municipality_name region_name municipality_code municipality_location
+export const GET_ALL_MUNICIPALITIES = `
+  query GetAllMunicipalities {
+    getAllMunicipalities {
+      municipality_id
+      municipality_name
+      region_name
+      municipality_code
+      municipality_location {
+        latitude
+        longitude
+      }
+    }
   }
-}`;
+`;
 
-export const GET_MUNICIPALITY_BY_ID = `query GetMunicipalityById($municipality_id: ID!) {
-  getMunicipalityById(municipality_id: $municipality_id) {
-    municipality_id municipality_name region_name municipality_code municipality_location
+export const GET_MUNICIPALITY_BY_ID = `
+  query GetMunicipalityById($municipality_id: ID!) {
+    getMunicipalityById(municipality_id: $municipality_id) {
+      municipality_id
+      municipality_name
+      region_name
+      municipality_code
+      municipality_location {
+        latitude
+        longitude
+      }
+    }
   }
-}`;
+`;
 
 // ─── USER QUERIES ─────────────────────────────────────────────────────────────
 export const GET_USER_BY_ID = `query GetUserById($user_id: ID!) {

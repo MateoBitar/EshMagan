@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { gqlFetch, GET_EVACUATION_ROUTES, GET_EVACUATIONS_BY_FIRE } from '../../services/api';
 import styles from '../../styles/screens/EvacuationScreen.styles';
+import { getCurrentLocation } from '../../services/location.service';
 
 // ─── Coordinate helpers ───────────────────────────────────────────────────────
 
@@ -23,6 +24,39 @@ function parseGeoJSON(raw) {
     const m = typeof raw === 'string' && raw.match(/POINT\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
     return m ? { lat: parseFloat(m[2]), lng: parseFloat(m[1]) } : null;
   }
+}
+
+function parsePolygonCoords(raw) {
+  if (!raw) return [];
+
+  try {
+    const g = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    if (g.type === 'Polygon' && g.coordinates?.[0]?.length) {
+      return g.coordinates[0].map(([lng, lat]) => [lat, lng]);
+    }
+  } catch { }
+
+  return [];
+}
+
+function distanceInMeters(a, b) {
+  if (!a || !b) return Infinity;
+
+  const toRad = deg => (deg * Math.PI) / 180;
+  const R = 6371000;
+
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+
+  const x =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+  const y = 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+  return R * y;
 }
 
 // ─── OSRM free routing ────────────────────────────────────────────────────────
@@ -43,6 +77,7 @@ async function fetchOSRMRoute(fromLat, fromLng, toLat, toLng) {
       const modifier = s.maneuver?.modifier ? ` ${s.maneuver.modifier}` : '';
       const name = s.name ? ` onto ${s.name}` : '';
       let instruction;
+
       if (type === 'depart') instruction = `Head${modifier}${name}`;
       else if (type === 'arrive') instruction = 'Arrive at destination';
       else if (type === 'turn') instruction = `Turn${modifier}${name}`;
@@ -91,13 +126,21 @@ function turnIcon(type) {
 
 // ─── Leaflet Web Map ──────────────────────────────────────────────────────────
 
-function WebMap({ safeCoords, userCoords, polyline }) {
+function WebMap({ safeCoords, safePolygonCoords, userCoords, polyline }) {
   const divRef = useRef(null);
   const mapRef = useRef(null);
   const polylineRef = useRef(null);
+  const safePolygonRef = useRef(null);
   const userMarkerRef = useRef(null);
+  const safeMarkerRef = useRef(null);
+  const hasFittedRouteRef = useRef(false);
+  const [followUser, setFollowUser] = useState(true);
 
-  // ── init once ──
+  useEffect(() => {
+    hasFittedRouteRef.current = false;
+    setFollowUser(true);
+  }, [safeCoords?.lat, safeCoords?.lng]);
+
   useEffect(() => {
     if (typeof window === 'undefined' || !divRef.current) return;
 
@@ -113,17 +156,33 @@ function WebMap({ safeCoords, userCoords, polyline }) {
       if (mapRef.current) return;
       const L = window.L;
       if (!L) return;
+
       const map = L.map(divRef.current, { zoomControl: true })
-        .setView([33.8938, 35.5018], 9);   // Lebanon center — replaced when coords arrive
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19,
+        .setView([33.8938, 35.5018], 9);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 20,
+        detectRetina: true,
       }).addTo(map);
+
+      map.on('dragstart', () => {
+        setFollowUser(false);
+      });
+
+      map.on('zoomstart', e => {
+        if (e.originalEvent) {
+          setFollowUser(false);
+        }
+      });
+
       mapRef.current = map;
     };
 
-    if (window.L) { doInit(); }
-    else {
+    if (window.L) {
+      doInit();
+    } else {
       const s = document.createElement('script');
       s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
       s.onload = doInit;
@@ -131,95 +190,415 @@ function WebMap({ safeCoords, userCoords, polyline }) {
     }
 
     return () => {
-      if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
     };
   }, []);
 
-  // ── user marker — updates every time coords change ──
   useEffect(() => {
     const map = mapRef.current;
     const L = window.L;
     if (!map || !L || !userCoords) return;
 
-    if (userMarkerRef.current) { userMarkerRef.current.remove(); userMarkerRef.current = null; }
+    if (!userMarkerRef.current) {
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:14px;height:14px;background:#3b82f6;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.45)"></div>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
+      });
 
-    const icon = L.divIcon({
-      className: '',
-      html: `<div style="width:14px;height:14px;background:#3b82f6;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.45)"></div>`,
-      iconSize: [14, 14], iconAnchor: [7, 7],
-    });
-    userMarkerRef.current = L.marker([userCoords.lat, userCoords.lng], { icon })
-      .bindPopup('Your Location')
-      .addTo(map);
-
-    // Pan to user only if no route polyline is drawn yet
-    if (!polylineRef.current) {
-      map.setView([userCoords.lat, userCoords.lng], 13);
+      userMarkerRef.current = L.marker([userCoords.lat, userCoords.lng], { icon })
+        .bindPopup('Your Location')
+        .addTo(map);
+    } else {
+      userMarkerRef.current.setLatLng([userCoords.lat, userCoords.lng]);
     }
-  }, [userCoords?.lat, userCoords?.lng]);   // only re-run when coords actually change
 
-  // ── safe zone marker ──
+    if (followUser) {
+      const focusZoom = 16;
+      map.setView([userCoords.lat, userCoords.lng], focusZoom);
+    }
+
+  }, [userCoords?.lat, userCoords?.lng, followUser]);
+
   useEffect(() => {
     const map = mapRef.current;
     const L = window.L;
     if (!map || !L || !safeCoords) return;
+
     const icon = L.divIcon({
       className: '',
       html: `<div style="background:#DC2626;color:#fff;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.3)">⛺ Safe Zone</div>`,
-      iconSize: [100, 28], iconAnchor: [50, 28],
+      iconSize: [100, 28],
+      iconAnchor: [50, 28],
     });
-    L.marker([safeCoords.lat, safeCoords.lng], { icon }).bindPopup('Safe Zone').addTo(map);
+
+    if (!safeMarkerRef.current) {
+      safeMarkerRef.current = L.marker([safeCoords.lat, safeCoords.lng], { icon })
+        .bindPopup('Safe Zone')
+        .addTo(map);
+    } else {
+      safeMarkerRef.current.setLatLng([safeCoords.lat, safeCoords.lng]);
+    }
   }, [safeCoords?.lat, safeCoords?.lng]);
 
-  // ── route polyline ──
   useEffect(() => {
     const map = mapRef.current;
     const L = window.L;
     if (!map || !L) return;
 
-    if (polylineRef.current) { polylineRef.current.remove(); polylineRef.current = null; }
+    if (polylineRef.current) {
+      polylineRef.current.remove();
+      polylineRef.current = null;
+    }
+
     if (!polyline?.length) return;
 
     const pl = L.polyline(polyline, { color: '#DC2626', weight: 5, opacity: 0.88 }).addTo(map);
     polylineRef.current = pl;
-    map.fitBounds(pl.getBounds(), { padding: [52, 52] });
+
+    if (!hasFittedRouteRef.current) {
+      map.fitBounds(pl.getBounds(), { padding: [52, 52] });
+      hasFittedRouteRef.current = true;
+    }
   }, [polyline]);
 
-  return <div ref={divRef} style={{ width: '100%', height: '100%', background: '#ddd' }} />;
+  useEffect(() => {
+    const map = mapRef.current;
+    const L = window.L;
+    if (!map || !L) return;
+
+    if (safePolygonRef.current) {
+      safePolygonRef.current.remove();
+      safePolygonRef.current = null;
+    }
+
+    if (!safePolygonCoords?.length) return;
+
+    safePolygonRef.current = L.polygon(safePolygonCoords, {
+      color: '#16a34a',
+      weight: 2,
+      fillColor: '#22c55e',
+      fillOpacity: 0.18,
+    }).addTo(map);
+  }, [safePolygonCoords]);
+
+  const recenter = () => {
+    const map = mapRef.current;
+    if (!map || !userCoords) return;
+
+    setFollowUser(true);
+
+    const focusZoom = 16;
+    map.flyTo([userCoords.lat, userCoords.lng], focusZoom, {
+      animate: true,
+      duration: 0.9,
+    });
+  };
+
+  return (
+    <View style={{ width: '100%', height: '100%', backgroundColor: '#ddd', position: 'relative' }}>
+      <View ref={divRef} style={{ width: '100%', height: '100%' }} />
+      {!followUser && userCoords && (
+        <TouchableOpacity
+          onPress={recenter}
+          style={{
+            position: 'absolute',
+            left: 12,
+            bottom: 12,
+            backgroundColor: '#fff',
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 999,
+            elevation: 3,
+          }}
+        >
+          <Text style={{ fontWeight: '700', color: '#0f172a' }}>📍 Recenter</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 }
 
-// ─── Native Map ───────────────────────────────────────────────────────────────
+// ─── Native Map (WebView-based Leaflet) ──────────────────────────────────────
 
-function NativeMap({ safeCoords, polylineCoords }) {
+function NativeMap({ safeCoords, safePolygonCoords, userCoords, polylineCoords, selectedIdx }) {
+  const [mapReady, setMapReady] = useState(false);
+  const [followUser, setFollowUser] = useState(true);
+  const webViewRef = useRef(null);
+
+  let WebViewComponent = null;
   try {
-    const MapView = require('react-native-maps').default;
-    const { Marker, Polyline } = require('react-native-maps');
-    const center = safeCoords || { lat: 33.8938, lng: 35.5018 };
-    return (
-      <MapView
-        style={{ width: '100%', height: '100%' }}
-        showsUserLocation
-        followsUserLocation
-        initialRegion={{ latitude: center.lat, longitude: center.lng, latitudeDelta: 0.09, longitudeDelta: 0.09 }}
-      >
-        {safeCoords && (
-          <Marker coordinate={{ latitude: safeCoords.lat, longitude: safeCoords.lng }} title="Safe Zone" pinColor="#DC2626" />
-        )}
-        {polylineCoords?.length > 0 && (
-          <Polyline
-            coordinates={polylineCoords.map(p => ({ latitude: p[0], longitude: p[1] }))}
-            strokeColor="#DC2626" strokeWidth={5}
-          />
-        )}
-      </MapView>
-    );
-  } catch {
+    WebViewComponent = require('react-native-webview').WebView;
+  } catch (e) {
+    WebViewComponent = null;
+  }
+
+  const mapHTML = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      />
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <style>
+        html, body, #map {
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+          background: #ddd;
+        }
+      </style>
+    </head>
+    <body>
+      <div id="map"></div>
+      <script>
+        const map = L.map('map').setView([33.8938, 35.5018], 9);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+          attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+          subdomains: 'abcd',
+          maxZoom: 20,
+          detectRetina: true
+        }).addTo(map);
+
+        let userMarker = null;
+        let safeMarker = null;
+        let routePolyline = null;
+        let safePolygon = null;
+        let hasFittedRoute = false;
+        let followUser = true;
+
+        map.on('dragstart', function() {
+          followUser = false;
+          window.ReactNativeWebView.postMessage('FOLLOW_OFF');
+        });
+
+        map.on('zoomstart', function(e) {
+          if (e.originalEvent) {
+            followUser = false;
+            window.ReactNativeWebView.postMessage('FOLLOW_OFF');
+          }
+        });
+
+        window.updateUserLocation = function(lat, lng) {
+          if (userMarker) {
+            userMarker.setLatLng([lat, lng]);
+          } else {
+            const icon = L.divIcon({
+              className: '',
+              html: '<div style="width:14px;height:14px;background:#3b82f6;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.45)"></div>',
+              iconSize: [14, 14],
+              iconAnchor: [7, 7]
+            });
+            userMarker = L.marker([lat, lng], { icon }).bindPopup('Your Location').addTo(map);
+          }
+
+          if (followUser) {
+            const focusZoom = 16;
+            map.setView([lat, lng], focusZoom);
+          }
+        };
+
+        window.updateSafeZone = function(lat, lng) {
+          if (safeMarker) {
+            safeMarker.setLatLng([lat, lng]);
+          } else {
+            const icon = L.divIcon({
+              className: '',
+              html: '<div style="background:#DC2626;color:#fff;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.3)">⛺ Safe Zone</div>',
+              iconSize: [100, 28],
+              iconAnchor: [50, 28]
+            });
+            safeMarker = L.marker([lat, lng], { icon }).bindPopup('Safe Zone').addTo(map);
+          }
+        };
+
+        window.updateRoute = function(coords) {
+          if (routePolyline) {
+            routePolyline.remove();
+            routePolyline = null;
+          }
+
+          if (coords && coords.length > 0) {
+            routePolyline = L.polyline(coords, {
+              color: '#DC2626',
+              weight: 5,
+              opacity: 0.88
+            }).addTo(map);
+
+            if (!hasFittedRoute) {
+              map.fitBounds(routePolyline.getBounds(), { padding: [52, 52] });
+              hasFittedRoute = true;
+            }
+          }
+        };
+
+        window.updateSafePolygon = function(coords) {
+          if (safePolygon) {
+            safePolygon.remove();
+            safePolygon = null;
+          }
+
+          if (coords && coords.length > 0) {
+            safePolygon = L.polygon(coords, {
+              color: '#16a34a',
+              weight: 2,
+              fillColor: '#22c55e',
+              fillOpacity: 0.18
+            }).addTo(map);
+          }
+        };
+
+        window.resetRouteFit = function() {
+          hasFittedRoute = false;
+          followUser = true;
+        };
+
+        window.enableFollowUser = function(lat, lng) {
+          followUser = true;
+
+          const focusZoom = 16;
+          map.flyTo([lat, lng], focusZoom, {
+            animate: true,
+            duration: 0.9
+          });
+        };
+
+        window.ReactNativeWebView.postMessage('MAP_READY');
+      </script>
+    </body>
+    </html>
+  `;
+
+  useEffect(() => {
+    setFollowUser(true);
+  }, [selectedIdx, safeCoords?.lat, safeCoords?.lng]);
+
+  useEffect(() => {
+    if (!mapReady || !webViewRef.current || !userCoords) return;
+
+    webViewRef.current.injectJavaScript(`
+      window.updateUserLocation(${userCoords.lat}, ${userCoords.lng});
+      true;
+    `);
+  }, [userCoords?.lat, userCoords?.lng, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady || !webViewRef.current || !safeCoords) return;
+
+    webViewRef.current.injectJavaScript(`
+      window.updateSafeZone(${safeCoords.lat}, ${safeCoords.lng});
+      true;
+    `);
+  }, [safeCoords?.lat, safeCoords?.lng, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady || !webViewRef.current) return;
+
+    const coordsString = JSON.stringify(polylineCoords || []);
+    webViewRef.current.injectJavaScript(`
+      window.updateRoute(${coordsString});
+      true;
+    `);
+  }, [polylineCoords, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady || !webViewRef.current) return;
+
+    const coordsString = JSON.stringify(safePolygonCoords || []);
+    webViewRef.current.injectJavaScript(`
+    window.updateSafePolygon(${coordsString});
+    true;
+  `);
+  }, [safePolygonCoords, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady || !webViewRef.current) return;
+
+    webViewRef.current.injectJavaScript(`
+      window.resetRouteFit && window.resetRouteFit();
+      true;
+    `);
+  }, [selectedIdx, mapReady]);
+
+  const recenter = () => {
+    if (!mapReady || !webViewRef.current || !userCoords) return;
+    setFollowUser(true);
+    webViewRef.current.injectJavaScript(`
+      window.enableFollowUser && window.enableFollowUser(${userCoords.lat}, ${userCoords.lng});
+      true;
+    `);
+  };
+
+  if (!WebViewComponent) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8e0d8' }}>
-        <Text style={{ color: '#94a3b8', fontSize: 13 }}>Map unavailable</Text>
+        <Text style={{ color: '#64748b', fontSize: 13 }}>
+          react-native-webview is not installed
+        </Text>
       </View>
     );
   }
+
+  return (
+    <View style={{ flex: 1 }}>
+      <WebViewComponent
+        ref={webViewRef}
+        originWhitelist={['*']}
+        source={{ html: mapHTML }}
+        style={{ flex: 1, backgroundColor: '#ddd' }}
+        onMessage={(event) => {
+          const msg = event.nativeEvent.data;
+          if (msg === 'MAP_READY') {
+            setMapReady(true);
+          } else if (msg === 'FOLLOW_OFF') {
+            setFollowUser(false);
+          }
+        }}
+        javaScriptEnabled
+        domStorageEnabled
+        mixedContentMode="always"
+        allowFileAccess
+        allowUniversalAccessFromFileURLs
+        startInLoadingState
+        renderLoading={() => (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ddd' }}>
+            <ActivityIndicator color="#DC2626" />
+            <Text style={{ color: '#64748b', fontSize: 12, marginTop: 8 }}>
+              Loading map...
+            </Text>
+          </View>
+        )}
+      />
+
+      {!followUser && userCoords && (
+        <TouchableOpacity
+          onPress={recenter}
+          style={{
+            position: 'absolute',
+            left: 12,
+            bottom: 12,
+            backgroundColor: '#fff',
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 999,
+            elevation: 3,
+          }}
+        >
+          <Text style={{ fontWeight: '700', color: '#0f172a' }}>📍 Recenter</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 }
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
@@ -227,6 +606,7 @@ function NativeMap({ safeCoords, polylineCoords }) {
 export default function EvacuationScreen({ navigation, route }) {
   let nav = navigation;
   let routeParams = route?.params || {};
+
   if (Platform.OS !== 'web') {
     try {
       const { useNavigation, useRoute } = require('@react-navigation/native');
@@ -235,11 +615,11 @@ export default function EvacuationScreen({ navigation, route }) {
     } catch { }
   }
 
-  const { fireId } = routeParams;
+  const { fireId, isUnsafe = false } = routeParams;
 
   const [routes, setRoutes] = useState([]);
   const [routesLoading, setRoutesLoading] = useState(true);
-  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [selectedIdx, setSelectedIdx] = useState(isUnsafe ? 0 : null);
   const [voiceOn, setVoiceOn] = useState(false);
   const [userCoords, setUserCoords] = useState(null);
   const [directions, setDirections] = useState([]);
@@ -248,19 +628,28 @@ export default function EvacuationScreen({ navigation, route }) {
   const [routePolyline, setRoutePolyline] = useState([]);
   const dot = useRef(new Animated.Value(1)).current;
 
-  // ── Fetch routes — runs on BOTH platforms ─────────────────────────────────
-  // (Native still uses this; Apollo hook below only augments if Apollo is available)
+  const lastRerouteCoordsRef = useRef(null);
+  const rerouteTimeoutRef = useRef(null);
+  const activeRouteRequestRef = useRef(0);
+
+  useEffect(() => {
+    setSelectedIdx(isUnsafe ? 0 : null);
+  }, [isUnsafe, fireId]);
+
   useEffect(() => {
     let cancelled = false;
+
     const load = async () => {
       try {
         const data = fireId
           ? await gqlFetch(GET_EVACUATIONS_BY_FIRE, { fire_id: fireId })
           : await gqlFetch(GET_EVACUATION_ROUTES);
+
         if (!cancelled) {
           const list = fireId
             ? data?.getEvacuationsByFireId
             : data?.getAllEvacuations;
+
           setRoutes(list || []);
         }
       } catch (e) {
@@ -269,258 +658,439 @@ export default function EvacuationScreen({ navigation, route }) {
         if (!cancelled) setRoutesLoading(false);
       }
     };
+
     load();
     return () => { cancelled = true; };
   }, [fireId]);
 
-  // ── User location (web only — native uses showsUserLocation) ──────────────
+  // ── User location (web + native, no extra permission prompt here) ──────────
   useEffect(() => {
-    if (Platform.OS !== 'web' || !navigator.geolocation) return;
+    let watchId = null;
+    let Geolocation = null;
+    let cancelled = false;
 
-    // Get a fast rough position immediately (cached, low accuracy)
-    navigator.geolocation.getCurrentPosition(
-      pos => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => { },
-      { enableHighAccuracy: false, maximumAge: 60000, timeout: 5000 }
-    );
+    const applyCoords = pos => {
+      if (cancelled || !pos?.coords) return;
+      setUserCoords({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+      });
+    };
 
-    // Then watch for a precise position in the background
-    const wid = navigator.geolocation.watchPosition(
-      pos => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      err => console.warn('[Geolocation]', err.message),
-      { enableHighAccuracy: true, maximumAge: 0 }
-    );
-    return () => navigator.geolocation.clearWatch(wid);
+    const init = async () => {
+      try {
+        const loc = await getCurrentLocation();
+        if (!cancelled && loc) {
+          setUserCoords({
+            lat: loc.latitude,
+            lng: loc.longitude,
+          });
+        }
+      } catch (e) {
+        console.warn('[Evacuation initial location]', e.message);
+      }
+
+      if (Platform.OS === 'web') {
+        if (!navigator.geolocation) return;
+
+        watchId = navigator.geolocation.watchPosition(
+          applyCoords,
+          err => console.warn('[Web Geolocation]', err.message),
+          {
+            enableHighAccuracy: true,
+            maximumAge: 5000,
+            timeout: 10000,
+          }
+        );
+        return;
+      }
+
+      try {
+        Geolocation = require('@react-native-community/geolocation').default;
+      } catch (e) {
+        console.warn('[Native Geolocation] Package not installed');
+        return;
+      }
+
+      watchId = Geolocation.watchPosition(
+        applyCoords,
+        err => console.warn('[Native Geolocation]', err.message),
+        {
+          enableHighAccuracy: true,
+          distanceFilter: 3,
+          interval: 2000,
+          fastestInterval: 1500,
+          timeout: 10000,
+          maximumAge: 5000,
+        }
+      );
+    };
+
+    init();
+
+    return () => {
+      cancelled = true;
+
+      if (Platform.OS === 'web') {
+        if (watchId != null && navigator.geolocation) {
+          navigator.geolocation.clearWatch(watchId);
+        }
+        return;
+      }
+
+      if (Geolocation && watchId != null) {
+        Geolocation.clearWatch(watchId);
+      }
+    };
   }, []);
 
-  // ── OSRM route ────────────────────────────────────────────────────────────
-  const selectedRoute = routes[selectedIdx] || null;
+  const selectedRoute = selectedIdx !== null ? (routes[selectedIdx] || null) : null;
   const safeCoords = selectedRoute ? parseGeoJSON(selectedRoute.safe_zone) : null;
+  const safePolygonCoords = selectedRoute ? parsePolygonCoords(selectedRoute.safe_zone) : [];
   const routeCoords = selectedRoute ? parseGeoJSON(selectedRoute.route_path) : null;
 
+  const hasSelectedRoute = selectedIdx !== null;
+  const shouldShowEvacuationMapData = isUnsafe || hasSelectedRoute;
+  const visibleSafeCoords = shouldShowEvacuationMapData ? safeCoords : null;
+  const visibleRoutePolyline = shouldShowEvacuationMapData ? routePolyline : [];
+  const visibleSafePolygonCoords = shouldShowEvacuationMapData ? safePolygonCoords : [];
+
   useEffect(() => {
-    if (!selectedRoute) return;
+    lastRerouteCoordsRef.current = null;
+
+    if (rerouteTimeoutRef.current) {
+      clearTimeout(rerouteTimeoutRef.current);
+      rerouteTimeoutRef.current = null;
+    }
+
+    activeRouteRequestRef.current += 1;
+  }, [selectedIdx]);
+
+  useEffect(() => {
+    if (!selectedRoute || (!isUnsafe && selectedIdx === null)) return;
+
     const from = userCoords || routeCoords;
     const to = safeCoords || routeCoords;
+
     if (!from || !to || (from.lat === to.lat && from.lng === to.lng)) {
-      setDirections([]); setRoutingMeta(null); setRoutePolyline([]);
+      setDirections([]);
+      setRoutingMeta(null);
+      setRoutePolyline([]);
+      lastRerouteCoordsRef.current = null;
       return;
     }
-    let cancelled = false;
-    setRoutingLoading(true);
-    fetchOSRMRoute(from.lat, from.lng, to.lat, to.lng).then(res => {
-      if (cancelled) return;
-      if (res) {
-        setDirections(res.steps);
-        setRoutingMeta({ totalKm: res.totalKm, totalTime: res.totalTime });
-        setRoutePolyline(res.polyline);
-      } else {
-        setDirections([]); setRoutingMeta(null); setRoutePolyline([]);
-      }
-      setRoutingLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [selectedIdx, userCoords?.lat, userCoords?.lng]);
 
-  // ── Dot animation ─────────────────────────────────────────────────────────
+    const movedDistance = distanceInMeters(lastRerouteCoordsRef.current, from);
+    const shouldReroute =
+      !lastRerouteCoordsRef.current || movedDistance >= 20;
+
+    if (!shouldReroute) return;
+
+    if (rerouteTimeoutRef.current) {
+      clearTimeout(rerouteTimeoutRef.current);
+      rerouteTimeoutRef.current = null;
+    }
+
+    const requestId = activeRouteRequestRef.current + 1;
+    activeRouteRequestRef.current = requestId;
+
+    rerouteTimeoutRef.current = setTimeout(async () => {
+      setRoutingLoading(true);
+
+      try {
+        const res = await fetchOSRMRoute(from.lat, from.lng, to.lat, to.lng);
+
+        if (activeRouteRequestRef.current !== requestId) return;
+
+        if (res) {
+          setDirections(res.steps);
+          setRoutingMeta({ totalKm: res.totalKm, totalTime: res.totalTime });
+          setRoutePolyline(res.polyline);
+          lastRerouteCoordsRef.current = from;
+        } else {
+          setDirections([]);
+          setRoutingMeta(null);
+          setRoutePolyline([]);
+        }
+      } finally {
+        if (activeRouteRequestRef.current === requestId) {
+          setRoutingLoading(false);
+        }
+      }
+    }, 800);
+
+    return () => {
+      if (rerouteTimeoutRef.current) {
+        clearTimeout(rerouteTimeoutRef.current);
+        rerouteTimeoutRef.current = null;
+      }
+    };
+  }, [selectedIdx, userCoords?.lat, userCoords?.lng, safeCoords?.lat, safeCoords?.lng]);
+
+  useEffect(() => {
+    return () => {
+      if (rerouteTimeoutRef.current) {
+        clearTimeout(rerouteTimeoutRef.current);
+      }
+      activeRouteRequestRef.current += 1;
+    };
+  }, []);
+
   useEffect(() => {
     Animated.loop(Animated.sequence([
       Animated.timing(dot, { toValue: 1.4, duration: 750, useNativeDriver: false }),
       Animated.timing(dot, { toValue: 1, duration: 750, useNativeDriver: false }),
     ])).start();
-  }, []);
+  }, [dot]);
 
   const getStatusStyle = s =>
     (s === 'Active' || s === 'Open' || s === 'Clear')
       ? { view: styles.routeStatusClear, text: styles.routeStatusClearText }
       : { view: styles.routeStatusCaution, text: styles.routeStatusCautionText };
 
-  // ─────────────────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.safeArea}>
-
-      {/* ── HEADER ──────────────────────────────────────────────────────── */}
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => nav?.goBack()}>
-            <Text style={styles.backText}>‹ Back</Text>
-          </TouchableOpacity>
-          <View style={styles.navBadge}>
-            <Text style={styles.navBadgeText}>🧭 Live Navigation</Text>
-          </View>
-        </View>
-        <Text style={styles.headerTitle}>Evacuation Route</Text>
-        <Text style={styles.headerSub}>
-          {routingMeta
-            ? `${routingMeta.totalKm} km  •  ${routingMeta.totalTime} to safe zone`
-            : userCoords ? 'Calculating route…' : 'Locating you…'}
-        </Text>
-      </View>
-
-      {/* ── MAP ─────────────────────────────────────────────────────────── */}
-      <View style={styles.mapArea}>
-        {Platform.OS === 'web' ? (
-          <WebMap
-            safeCoords={safeCoords}
-            userCoords={userCoords}
-            polyline={routePolyline}
-          />
-        ) : (
-          <WebMap
-            safeCoords={safeCoords}
-            userCoords={userCoords}
-            polyline={routePolyline}
-          />
-        )}
-
-        {/* km/time pill */}
-        {routingMeta && (
-          <View style={[styles.mapOverlay, { pointerEvents: 'none' }]}>
-            <Text style={{ color: '#fff', fontSize: 12 }}>🧭</Text>
-            <Text style={styles.mapOverlayText}>
-              {routingMeta.totalKm} km  •  {routingMeta.totalTime}
-            </Text>
-          </View>
-        )}
-
-        {/* Locating badge */}
-        {!userCoords && Platform.OS === 'web' && (
-          <View style={[styles.mapLocating, { pointerEvents: 'none' }]}>
-            <ActivityIndicator color="#DC2626" size="small" />
-            <Text style={styles.mapLocatingText}>Locating…</Text>
-          </View>
-        )}
-      </View>
-
-      {/* ── ROUTE PILL SWITCHER ──────────────────────────────────────────── */}
-      <View style={styles.routeSwitcherBar}>
-        {routesLoading ? (
-          <>
-            <ActivityIndicator color="#DC2626" size="small" />
-            <Text style={styles.routeSwitcherLoading}>Loading routes…</Text>
-          </>
-        ) : routes.length === 0 ? (
-          <Text style={styles.routeSwitcherLoading}>No routes available</Text>
-        ) : (
-          <>
-            <Text style={styles.routeSwitcherLabel}>Route:</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.routeSwitcherScroll}
-            >
-              {routes.map((r, i) => {
-                const active = i === selectedIdx;
-                const ss = getStatusStyle(r.route_status);
-                return (
-                  <TouchableOpacity
-                    key={r.route_id}
-                    onPress={() => setSelectedIdx(i)}
-                    style={[styles.routePill, active ? styles.routePillActive : styles.routePillInactive]}
-                    activeOpacity={0.75}
-                  >
-                    {/* Priority number */}
-                    <Text style={[styles.routePillPriority, active && styles.routePillPriorityActive]}>
-                      P{r.route_priority ?? i + 1}
-                    </Text>
-                    {/* Distance */}
-                    <Text style={[styles.routePillKm, active && styles.routePillKmActive]}>
-                      {r.distance_km != null ? `${parseFloat(r.distance_km).toFixed(1)} km` : '—'}
-                    </Text>
-                    {/* Status badge */}
-                    <View style={ss.view}>
-                      <Text style={ss.text}>{r.route_status || '?'}</Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </>
-        )}
-
-        {/* AR shortcut */}
-        <TouchableOpacity style={styles.arModeBtn} onPress={() => nav?.navigate('ARMode')}>
-          <Text style={styles.arModeBtnText}>⚡ AR</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* ── SCROLLABLE DIRECTIONS ───────────────────────────────────────── */}
-      <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
-        <View style={styles.directionsSection}>
-
-          <View style={styles.directionsHeaderRow}>
-            <Text style={styles.directionsTitle}>
-              {routingMeta ? `Directions (${directions.length} steps)` : 'Turn-by-Turn Directions'}
-            </Text>
-            <TouchableOpacity
-              onPress={() => setVoiceOn(v => !v)}
-              style={[styles.voiceBtn, voiceOn ? styles.voiceBtnOn : styles.voiceBtnOff]}
-            >
-              <Text style={voiceOn ? styles.voiceBtnTextOn : styles.voiceBtnTextOff}>
-                🔊 {voiceOn ? 'On' : 'Off'}
-              </Text>
+    <SafeAreaView
+      style={[
+        styles.safeArea,
+        Platform.OS === 'web' && { height: '100vh', overflow: 'hidden' },
+      ]}
+    >
+      <View style={{ flex: 1, overflow: 'hidden' }}>
+        <View style={[styles.header, { flexShrink: 0 }]}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => nav?.goBack()}>
+              <Text style={styles.backText}>‹ Back</Text>
             </TouchableOpacity>
+            <View style={styles.navBadge}>
+              <Text style={styles.navBadgeText}>🧭 Live Navigation</Text>
+            </View>
           </View>
 
-          {routingLoading ? (
-            <View style={styles.directionsLoading}>
-              <ActivityIndicator color="#DC2626" />
-              <Text style={styles.directionsLoadingText}>Calculating route…</Text>
-            </View>
-          ) : directions.length === 0 ? (
-            <View style={styles.emptyDirections}>
-              <Text style={styles.emptyDirectionsText}>
-                {!selectedRoute
-                  ? 'No routes available.'
-                  : !userCoords
-                    ? 'Waiting for your location…'
-                    : 'Could not calculate route — check your connection.'}
-              </Text>
-            </View>
-          ) : (
-            directions.map((step, i) => (
-              <View key={i} style={styles.stepRow}>
-                <View style={styles.stepCol}>
-                  <View style={[styles.stepNum, i === 0 ? styles.stepNumActive : styles.stepNumInactive]}>
-                    <Text style={{ fontSize: 13 }}>{turnIcon(step.type)}</Text>
-                  </View>
-                  {i < directions.length - 1 && <View style={styles.stepLine} />}
-                </View>
-                <View style={styles.stepCard}>
-                  <Text style={styles.stepInstruction}>{step.instruction}</Text>
-                  <Text style={styles.stepMeta}>{step.distance}  •  {step.time}</Text>
-                </View>
-              </View>
-            ))
-          )}
+          <Text style={styles.headerTitle}>Evacuation Route</Text>
 
-          {selectedRoute && (
-            <View style={styles.safeZoneBox}>
-              <View style={styles.safeZoneRow}>
-                <Text style={{ fontSize: 22 }}>📍</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.safeZoneTitle}>Safe Zone</Text>
-                  <Text style={styles.safeZoneName}>{selectedRoute.safe_zone || 'Assembly Point'}</Text>
-                  <Text style={styles.safeZoneSub}>Emergency services and shelter available</Text>
-                </View>
-              </View>
-            </View>
-          )}
-
-          <Text style={styles.attribution}>
-            Map © OpenStreetMap contributors  •  Routing by OSRM
+          <Text style={styles.headerSub}>
+            {!isUnsafe && selectedIdx === null
+              ? 'You are safe right now'
+              : routingMeta
+                ? `${routingMeta.totalKm} km  •  ${routingMeta.totalTime} to safe zone`
+                : userCoords
+                  ? 'Calculating route…'
+                  : 'Locating you…'}
           </Text>
         </View>
-      </ScrollView>
 
-      {/* ── FOOTER ──────────────────────────────────────────────────────── */}
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.startBtn} onPress={() => nav?.navigate('ARMode')}>
-          <Text style={{ fontSize: 18 }}>🧭</Text>
-          <Text style={styles.startBtnText}>Start AR Navigation</Text>
-        </TouchableOpacity>
+        <View
+          style={[
+            styles.mapArea,
+            {
+              flexShrink: 0,
+              height: 445
+            },
+          ]}
+        >
+          {Platform.OS === 'web' ? (
+            <WebMap
+              safeCoords={visibleSafeCoords}
+              safePolygonCoords={visibleSafePolygonCoords}
+              userCoords={userCoords}
+              polyline={visibleRoutePolyline}
+            />
+          ) : (
+            <NativeMap
+              safeCoords={visibleSafeCoords}
+              safePolygonCoords={visibleSafePolygonCoords}
+              userCoords={userCoords}
+              polylineCoords={visibleRoutePolyline}
+              selectedIdx={selectedIdx}
+            />
+          )}
+
+          {shouldShowEvacuationMapData && routingMeta && (
+            <View style={[styles.mapOverlay, { pointerEvents: 'none' }]}>
+              <Text style={{ color: '#fff', fontSize: 12 }}>🧭</Text>
+              <Text style={styles.mapOverlayText}>
+                {routingMeta.totalKm} km  •  {routingMeta.totalTime}
+              </Text>
+            </View>
+          )}
+
+          {!userCoords && (
+            <View style={[styles.mapLocating, { pointerEvents: 'none' }]}>
+              <ActivityIndicator color="#DC2626" size="small" />
+              <Text style={styles.mapLocatingText}>Locating…</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={[styles.routeSwitcherBar, { flexShrink: 0 }]}>
+          {routesLoading ? (
+            <>
+              <ActivityIndicator color="#DC2626" size="small" />
+              <Text style={styles.routeSwitcherLoading}>Loading routes…</Text>
+            </>
+          ) : routes.length === 0 ? (
+            <Text style={styles.routeSwitcherLoading}>No routes available</Text>
+          ) : (
+            <>
+              <Text style={styles.routeSwitcherLabel}>Route:</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.routeSwitcherScroll}
+              >
+                {routes.map((r, i) => {
+                  const active = i === selectedIdx;
+                  const ss = getStatusStyle(r.route_status);
+
+                  return (
+                    <TouchableOpacity
+                      key={r.route_id}
+                      onPress={() => {
+                        if (!isUnsafe && selectedIdx === i) {
+                          setSelectedIdx(null);
+                        } else {
+                          setSelectedIdx(i);
+                        }
+                      }}
+                      style={[
+                        styles.routePill,
+                        active ? styles.routePillActive : styles.routePillInactive,
+                      ]}
+                      activeOpacity={0.75}
+                    >
+                      <Text style={[styles.routePillPriority, active && styles.routePillPriorityActive]}>
+                        P{r.route_priority ?? i + 1}
+                      </Text>
+
+                      <Text style={[styles.routePillKm, active && styles.routePillKmActive]}>
+                        {r.distance_km != null ? `${parseFloat(r.distance_km).toFixed(1)} km` : '—'}
+                      </Text>
+
+                      <View style={ss.view}>
+                        <Text style={ss.text}>{r.route_status || '?'}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </>
+          )}
+
+          {(isUnsafe || selectedIdx !== null) && (
+            <TouchableOpacity style={styles.arModeBtn} onPress={() => nav?.navigate('ARMode')}>
+              <Text style={styles.arModeBtnText}>⚡ AR</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View
+          style={{
+            height: (isUnsafe || selectedIdx !== null) ? 225 : 290,
+            overflow: 'hidden',
+            flexShrink: 0,
+          }}
+        >
+          <View
+            style={[
+              styles.directionsSection,
+              {
+                height: '100%',
+                overflow: 'hidden',
+              },
+            ]}
+          >
+            <View style={styles.directionsHeaderRow}>
+              <Text style={styles.directionsTitle}>
+                {isUnsafe || selectedIdx !== null ? `Directions (${directions.length} steps)` : 'Turn-by-Turn Directions'}
+              </Text>
+
+              <View style={{ width: 74, height: 30, alignItems: 'flex-end', justifyContent: 'center' }}>
+                {(isUnsafe || selectedIdx !== null) && (
+                  <TouchableOpacity
+                    onPress={() => setVoiceOn(v => !v)}
+                    style={[styles.voiceBtn, voiceOn ? styles.voiceBtnOn : styles.voiceBtnOff]}
+                  >
+                    <Text style={voiceOn ? styles.voiceBtnTextOn : styles.voiceBtnTextOff}>
+                      🔊 {voiceOn ? 'On' : 'Off'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              style={{ flex: 1 }}
+              contentContainerStyle={{ paddingBottom: 0 }}
+            >
+              {!isUnsafe && selectedIdx === null ? (
+                <View style={styles.emptyDirections}>
+                  <Text style={styles.emptyDirectionsText}>
+                    You are outside the active fire danger zone. No evacuation route is currently needed.
+                  </Text>
+                </View>
+              ) : routingLoading ? (
+                <View style={styles.directionsLoading}>
+                  <ActivityIndicator color="#DC2626" />
+                  <Text style={styles.directionsLoadingText}>Calculating route…</Text>
+                </View>
+              ) : directions.length === 0 ? (
+                <View style={styles.emptyDirections}>
+                  <Text style={styles.emptyDirectionsText}>
+                    {!selectedRoute
+                      ? 'Select a route to preview it.'
+                      : !userCoords
+                        ? 'Waiting for your location…'
+                        : 'Could not calculate route — check your connection.'}
+                  </Text>
+                </View>
+              ) : (
+                directions.map((step, i) => (
+                  <View key={i} style={styles.stepRow}>
+                    <View style={styles.stepCol}>
+                      <View style={[styles.stepNum, i === 0 ? styles.stepNumActive : styles.stepNumInactive]}>
+                        <Text style={{ fontSize: 13 }}>{turnIcon(step.type)}</Text>
+                      </View>
+                      {i < directions.length - 1 && <View style={styles.stepLine} />}
+                    </View>
+
+                    <View style={styles.stepCard}>
+                      <Text style={styles.stepInstruction}>{step.instruction}</Text>
+                      <Text style={styles.stepMeta}>{step.distance}  •  {step.time}</Text>
+                    </View>
+                  </View>
+                ))
+              )}
+
+              {(isUnsafe || selectedIdx !== null) && selectedRoute && (
+                <View style={styles.safeZoneBox}>
+                  <View style={styles.safeZoneRow}>
+                    <Text style={{ fontSize: 22 }}>📍</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.safeZoneTitle}>Safe Zone</Text>
+                      <Text style={styles.safeZoneName}>Assembly Point</Text>
+                      <Text style={styles.safeZoneSub}>Emergency services and shelter available</Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              <Text style={styles.attribution}>
+                Map © OpenStreetMap contributors  •  Routing by OSRM
+              </Text>
+            </ScrollView>
+          </View>
+        </View>
+
+        {(isUnsafe || selectedIdx !== null) && (
+          <View style={[styles.footer, { flexShrink: 0 }]}>
+            <TouchableOpacity style={styles.startBtn} onPress={() => nav?.navigate('ARMode')}>
+              <Text style={{ fontSize: 18 }}>🧭</Text>
+              <Text style={styles.startBtnText}>Start AR Navigation</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
-
     </SafeAreaView>
   );
 }

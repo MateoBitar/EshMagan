@@ -1,14 +1,22 @@
 // src/context/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Platform } from 'react-native';
-import { authService } from '../services/api';
-import { startLocationTracking, stopLocationTracking } from '../services/location.service';
+import { authService, gqlFetch, UPDATE_RESPONDER_LOCATION, UPDATE_RESIDENT } from '../services/api';
+import {
+  startResidentLocationTracking,
+  startResponderLocationTracking,
+  stopLocationTracking,
+  getCurrentLocation,
+} from '../services/location.service';
 
 const getStorage = () => {
   if (Platform.OS === 'web') {
     return {
-      getItem: (key) => Promise.resolve(window.localStorage.getItem(key)),
-      removeItem: (key) => { window.localStorage.removeItem(key); return Promise.resolve(); },
+      getItem: key => Promise.resolve(window.localStorage.getItem(key)),
+      removeItem: key => {
+        window.localStorage.removeItem(key);
+        return Promise.resolve();
+      },
     };
   }
   return require('@react-native-async-storage/async-storage').default;
@@ -27,12 +35,37 @@ export function AuthProvider({ children }) {
         const token = await storage.getItem('accessToken');
         const role = await storage.getItem('userRole');
         const userId = await storage.getItem('userId');
+
         if (token && role) {
           const restoredUser = { role, token, id: userId };
           setUser(restoredUser);
-          // Resume location tracking for residents on app restart
-          if ((role === 'Resident' || role === 'Admin') && userId) {
-            startLocationTracking(userId);
+
+          if (userId) {
+            try {
+              const loc = await getCurrentLocation();
+              if (!loc) return;
+              if (role === 'Resident' || role === 'Admin') {
+                await gqlFetch(UPDATE_RESIDENT, {
+                  resident_id: userId,
+                  input: {
+                    last_known_location: {
+                      latitude: loc.latitude,
+                      longitude: loc.longitude,
+                    },
+                  },
+                });
+                startResidentLocationTracking(userId);
+              } else if (role === 'Responder') {
+                await gqlFetch(UPDATE_RESPONDER_LOCATION, {
+                  responder_id: userId,
+                  latitude: loc.latitude,
+                  longitude: loc.longitude,
+                });
+                startResponderLocationTracking(userId);
+              }
+            } catch (e) {
+              console.warn('Initial restored-session location push failed', e);
+            }
           }
         }
       } catch (e) {
@@ -58,9 +91,32 @@ export function AuthProvider({ children }) {
 
     setUser(loggedInUser);
 
-    // Start location tracking for residents after login
-    if ((userRole === 'Resident' || userRole === 'Admin') && userId) {
-      startLocationTracking(userId);
+    if (userId) {
+      try {
+        const loc = await getCurrentLocation();
+        if (!loc) return data;
+        if (userRole === 'Resident' || userRole === 'Admin') {
+          await gqlFetch(UPDATE_RESIDENT, {
+            resident_id: userId,
+            input: {
+              last_known_location: {
+                latitude: loc.latitude,
+                longitude: loc.longitude,
+              },
+            },
+          });
+          startResidentLocationTracking(userId);
+        } else if (userRole === 'Responder') {
+          await gqlFetch(UPDATE_RESPONDER_LOCATION, {
+            responder_id: userId,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+          });
+          startResponderLocationTracking(userId);
+        }
+      } catch (e) {
+        console.warn('Initial location push failed', e);
+      }
     }
 
     return data;
