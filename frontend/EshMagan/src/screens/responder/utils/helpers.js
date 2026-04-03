@@ -94,7 +94,7 @@ export function getFireZoneStyle(level) {
   }
   if (level >= 3) {
     return {
-      stroke: '#F59E0B',
+      stroke: '#D97706',
       fill: '#fbbf24',
       fillOpacity: 0.10,
     };

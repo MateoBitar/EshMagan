@@ -1,330 +1,513 @@
-// src/screens/municipality/MunicipalityDashboard.js
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Platform, Alert, TextInput, Modal } from 'react-native';
-import { gqlFetch, GET_ALL_FIRES, GET_FIRE_STATISTICS, CREATE_FIRE_AND_TRIGGER, GET_ALL_RESPONDERS } from '../../services/api';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  SafeAreaView,
+  ActivityIndicator,
+  Platform,
+} from 'react-native';
+import {
+  gqlFetch,
+  GET_ALL_FIRES,
+  GET_ALL_RESPONDERS,
+  GET_ALERTS_BY_ROLE,
+  GET_NOTIFICATIONS_BY_ROLE,
+  UPDATE_NOTIFICATION_STATUS,
+  GET_MUNICIPALITY_BY_ID,
+} from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import styles from '../../styles/screens/MunicipalityDashboard.styles';
+import WebMunicipalityMap from './maps/WebMunicipalityMap';
+import NativeMunicipalityMap from './maps/NativeMunicipalityMap';
+import AlertsTab from './tabs/AlertsTab';
+import NotificationsTab from './tabs/NotificationTab';
 
-const NAV_ITEMS = [
-  { id: 'dashboard', emoji: '📊', label: 'Dashboard' },
-  { id: 'incidents', emoji: '⚠️', label: 'Incidents' },
-  { id: 'responders', emoji: '👥', label: 'Responders' },
-  { id: 'report', emoji: '➕', label: 'Report' },
-];
+const RESPONDER_STATUS_COLORS = {
+  Active: '#16a34a',
+  Standby: '#f59e0b',
+  Unavailable: '#94a3b8',
+};
+
+function isValidCoordPair(lat, lng) {
+  return Number.isFinite(lat) && Number.isFinite(lng);
+}
 
 function getSeverityColor(level) {
-  if (!level) return { bg: '#f8fafc', text: '#94a3b8' };
-  if (level >= 8) return { bg: '#fef2f2', text: '#dc2626' };
-  if (level >= 6) return { bg: '#fff7ed', text: '#ea580c' };
-  if (level >= 3) return { bg: '#fefce8', text: '#ca8a04' };
-  return { bg: '#f0fdf4', text: '#16a34a' };
+  if (!level) return { bg: 'rgba(148,163,184,0.14)', text: '#cbd5e1', border: 'rgba(148,163,184,0.35)', solid: '#94a3b8' };
+  if (level >= 8) return { bg: 'rgba(220,38,38,0.14)', text: '#f87171', border: 'rgba(220,38,38,0.35)', solid: '#dc2626' };
+  if (level >= 6) return { bg: 'rgba(234,88,12,0.14)', text: '#fb923c', border: 'rgba(234,88,12,0.35)', solid: '#ea580c' };
+  if (level >= 3) return { bg: 'rgba(245,158,11,0.14)', text: '#fbbf24', border: 'rgba(245,158,11,0.35)', solid: '#f59e0b' };
+  return { bg: 'rgba(22,163,74,0.14)', text: '#4ade80', border: 'rgba(22,163,74,0.35)', solid: '#16a34a' };
 }
 
-function useDashboardData() {
+function getSeverityLabel(level) {
+  if (!level) return 'Unknown';
+  if (level >= 8) return 'Critical';
+  if (level >= 6) return 'High';
+  if (level >= 3) return 'Moderate';
+  return 'Low';
+}
+
+function parsePoint(value) {
+  if (!value) return null;
+
+  if (typeof value === 'object') {
+    const lat = Number(
+      value.latitude ??
+      value.lat ??
+      value.y ??
+      value?.coordinates?.[1]
+    );
+    const lng = Number(
+      value.longitude ??
+      value.lng ??
+      value.lon ??
+      value.x ??
+      value?.coordinates?.[0]
+    );
+
+    if (isValidCoordPair(lat, lng)) return { lat, lng };
+
+    if (value?.type === 'Point' && Array.isArray(value.coordinates) && value.coordinates.length === 2) {
+      const geoLat = Number(value.coordinates[1]);
+      const geoLng = Number(value.coordinates[0]);
+      if (isValidCoordPair(geoLat, geoLng)) return { lat: geoLat, lng: geoLng };
+    }
+  }
+
+  try {
+    const geo = typeof value === 'string' ? JSON.parse(value) : value;
+    if (geo?.type === 'Point' && Array.isArray(geo.coordinates) && geo.coordinates.length === 2) {
+      const lat = Number(geo.coordinates[1]);
+      const lng = Number(geo.coordinates[0]);
+      if (isValidCoordPair(lat, lng)) return { lat, lng };
+    }
+  } catch {}
+
+  const match = String(value).match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
+  if (match) {
+    const lng = Number(match[1]);
+    const lat = Number(match[2]);
+    if (isValidCoordPair(lat, lng)) return { lat, lng };
+  }
+
+  return null;
+}
+
+function getResponderCoords(responder) {
+  if (responder?.last_known_location?.latitude != null && responder?.last_known_location?.longitude != null) {
+    const lat = Number(responder.last_known_location.latitude);
+    const lng = Number(responder.last_known_location.longitude);
+    if (isValidCoordPair(lat, lng)) return { lat, lng };
+  }
+
+  return parsePoint(responder?.last_known_location);
+}
+
+function getResponderUnitCoords(responder) {
+  if (responder?.unit_location?.latitude != null && responder?.unit_location?.longitude != null) {
+    const lat = Number(responder.unit_location.latitude);
+    const lng = Number(responder.unit_location.longitude);
+    if (isValidCoordPair(lat, lng)) return { lat, lng };
+  }
+
+  return parsePoint(responder?.unit_location);
+}
+
+function getMunicipalityCoords(municipality) {
+  return (
+    parsePoint(municipality?.municipality_location) ||
+    parsePoint(municipality?.location) ||
+    null
+  );
+}
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+export default function MunicipalityDashboard() {
+  const { user, logout } = useAuth();
+
+  const municipalityId = user?.id;
+
+  const [activeTab, setActiveTab] = useState('map');
+  const [selectedFireId, setSelectedFireId] = useState(null);
+  const [selectedResponderId, setSelectedResponderId] = useState(null);
+  const [openSections, setOpenSections] = useState({
+    fires: true,
+    responders: true,
+  });
+
   const [fires, setFires] = useState([]);
   const [responders, setResponders] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [municipality, setMunicipality] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const refresh = async () => {
-    try {
-      const [fireData, respData] = await Promise.all([
-        gqlFetch(GET_ALL_FIRES),
-        gqlFetch(GET_ALL_RESPONDERS),
-      ]);
-      setFires(fireData?.getAllFires || []);
-      setResponders(respData?.getAllResponders || []);
-    } catch (e) { console.error('Dashboard fetch error:', e); }
-    finally { setLoading(false); }
-  };
-
   useEffect(() => {
-    if (Platform.OS !== 'web') { setLoading(false); return; }
-    refresh();
-    const interval = setInterval(refresh, 15000);
-    return () => clearInterval(interval);
-  }, []);
+    let mounted = true;
 
-  return { fires, responders, loading, refresh };
-}
+    const fetchAll = async () => {
+      try {
+        const [fireData, responderData, alertData, notificationData, municipalityData] = await Promise.all([
+          gqlFetch(GET_ALL_FIRES),
+          gqlFetch(GET_ALL_RESPONDERS),
+          gqlFetch(GET_ALERTS_BY_ROLE, { target_role: 'Municipality' }),
+          gqlFetch(GET_NOTIFICATIONS_BY_ROLE, { target_role: 'Municipality' }),
+          municipalityId ? gqlFetch(GET_MUNICIPALITY_BY_ID, { municipality_id: municipalityId }) : Promise.resolve(null),
+        ]);
 
-export default function MunicipalityDashboard({ navigation }) {
-  let nav = navigation;
-  if (Platform.OS !== 'web') {
-    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch {}
-  }
+        if (!mounted) return;
 
-  const { logout } = useAuth();
-  const [activeNav, setActiveNav] = useState('dashboard');
-  const [reportModal, setReportModal] = useState(false);
-  const [reportForm, setReportForm] = useState({ fire_location: '', fire_source: 'Responder', fire_severitylevel: '5' });
-  const [submitting, setSubmitting] = useState(false);
-  const webData = useDashboardData();
+        setFires(fireData?.getAllFires || []);
+        setResponders(responderData?.getAllResponders || []);
+        setAlerts(alertData?.getAlertsByTargetRole || []);
+        setNotifications(notificationData?.getNotificationsByTargetRole || []);
+        setMunicipality(municipalityData?.getMunicipalityById || null);
+      } catch (error) {
+        console.error('Municipality dashboard fetch error:', error);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
 
-  let fires = [], responders = [], loading = false, refresh = webData.refresh;
+    fetchAll();
+    const interval = setInterval(fetchAll, 10000);
 
-  if (Platform.OS !== 'web') {
-    try {
-      const { useQuery, gql } = require('@apollo/client');
-      const FIRES_Q = gql`query GetAllFires { getAllFires { fire_id fire_source fire_location fire_severitylevel is_extinguished is_verified created_at } }`;
-      const RESP_Q = gql`query GetAllResponders { getAllResponders { responder_id unit_nb unit_location assigned_region responder_status last_known_location } }`;
-      const fr = useQuery(FIRES_Q, { pollInterval: 15000 });
-      const rr = useQuery(RESP_Q, { pollInterval: 15000 });
-      fires = fr.data?.getAllFires || [];
-      responders = rr.data?.getAllResponders || [];
-      loading = fr.loading;
-      refresh = () => { fr.refetch(); rr.refetch(); };
-    } catch {}
-  } else {
-    fires = webData.fires;
-    responders = webData.responders;
-    loading = webData.loading;
-  }
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [municipalityId]);
 
-  const activeFires = fires.filter(f => !f.is_extinguished);
-  const verifiedFires = fires.filter(f => f.is_verified);
-  const activeResponders = responders.filter(r => r.responder_status === 'Active');
+  const municipalityCoords = useMemo(
+    () => getMunicipalityCoords(municipality),
+    [municipality]
+  );
 
-  const stats = [
-    { label: 'Active Fires', value: activeFires.length.toString(), emoji: '🔥', color: '#dc2626', bg: '#fef2f2' },
-    { label: 'Total Fires', value: fires.length.toString(), emoji: '📊', color: '#2563eb', bg: '#eff6ff' },
-    { label: 'Verified', value: verifiedFires.length.toString(), emoji: '✅', color: '#16a34a', bg: '#f0fdf4' },
-    { label: 'Active Units', value: activeResponders.length.toString(), emoji: '🚒', color: '#9333ea', bg: '#faf5ff' },
+  const respondersWithCoords = useMemo(
+    () =>
+      responders
+        .map(responder => ({
+          ...responder,
+          coords: getResponderCoords(responder),
+          unitCoords: getResponderUnitCoords(responder),
+          displayName: responder.unit_nb
+            ? `${responder.responder_id || 'Responder'} - ${responder.unit_nb}`
+            : responder.responder_id || 'Responder',
+        }))
+        .filter(responder => responder.coords || responder.unitCoords),
+    [responders]
+  );
+
+  const firesForMap = useMemo(
+    () =>
+      fires
+        .filter(fire => !fire.is_extinguished)
+        .map(fire => ({
+          ...fire,
+          coords: parsePoint(fire.fire_location),
+          displayName: fire.fire_id ? `Fire ${String(fire.fire_id).slice(0, 8)}` : 'Fire',
+        }))
+        .filter(fire => fire.coords),
+    [fires]
+  );
+
+  const activeResponderCount = responders.filter(r => r.responder_status === 'Active').length;
+  const standbyResponderCount = responders.filter(r => r.responder_status === 'Standby').length;
+  const unreadNotifCount = notifications.filter(n => n.notification_status === 'Sent').length;
+  const activeAlertCount = alerts.filter(alert => !alert.expires_at || new Date(alert.expires_at) > new Date()).length;
+
+  const tabs = [
+    { id: 'map', title: 'Map', count: null },
+    { id: 'alerts', title: 'Alerts', count: activeAlertCount || null },
+    { id: 'notifs', title: 'Inbox', count: unreadNotifCount || null },
   ];
 
-  const handleReportFire = async () => {
-    if (!reportForm.fire_location.trim()) {
-      Platform.OS === 'web' ? window.alert('Please enter a fire location') : Alert.alert('Error', 'Please enter a fire location');
-      return;
-    }
-    setSubmitting(true);
+  const toggleSection = key => {
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleMarkRead = async notification_id => {
     try {
-      await gqlFetch(CREATE_FIRE_AND_TRIGGER, {
-        input: {
-          fire_location: reportForm.fire_location,
-          fire_source: reportForm.fire_source,
-          fire_severitylevel: parseInt(reportForm.fire_severitylevel) || 5,
-          is_extinguished: false,
-          is_verified: false,
-        }
+      await gqlFetch(UPDATE_NOTIFICATION_STATUS, {
+        notification_id,
+        notification_status: 'Delivered',
       });
-      setReportModal(false);
-      setReportForm({ fire_location: '', fire_source: 'Responder', fire_severitylevel: '5' });
-      refresh();
-      Platform.OS === 'web' ? window.alert('Fire reported! System alerts have been triggered.') : Alert.alert('Success', 'Fire reported! System alerts have been triggered.');
-    } catch (e) {
-      const msg = e.message || 'Failed to report fire';
-      Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Error', msg);
-    } finally { setSubmitting(false); }
+
+      setNotifications(prev =>
+        prev.map(notification =>
+          notification.notification_id === notification_id
+            ? { ...notification, notification_status: 'Delivered' }
+            : notification
+        )
+      );
+    } catch (error) {
+      console.warn('Failed to mark municipality notification read', error);
+    }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.topBar}>
-        <View style={styles.logoIcon}><Text style={{ fontSize: 20 }}>🔥</Text></View>
+        <View style={styles.logoIcon}>
+          <Text style={styles.logoIconText}>🔥</Text>
+        </View>
+
         <View style={{ flex: 1 }}>
           <Text style={styles.appName}>EshMagan</Text>
-          <Text style={styles.portalLabel}>Municipality Portal</Text>
+          <Text style={styles.portalLabel}>
+            {municipality?.municipality_name
+              ? `${municipality.municipality_name} Command Dashboard`
+              : 'Municipality Command Dashboard'}
+          </Text>
         </View>
-        <TouchableOpacity onPress={logout}><Text style={{ fontSize: 20 }}>🚪</Text></TouchableOpacity>
+
+        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
+          <Text style={styles.logoutBtnText}>Log out</Text>
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.layout}>
-        <View style={styles.sidebar}>
-          {NAV_ITEMS.map(item => (
+      <View style={styles.tabBar}>
+        {tabs.map(tab => {
+          const active = activeTab === tab.id;
+
+          return (
             <TouchableOpacity
-              key={item.id}
-              onPress={() => item.id === 'report' ? setReportModal(true) : setActiveNav(item.id)}
-              style={[styles.navItem, activeNav === item.id ? styles.navItemActive : styles.navItemInactive]}
+              key={tab.id}
+              onPress={() => setActiveTab(tab.id)}
+              style={[styles.tab, active ? styles.tabActive : styles.tabInactive]}
             >
-              <Text style={styles.navEmoji}>{item.emoji}</Text>
-              <Text style={[styles.navLabel, activeNav === item.id ? styles.navLabelActive : styles.navLabelInactive]}>{item.label}</Text>
+              <Text style={[styles.tabText, active ? styles.tabTextActive : styles.tabTextInactive]}>
+                {tab.title}
+              </Text>
+
+              {tab.count ? (
+                <View style={[styles.tabBadge, active ? styles.tabBadgeActive : styles.tabBadgeInactive]}>
+                  <Text style={[styles.tabBadgeText, active ? styles.tabBadgeTextActive : styles.tabBadgeTextInactive]}>
+                    {tab.count > 99 ? '99+' : tab.count}
+                  </Text>
+                </View>
+              ) : null}
             </TouchableOpacity>
-          ))}
-        </View>
+          );
+        })}
+      </View>
 
-        <ScrollView contentContainerStyle={styles.mainContent}>
+      {activeTab === 'map' ? (
+        <View style={styles.mapTabContainer}>
+          <View style={styles.mapLayout}>
+            <View style={styles.mapPane}>
+              {Platform.OS === 'web' ? (
+                <WebMunicipalityMap
+                  fires={firesForMap}
+                  responders={respondersWithCoords}
+                  municipalityCoords={municipalityCoords}
+                  selectedFireId={selectedFireId}
+                  selectedResponderId={selectedResponderId}
+                />
+              ) : (
+                <NativeMunicipalityMap
+                  fires={firesForMap}
+                  responders={respondersWithCoords}
+                  municipalityCoords={municipalityCoords}
+                  selectedFireId={selectedFireId}
+                  selectedResponderId={selectedResponderId}
+                />
+              )}
 
-          {/* DASHBOARD TAB */}
-          {activeNav === 'dashboard' && (
-            <>
-              <Text style={styles.dashTitle}>Fire Operations Dashboard</Text>
-              <Text style={styles.dashSubtitle}>Real-time monitoring • Northern District</Text>
-              <View style={styles.statsGrid}>
-                {stats.map(stat => (
-                  <View key={stat.label} style={[styles.statCard, { backgroundColor: stat.bg, borderLeftColor: stat.color }]}>
-                    <View style={styles.statRow}>
-                      <Text style={styles.statLabel}>{stat.label}</Text>
-                      <Text style={{ fontSize: 18 }}>{stat.emoji}</Text>
-                    </View>
-                    {loading ? <ActivityIndicator color={stat.color} size="small" /> : <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>}
+              {loading ? (
+                <View style={styles.mapLoadingBadge}>
+                  <ActivityIndicator size="small" color="#EC7742" />
+                  <Text style={styles.mapLoadingText}>Loading.</Text>
+                </View>
+              ) : null}
+            </View>
+
+            <View style={styles.sidePanel}>
+              <View style={styles.sidePanelHeader}>
+                <View>
+                  <Text style={styles.sidePanelTitle}>Live overview</Text>
+                  <Text style={styles.sidePanelSubtitle}>Select a fire or responder to focus it on the map.</Text>
+                  {municipalityCoords ? (
+                    <Text style={styles.sidePanelSubtitle}>
+                      Municipality: {municipalityCoords.lat.toFixed(5)}, {municipalityCoords.lng.toFixed(5)}
+                    </Text>
+                  ) : (
+                    <Text style={styles.sidePanelSubtitle}>Municipality location not available.</Text>
+                  )}
+                </View>
+
+                <View style={styles.statsRow}>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statCardValue}>{firesForMap.length}</Text>
+                    <Text style={styles.statCardLabel}>Active fires</Text>
                   </View>
-                ))}
+                  <View style={styles.statCard}>
+                    <Text style={styles.statCardValue}>{activeResponderCount}</Text>
+                    <Text style={styles.statCardLabel}>Active units</Text>
+                  </View>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statCardValue}>{standbyResponderCount}</Text>
+                    <Text style={styles.statCardLabel}>Standby</Text>
+                  </View>
+                </View>
               </View>
 
-              <Text style={styles.firesTitle}>Recent Active Fires</Text>
-              {loading ? <ActivityIndicator color="#dc2626" style={{ marginTop: 20 }} /> :
-                activeFires.length === 0 ? (
-                  <View style={styles.emptyBox}>
-                    <Text style={{ fontSize: 32, marginBottom: 8 }}>✅</Text>
-                    <Text style={{ color: '#15803d', fontWeight: '600' }}>No active fires</Text>
-                  </View>
-                ) : (
-                  activeFires.slice(0, 5).map(fire => {
-                    const riskStyle = getSeverityColor(fire.fire_severitylevel);
-                    return (
-                      <TouchableOpacity key={fire.fire_id} onPress={() => nav?.navigate('IncidentDetails', { fireId: fire.fire_id })} style={styles.fireCard}>
-                        <View style={styles.fireCardTop}>
-                          <View style={{ flex: 1, marginRight: 10 }}>
-                            <Text style={styles.fireLocation}>{fire.fire_location || 'Unknown Location'}</Text>
-                            <Text style={styles.fireMeta}>{fire.fire_id?.slice(0, 8)}... • {fire.fire_source || 'Manual'}</Text>
-                          </View>
-                          <View style={[styles.fireSeverityBadge, { backgroundColor: riskStyle.bg }]}>
-                            <Text style={[styles.fireSeverityText, { color: riskStyle.text }]}>{fire.fire_severitylevel || 'N/A'}</Text>
-                          </View>
-                        </View>
-                        <View style={styles.fireCardBottom}>
-                          <Text style={styles.fireStatusText}>📌 {fire.is_verified ? 'Verified' : 'Unverified'}</Text>
-                          <Text style={styles.fireStatusText}>🕐 {fire.created_at ? new Date(fire.created_at).toLocaleTimeString() : 'N/A'}</Text>
-                          <Text style={styles.fireArrow}>›</Text>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })
-                )
-              }
-            </>
-          )}
-
-          {/* INCIDENTS TAB */}
-          {activeNav === 'incidents' && (
-            <>
-              <Text style={styles.dashTitle}>All Incidents</Text>
-              <Text style={styles.dashSubtitle}>{fires.length} total fire events</Text>
-              {loading ? <ActivityIndicator color="#dc2626" style={{ marginTop: 20 }} /> :
-                fires.length === 0 ? (
-                  <View style={styles.emptyBox}>
-                    <Text style={{ fontSize: 32, marginBottom: 8 }}>✅</Text>
-                    <Text style={{ color: '#15803d', fontWeight: '600' }}>No fire events recorded</Text>
-                  </View>
-                ) : (
-                  fires.map(fire => {
-                    const riskStyle = getSeverityColor(fire.fire_severitylevel);
-                    return (
-                      <TouchableOpacity key={fire.fire_id} onPress={() => nav?.navigate('IncidentDetails', { fireId: fire.fire_id })} style={styles.fireCard}>
-                        <View style={styles.fireCardTop}>
-                          <View style={{ flex: 1, marginRight: 10 }}>
-                            <Text style={styles.fireLocation}>{fire.fire_location || 'Unknown Location'}</Text>
-                            <Text style={styles.fireMeta}>{fire.fire_id?.slice(0, 10)} • {fire.fire_source}</Text>
-                          </View>
-                          <View style={[styles.fireSeverityBadge, { backgroundColor: riskStyle.bg }]}>
-                            <Text style={[styles.fireSeverityText, { color: riskStyle.text }]}>{fire.fire_severitylevel || 'N/A'}</Text>
-                          </View>
-                        </View>
-                        <View style={styles.fireCardBottom}>
-                          <Text style={styles.fireStatusText}>{fire.is_extinguished ? '💧 Extinguished' : '🔥 Active'}</Text>
-                          <Text style={styles.fireStatusText}>{fire.is_verified ? '✅ Verified' : '⏳ Unverified'}</Text>
-                          <Text style={styles.fireArrow}>›</Text>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })
-                )
-              }
-            </>
-          )}
-
-          {/* RESPONDERS TAB */}
-          {activeNav === 'responders' && (
-            <>
-              <Text style={styles.dashTitle}>Responder Units</Text>
-              <Text style={styles.dashSubtitle}>{responders.length} units • {activeResponders.length} active</Text>
-              {loading ? <ActivityIndicator color="#dc2626" style={{ marginTop: 20 }} /> :
-                responders.length === 0 ? (
-                  <View style={styles.emptyBox}>
-                    <Text style={{ fontSize: 32, marginBottom: 8 }}>🚒</Text>
-                    <Text style={{ color: '#64748b', fontWeight: '600' }}>No responders registered</Text>
-                  </View>
-                ) : (
-                  responders.map(r => {
-                    const statusColors = { Active: '#16a34a', Standby: '#ca8a04', Unavailable: '#94a3b8' };
-                    const color = statusColors[r.responder_status] || '#94a3b8';
-                    return (
-                      <View key={r.responder_id} style={[styles.fireCard, { marginBottom: 10 }]}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                          <View style={{ width: 40, height: 40, backgroundColor: '#fef2f2', borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}>
-                            <Text style={{ fontSize: 20 }}>🚒</Text>
-                          </View>
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.fireLocation}>{r.unit_nb || r.responder_id?.slice(0, 8)}</Text>
-                            <Text style={styles.fireMeta}>{r.assigned_region || 'Unassigned'}</Text>
-                          </View>
-                          <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: color + '20' }}>
-                            <Text style={{ fontSize: 11, fontWeight: '700', color }}>{r.responder_status}</Text>
-                          </View>
-                        </View>
-                        <Text style={{ fontSize: 12, color: '#64748b', marginTop: 8 }}>📍 {r.unit_location || r.last_known_location || 'Unknown'}</Text>
+              <ScrollView
+                style={styles.accordionScroll}
+                contentContainerStyle={styles.accordionScrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.accordionSection}>
+                  <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('fires')}>
+                    <View style={styles.accordionHeaderLeft}>
+                      <View style={[styles.accordionDot, { backgroundColor: '#dc2626' }]} />
+                      <Text style={styles.accordionTitle}>Fires</Text>
+                    </View>
+                    <View style={styles.accordionMeta}>
+                      <View style={styles.accordionCount}>
+                        <Text style={styles.accordionCountText}>{firesForMap.length}</Text>
                       </View>
-                    );
-                  })
-                )
-              }
-            </>
-          )}
+                      <Text style={styles.accordionChevron}>{openSections.fires ? '⌄' : '›'}</Text>
+                    </View>
+                  </TouchableOpacity>
 
-        </ScrollView>
-      </View>
+                  {openSections.fires ? (
+                    <View style={styles.accordionBody}>
+                      {firesForMap.length === 0 ? (
+                        <View style={styles.emptyWrap}>
+                          <Text style={styles.emptyTitle}>No active fires</Text>
+                          <Text style={styles.emptyDesc}>New fires will appear here.</Text>
+                        </View>
+                      ) : (
+                        firesForMap.map(fire => {
+                          const severity = getSeverityColor(fire.fire_severitylevel);
+                          const isActive = selectedFireId === fire.fire_id;
 
-      {/* Report Fire Modal */}
-      <Modal visible={reportModal} transparent animationType="slide">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
-            <Text style={{ fontSize: 18, fontWeight: '800', color: '#0f172a', marginBottom: 20 }}>🔥 Report New Fire</Text>
+                          return (
+                            <TouchableOpacity
+                              key={fire.fire_id}
+                              style={[styles.entityItem, isActive && styles.entityItemActive]}
+                              onPress={() => {
+                                setSelectedResponderId(null);
+                                setSelectedFireId(fire.fire_id);
+                              }}
+                            >
+                              <View style={styles.entityItemTop}>
+                                <Text style={styles.entityItemTitle}>{fire.displayName}</Text>
+                                <View
+                                  style={[
+                                    styles.entityItemBadge,
+                                    {
+                                      backgroundColor: severity.bg,
+                                      borderColor: severity.border,
+                                    },
+                                  ]}
+                                >
+                                  <Text style={[styles.entityItemBadgeText, { color: severity.text }]}>
+                                    {getSeverityLabel(fire.fire_severitylevel)}
+                                  </Text>
+                                </View>
+                              </View>
+                              <Text style={styles.entityItemSub}>
+                                {fire.fire_source || 'Unknown source'} • Level {fire.fire_severitylevel ?? 'N/A'}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })
+                      )}
+                    </View>
+                  ) : null}
+                </View>
 
-            <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Location (WKT or description)</Text>
-            <TextInput
-              value={reportForm.fire_location}
-              onChangeText={v => setReportForm(f => ({ ...f, fire_location: v }))}
-              placeholder="e.g. POINT(35.2 32.8) or Northern Forest"
-              style={{ borderWidth: 1.5, borderColor: '#cbd5e1', borderRadius: 10, padding: 12, marginBottom: 14, fontSize: 14, color: '#0f172a' }}
-            />
+                <View style={styles.accordionSection}>
+                  <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('responders')}>
+                    <View style={styles.accordionHeaderLeft}>
+                      <View style={[styles.accordionDot, { backgroundColor: '#16a34a' }]} />
+                      <Text style={styles.accordionTitle}>Responders</Text>
+                    </View>
+                    <View style={styles.accordionMeta}>
+                      <View style={styles.accordionCount}>
+                        <Text style={styles.accordionCountText}>{respondersWithCoords.length}</Text>
+                      </View>
+                      <Text style={styles.accordionChevron}>{openSections.responders ? '⌄' : '›'}</Text>
+                    </View>
+                  </TouchableOpacity>
 
-            <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Source</Text>
-            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-              {['Infrared', 'Responder', 'Prediction', 'Weather'].map(src => (
-                <TouchableOpacity
-                  key={src}
-                  onPress={() => setReportForm(f => ({ ...f, fire_source: src }))}
-                  style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1.5, borderColor: reportForm.fire_source === src ? '#dc2626' : '#e2e8f0', backgroundColor: reportForm.fire_source === src ? '#fef2f2' : '#f8fafc' }}
-                >
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: reportForm.fire_source === src ? '#dc2626' : '#64748b' }}>{src}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                  {openSections.responders ? (
+                    <View style={styles.accordionBody}>
+                      {respondersWithCoords.length === 0 ? (
+                        <View style={styles.emptyWrap}>
+                          <Text style={styles.emptyTitle}>No responder locations</Text>
+                          <Text style={styles.emptyDesc}>Responders will appear here when location data is available.</Text>
+                        </View>
+                      ) : (
+                        respondersWithCoords.map(responder => {
+                          const isActive = selectedResponderId === responder.responder_id;
+                          const statusColor = RESPONDER_STATUS_COLORS[responder.responder_status] || '#94a3b8';
 
-            <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Severity (1-10)</Text>
-            <View style={{ flexDirection: 'row', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
-              {['1','2','3','4','5','6','7','8','9','10'].map(n => (
-                <TouchableOpacity
-                  key={n}
-                  onPress={() => setReportForm(f => ({ ...f, fire_severitylevel: n }))}
-                  style={{ width: 36, height: 36, borderRadius: 8, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', borderColor: reportForm.fire_severitylevel === n ? '#dc2626' : '#e2e8f0', backgroundColor: reportForm.fire_severitylevel === n ? '#fef2f2' : '#f8fafc' }}
-                >
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: reportForm.fire_severitylevel === n ? '#dc2626' : '#64748b' }}>{n}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <TouchableOpacity onPress={() => setReportModal(false)} style={{ flex: 1, height: 48, borderRadius: 12, borderWidth: 1.5, borderColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: '#64748b', fontWeight: '600' }}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleReportFire} disabled={submitting} style={{ flex: 2, height: 48, borderRadius: 12, backgroundColor: '#dc2626', alignItems: 'center', justifyContent: 'center' }}>
-                {submitting ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '700' }}>🔥 Report & Trigger System</Text>}
-              </TouchableOpacity>
+                          return (
+                            <TouchableOpacity
+                              key={responder.responder_id}
+                              style={[styles.entityItem, isActive && styles.entityItemActive]}
+                              onPress={() => {
+                                setSelectedFireId(null);
+                                setSelectedResponderId(responder.responder_id);
+                              }}
+                            >
+                              <View style={styles.entityItemTop}>
+                                <Text style={styles.entityItemTitle}>{responder.displayName}</Text>
+                                <View
+                                  style={[
+                                    styles.entityItemBadge,
+                                    {
+                                      backgroundColor: `${statusColor}22`,
+                                      borderColor: `${statusColor}66`,
+                                    },
+                                  ]}
+                                >
+                                  <Text style={[styles.entityItemBadgeText, { color: statusColor }]}>
+                                    {responder.responder_status || 'Unknown'}
+                                  </Text>
+                                </View>
+                              </View>
+                              <Text style={styles.entityItemSub}>
+                                {responder.assigned_region || responder.unit_nb || 'No region'}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })
+                      )}
+                    </View>
+                  ) : null}
+                </View>
+              </ScrollView>
             </View>
           </View>
         </View>
-      </Modal>
+      ) : null}
+
+      {activeTab === 'alerts' ? (
+        <View style={styles.tabContent}>
+          <AlertsTab alerts={alerts} loading={loading} />
+        </View>
+      ) : null}
+
+      {activeTab === 'notifs' ? (
+        <View style={styles.tabContent}>
+          <NotificationsTab notifications={notifications} loading={loading} onMarkRead={handleMarkRead} />
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
