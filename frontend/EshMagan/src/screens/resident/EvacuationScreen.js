@@ -977,7 +977,21 @@ export default function EvacuationScreen({ navigation, route }) {
           )}
 
           {(isUnsafe || selectedIdx !== null) && (
-            <TouchableOpacity style={styles.arModeBtn} onPress={() => nav?.navigate('ARMode')}>
+            <TouchableOpacity
+              style={[styles.arModeBtn, !routePolyline?.length && { opacity: 0.5 }]}
+              disabled={!selectedRoute || !routePolyline?.length}
+              onPress={() =>
+                selectedRoute &&
+                routePolyline?.length &&
+                nav?.navigate('ARMode', {
+                  selectedRoute,
+                  routePolyline,
+                  directions,
+                  routingMeta,
+                  initialUserPos: userCoords,
+                })
+              }
+            >
               <Text style={styles.arModeBtnText}>⚡ AR</Text>
             </TouchableOpacity>
           )}
@@ -1084,7 +1098,20 @@ export default function EvacuationScreen({ navigation, route }) {
 
         {(isUnsafe || selectedIdx !== null) && (
           <View style={[styles.footer, { flexShrink: 0 }]}>
-            <TouchableOpacity style={styles.startBtn} onPress={() => nav?.navigate('ARMode')}>
+            <TouchableOpacity
+              style={styles.startBtn}
+              onPress={() =>
+                selectedRoute &&
+                routePolyline?.length &&
+                nav?.navigate('ARMode', {
+                  selectedRoute,
+                  routePolyline,
+                  directions,
+                  routingMeta,
+                  initialUserPos: userCoords,
+                })
+              }
+            >
               <Text style={{ fontSize: 18 }}>🧭</Text>
               <Text style={styles.startBtnText}>Start AR Navigation</Text>
             </TouchableOpacity>

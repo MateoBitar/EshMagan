@@ -22,7 +22,7 @@ import styles from '../../styles/screens/MunicipalityDashboard.styles';
 import WebMunicipalityMap from './maps/WebMunicipalityMap';
 import NativeMunicipalityMap from './maps/NativeMunicipalityMap';
 import AlertsTab from './tabs/AlertsTab';
-import NotificationsTab from './tabs/NotificationTab';
+import NotificationsTab from './tabs/NotificationsTab';
 
 const RESPONDER_STATUS_COLORS = {
   Active: '#16a34a',

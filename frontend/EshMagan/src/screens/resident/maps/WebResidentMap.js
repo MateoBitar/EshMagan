@@ -15,10 +15,10 @@ function getSeverityLabel(level) {
   return 'Low';
 }
 
-export default function WebMunicipalityMap({
+export default function WebResidentMap({
   fires,
   responders,
-  municipalityCoords,
+  userCoords,
   selectedFireId,
   selectedResponderId,
 }) {
@@ -26,8 +26,8 @@ export default function WebMunicipalityMap({
   const mapRef = useRef(null);
   const markerLayerRef = useRef([]);
   const fireLayerRef = useRef([]);
-  const markerMapRef = useRef({ fires: {}, responders: {}, municipality: null });
-  const hasFittedRef = useRef(false);
+  const markerMapRef = useRef({ fires: {}, responders: {}, user: null });
+  const hasCenteredInitiallyRef = useRef(false);
   const [showRecenter, setShowRecenter] = useState(false);
 
   useEffect(() => {
@@ -138,61 +138,45 @@ export default function WebMunicipalityMap({
     });
     fireLayerRef.current = [];
 
-    markerMapRef.current = { fires: {}, responders: {}, municipality: null };
+    markerMapRef.current = { fires: {}, responders: {}, user: null };
 
-    const validResponders = responders.filter(r => r.coords && isValidCoordPair(r.coords.lat, r.coords.lng));
-    const validFires = fires.filter(f => f.coords && isValidCoordPair(f.coords.lat, f.coords.lng));
+    const validResponders = (responders || []).filter(
+      r => r.coords && isValidCoordPair(r.coords.lat, r.coords.lng)
+    );
+    const validFires = (fires || []).filter(
+      f => f.coords && isValidCoordPair(f.coords.lat, f.coords.lng)
+    );
 
-    let combinedBounds = null;
-
-    const extendBoundsWithLatLng = (lat, lng) => {
-      if (!isValidCoordPair(lat, lng)) return;
-      const ll = L.latLng(Number(lat), Number(lng));
-      combinedBounds = combinedBounds ? combinedBounds.extend(ll) : L.latLngBounds([ll, ll]);
-    };
-
-    const extendBoundsWithBounds = bounds => {
-      if (!bounds) return;
-      combinedBounds = combinedBounds ? combinedBounds.extend(bounds) : bounds;
-    };
-
-    if (municipalityCoords && isValidCoordPair(municipalityCoords.lat, municipalityCoords.lng)) {
-      const muniIcon = L.divIcon({
+    if (userCoords && isValidCoordPair(userCoords.lat, userCoords.lng)) {
+      const blueDotIcon = L.divIcon({
         className: '',
         html: `
           <div style="
-            width:28px;
-            height:28px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            background:#EC7742;
-            border:3px solid #fff;
+            width:14px;
+            height:14px;
             border-radius:999px;
-            box-shadow:0 2px 8px rgba(0,0,0,0.25);
-            color:#fff;
-            font-size:14px;
-            font-weight:800;
-          ">M</div>
+            background:#3b82f6;
+            border:3px solid #ffffff;
+            box-shadow:0 2px 6px rgba(0,0,0,0.45);
+          "></div>
         `,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
       });
 
-      const muniMarker = L.marker([municipalityCoords.lat, municipalityCoords.lng], { icon: muniIcon })
+      const userMarker = L.marker([userCoords.lat, userCoords.lng], { icon: blueDotIcon })
         .bindPopup(`
           <div style="min-width:140px">
-            <div style="font-weight:700">Municipality</div>
+            <div style="font-weight:700">Your location</div>
             <div style="font-size:11px;color:#64748b;margin-top:4px">
-              ${municipalityCoords.lat.toFixed(5)}, ${municipalityCoords.lng.toFixed(5)}
+              ${userCoords.lat.toFixed(5)}, ${userCoords.lng.toFixed(5)}
             </div>
           </div>
         `)
         .addTo(map);
 
-      markerLayerRef.current.push(muniMarker);
-      markerMapRef.current.municipality = muniMarker;
-      extendBoundsWithLatLng(municipalityCoords.lat, municipalityCoords.lng);
+      markerLayerRef.current.push(userMarker);
+      markerMapRef.current.user = userMarker;
     }
 
     validResponders.forEach(responder => {
@@ -228,51 +212,6 @@ export default function WebMunicipalityMap({
 
       markerLayerRef.current.push(marker);
       markerMapRef.current.responders[responder.responder_id] = marker;
-      extendBoundsWithLatLng(responder.coords.lat, responder.coords.lng);
-    });
-
-    const responderGroups = {};
-    validResponders.forEach(responder => {
-      if (!responder.unit_nb || !responder.unitCoords || !isValidCoordPair(responder.unitCoords.lat, responder.unitCoords.lng)) return;
-      if (!responderGroups[responder.unit_nb]) responderGroups[responder.unit_nb] = responder;
-    });
-
-    Object.values(responderGroups).forEach(responder => {
-      const baseIcon = L.divIcon({
-        className: '',
-        html: `
-          <div style="
-            width:36px;
-            height:36px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-          ">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="white" stroke="#EC7742" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 10L12 3l9 7"></path>
-              <path d="M5 10v9h14v-9"></path>
-              <rect x="9" y="14" width="6" height="5"></rect>
-            </svg>
-          </div>
-        `,
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
-      });
-
-      const marker = L.marker([responder.unitCoords.lat, responder.unitCoords.lng], { icon: baseIcon })
-        .bindPopup(`
-          <div style="min-width:140px">
-            <div style="font-weight:700">${responder.unit_nb}</div>
-            <div style="font-size:12px;color:#475569;margin-top:4px">Unit location</div>
-            <div style="font-size:11px;color:#64748b;margin-top:4px">
-              ${responder.unitCoords.lat.toFixed(5)}, ${responder.unitCoords.lng.toFixed(5)}
-            </div>
-          </div>
-        `)
-        .addTo(map);
-
-      markerLayerRef.current.push(marker);
-      extendBoundsWithLatLng(responder.unitCoords.lat, responder.unitCoords.lng);
     });
 
     validFires.forEach(fire => {
@@ -329,25 +268,23 @@ export default function WebMunicipalityMap({
 
       markerMapRef.current.fires[fire.fire_id] = circle;
       fireLayerRef.current.push(circle);
-      extendBoundsWithBounds(circle.getBounds());
     });
+  }, [fires, responders, userCoords]);
 
-    if (!hasFittedRef.current) {
-      if (municipalityCoords && isValidCoordPair(municipalityCoords.lat, municipalityCoords.lng)) {
-        map.setView(
-          [Number(municipalityCoords.lat), Number(municipalityCoords.lng)],
-          15
-        );
-        hasFittedRef.current = true;
-        return;
-      }
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!userCoords || !isValidCoordPair(userCoords.lat, userCoords.lng)) return;
+    if (hasCenteredInitiallyRef.current) return;
 
-      if (combinedBounds) {
-        map.fitBounds(combinedBounds, { padding: [40, 40] });
-        hasFittedRef.current = true;
-      }
-    }
-  }, [fires, responders, municipalityCoords]);
+    map.flyTo(
+      [Number(userCoords.lat), Number(userCoords.lng)],
+      15,
+      { animate: true, duration: 0.8 }
+    );
+
+    hasCenteredInitiallyRef.current = true;
+  }, [userCoords]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -381,59 +318,16 @@ export default function WebMunicipalityMap({
       const map = mapRef.current;
       if (!map) return;
 
-      if (municipalityCoords && isValidCoordPair(municipalityCoords.lat, municipalityCoords.lng)) {
+      if (userCoords && isValidCoordPair(userCoords.lat, userCoords.lng)) {
         map.flyTo(
-          [Number(municipalityCoords.lat), Number(municipalityCoords.lng)],
+          [Number(userCoords.lat), Number(userCoords.lng)],
           15,
           { animate: true, duration: 0.8 }
         );
         setShowRecenter(false);
-        return;
       }
-
-      const L = window.L;
-      if (!L) return;
-
-      let combinedBounds = null;
-
-      const extendWithLatLng = (lat, lng) => {
-        if (!isValidCoordPair(lat, lng)) return;
-        const ll = L.latLng(Number(lat), Number(lng));
-        combinedBounds = combinedBounds ? combinedBounds.extend(ll) : L.latLngBounds([ll, ll]);
-      };
-
-      const extendWithBounds = bounds => {
-        if (!bounds) return;
-        combinedBounds = combinedBounds ? combinedBounds.extend(bounds) : bounds;
-      };
-
-      markerLayerRef.current.forEach(layer => {
-        try {
-          if (typeof layer.getLatLng === 'function') {
-            const ll = layer.getLatLng();
-            extendWithLatLng(ll.lat, ll.lng);
-          }
-        } catch {}
-      });
-
-      fireLayerRef.current.forEach(layer => {
-        try {
-          if (typeof layer.getBounds === 'function') {
-            extendWithBounds(layer.getBounds());
-          } else if (typeof layer.getLatLng === 'function') {
-            const ll = layer.getLatLng();
-            extendWithLatLng(ll.lat, ll.lng);
-          }
-        } catch {}
-      });
-
-      if (combinedBounds && typeof combinedBounds.isValid === 'function' && combinedBounds.isValid()) {
-        map.fitBounds(combinedBounds, { padding: [40, 40] });
-      }
-
-      setShowRecenter(false);
     } catch (error) {
-      console.error('WebMunicipalityMap recenter failed:', error);
+      console.error('WebResidentMap recenter failed:', error);
     }
   };
 

@@ -27,8 +27,8 @@ export default function NativeNavigator({ user, loading }) {
 
   const getInitialRoute = () => {
     if (!user) return 'Login';
-    if (user.role === 'municipality') return 'MunicipalityDashboard';
-    if (user.role === 'responder') return 'ResponderCommand';
+    if (user.role === 'Municipality') return 'MunicipalityDashboard';
+    if (user.role === 'Responder') return 'ResponderCommand';
     return 'ResidentHome';
   };
 

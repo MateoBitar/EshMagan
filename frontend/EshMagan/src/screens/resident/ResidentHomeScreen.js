@@ -144,10 +144,7 @@ export default function ResidentHomeScreen({ navigation }) {
   const [userPlaceName, setUserPlaceName] = useState('Locating…');
   const [currentLocation, setCurrentLocation] = useState(null);
 
-  let nav = navigation;
-  if (Platform.OS !== 'web') {
-    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch { }
-  }
+  const nav = navigation;
 
   useEffect(() => {
     if (Platform.OS === 'web') {
