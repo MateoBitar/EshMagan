@@ -161,8 +161,8 @@ export default function WebMunicipalityMap({
         className: '',
         html: `
           <div style="
-            width:28px;
-            height:28px;
+            width:26px;
+            height:26px;
             display:flex;
             align-items:center;
             justify-content:center;

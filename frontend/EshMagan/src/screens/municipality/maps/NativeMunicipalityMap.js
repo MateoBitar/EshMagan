@@ -31,11 +31,14 @@ export default function NativeMunicipalityMap({
     <!DOCTYPE html>
     <html>
     <head>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+      <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      />
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
       <style>
-        html, body { margin:0; padding:0; height:100%; width:100%; }
+        html, body { margin:0; padding:0; height:100%; width:100%; overflow:hidden; }
         #map { height:100%; width:100%; }
 
         .fire-hover-tooltip {
@@ -92,15 +95,22 @@ export default function NativeMunicipalityMap({
         function fitEverythingOnce() {
           if (hasFitted) return;
 
+          if (municipalityMarker) {
+            try {
+              const ll = municipalityMarker.getLatLng();
+              if (ll && validPair(ll.lat, ll.lng)) {
+                map.setView([Number(ll.lat), Number(ll.lng)], 15);
+                hasFitted = true;
+                return;
+              }
+            } catch {}
+          }
+
           const allBounds = [];
 
           markers.forEach(m => {
             try { allBounds.push(m.getLatLng()); } catch {}
           });
-
-          if (municipalityMarker) {
-            try { allBounds.push(municipalityMarker.getLatLng()); } catch {}
-          }
 
           fireZones.forEach(z => {
             try { allBounds.push(z.getBounds()); } catch {}
@@ -142,9 +152,9 @@ export default function NativeMunicipalityMap({
           const icon = L.divIcon({
             className: '',
             html:
-              '<div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:#EC7742;border:3px solid #fff;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,0.25);color:#fff;font-size:14px;font-weight:800;">M</div>',
-            iconSize: [28, 28],
-            iconAnchor: [14, 14]
+              '<div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:#EC7742;border:3px solid #fff;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,0.25);color:#fff;font-size:14px;font-weight:800;">M</div>',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
           });
 
           municipalityMarker = L.marker([lat, lng], { icon })
@@ -163,11 +173,15 @@ export default function NativeMunicipalityMap({
         };
 
         window.updateResponders = function(responders) {
-          markers.forEach(m => m.remove());
+          markers.forEach(m => {
+            try { m.remove(); } catch {}
+          });
           markers = [];
           focusMarkers.responders = {};
 
-          const validResponders = (responders || []).filter(r => r.coords && validPair(r.coords.lat, r.coords.lng));
+          const validResponders = (responders || []).filter(
+            r => r.coords && validPair(r.coords.lat, r.coords.lng)
+          );
 
           validResponders.forEach(responder => {
             const color = responder.statusColor || '${C.slate}';
@@ -185,7 +199,7 @@ export default function NativeMunicipalityMap({
                   '<div style="font-weight:700">' + (responder.displayName || responder.unit_nb || 'Responder') + '</div>' +
                   '<div style="font-size:12px;color:#475569;margin-top:4px">' + (responder.responder_status || 'Unknown') + '</div>' +
                   '<div style="font-size:11px;color:#64748b;margin-top:4px">' +
-                    responder.coords.lat.toFixed(5) + ', ' + responder.coords.lng.toFixed(5) +
+                    Number(responder.coords.lat).toFixed(5) + ', ' + Number(responder.coords.lng).toFixed(5) +
                   '</div>' +
                 '</div>'
               )
@@ -224,7 +238,7 @@ export default function NativeMunicipalityMap({
                   '<div style="font-weight:700">' + responder.unit_nb + '</div>' +
                   '<div style="font-size:12px;color:#475569;margin-top:4px">Unit location</div>' +
                   '<div style="font-size:11px;color:#64748b;margin-top:4px">' +
-                    responder.unitCoords.lat.toFixed(5) + ', ' + responder.unitCoords.lng.toFixed(5) +
+                    Number(responder.unitCoords.lat).toFixed(5) + ', ' + Number(responder.unitCoords.lng).toFixed(5) +
                   '</div>' +
                 '</div>'
               )
@@ -237,7 +251,9 @@ export default function NativeMunicipalityMap({
         };
 
         window.updateFires = function(fires) {
-          fireZones.forEach(f => f.remove());
+          fireZones.forEach(f => {
+            try { f.remove(); } catch {}
+          });
           fireZones = [];
           focusMarkers.fires = {};
 
@@ -337,33 +353,45 @@ export default function NativeMunicipalityMap({
         };
 
         window.recenterToAll = function(muni, responders, fires) {
-          const validResponders = (responders || []).filter(r => r.coords && validPair(r.coords.lat, r.coords.lng));
-          const validFires = (fires || []).filter(f => f.coords && validPair(f.coords.lat, f.coords.lng));
+          if (muni && validPair(muni.lat, muni.lng)) {
+            map.flyTo([Number(muni.lat), Number(muni.lng)], 15, {
+              animate: true,
+              duration: 0.8
+            });
+            return;
+          }
+
+          const validResponders = (responders || []).filter(
+            r => r.coords && validPair(r.coords.lat, r.coords.lng)
+          );
+
+          const validFires = (fires || []).filter(
+            f => f.coords && validPair(f.coords.lat, f.coords.lng)
+          );
 
           let combinedBounds = null;
 
-          if (muni && validPair(muni.lat, muni.lng)) {
-            const ll = L.latLng(muni.lat, muni.lng);
-            combinedBounds = combinedBounds ? combinedBounds.extend(ll) : L.latLngBounds([ll, ll]);
-          }
-
           validResponders.forEach(r => {
-            const ll = L.latLng(r.coords.lat, r.coords.lng);
+            const ll = L.latLng(Number(r.coords.lat), Number(r.coords.lng));
             combinedBounds = combinedBounds ? combinedBounds.extend(ll) : L.latLngBounds([ll, ll]);
           });
 
           (responders || []).forEach(r => {
             if (!r.unitCoords || !validPair(r.unitCoords.lat, r.unitCoords.lng)) return;
-            const ll = L.latLng(r.unitCoords.lat, r.unitCoords.lng);
+            const ll = L.latLng(Number(r.unitCoords.lat), Number(r.unitCoords.lng));
             combinedBounds = combinedBounds ? combinedBounds.extend(ll) : L.latLngBounds([ll, ll]);
           });
 
           validFires.forEach(f => {
-            const circleBounds = L.circle([f.coords.lat, f.coords.lng], { radius: f.radius }).getBounds();
+            const circleBounds = L.circle(
+              [Number(f.coords.lat), Number(f.coords.lng)],
+              { radius: Number(f.radius) || 0 }
+            ).getBounds();
+
             combinedBounds = combinedBounds ? combinedBounds.extend(circleBounds) : circleBounds;
           });
 
-          if (combinedBounds) {
+          if (combinedBounds && typeof combinedBounds.isValid === 'function' && combinedBounds.isValid()) {
             map.fitBounds(combinedBounds, { padding: [40, 40] });
           }
         };
@@ -456,6 +484,7 @@ export default function NativeMunicipalityMap({
           stroke: style.stroke,
           fill: style.fill,
           fillOpacity: style.fillOpacity,
+          severityLabel: getSeverityLabel(severityLevel),
         };
       })
     );
