@@ -104,8 +104,6 @@ function useActiveFires() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (Platform.OS !== 'web') { setLoading(false); return; }
-
     const fetchFires = async () => {
       try {
         const data = await gqlFetch(GET_ACTIVE_FIRES);
@@ -116,7 +114,8 @@ function useActiveFires() {
         for (const fire of rawFires) {
           const coords = parsePoint(fire.fire_location);
           let place_name = null;
-          if (coords) {
+          if (coords && Platform.OS === 'web') {
+            // Web: use Nominatim reverse geocoding
             place_name = await getPlaceNameCached(coords.latitude, coords.longitude);
             await sleep(1100); // 1 request per second max
           }
@@ -214,23 +213,9 @@ export default function ResidentHomeScreen({ navigation }) {
     };
   }, [user?.id]);
 
-  let fires = [], loading = false;
-  const webData = useActiveFires();
-
-  if (Platform.OS !== 'web') {
-    try {
-      const { useQuery, gql } = require('@apollo/client');
-      const QUERY = gql`query GetActiveFires {
-        getActiveFires { fire_id fire_source fire_location fire_severitylevel is_extinguished is_verified created_at }
-      }`;
-      const result = useQuery(QUERY, { pollInterval: 30000 });
-      fires = result.data?.getActiveFires || [];
-      loading = result.loading;
-    } catch { }
-  } else {
-    fires = webData.fires;
-    loading = webData.loading;
-  }
+  const firesData = useActiveFires();
+  const fires = firesData.fires;
+  const loading = firesData.loading;
 
   const activeFires = fires.filter(f => f.is_extinguished === false);
 

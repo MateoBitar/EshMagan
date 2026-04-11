@@ -42,6 +42,7 @@ export default function LoginScreen({ navigation }) {
   if (Platform.OS !== 'web') {
     try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch {}
   }
+
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -55,12 +56,14 @@ export default function LoginScreen({ navigation }) {
     if (!email || !password) return;
     setLoginError('');
     setLoading(true);
+
     try {
       await login(email, password);
     } catch (e) {
-      setLoginError(e.message?.includes('Invalid credentials')
-        ? 'Incorrect email or password. Please try again.'
-        : e.message || 'Login failed. Please try again.'
+      setLoginError(
+        e.message?.includes('Invalid credentials')
+          ? 'Incorrect email or password. Please try again.'
+          : e.message || 'Login failed. Please try again.'
       );
     } finally {
       setLoading(false);
@@ -69,11 +72,16 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View style={{ maxWidth: 480, width: '100%', alignSelf: 'center' }}>
-
-            {/* Header */}
             <View style={styles.header}>
               <View style={styles.logoContainer}>
                 <Text style={styles.logoEmoji}>🔥</Text>
@@ -83,18 +91,22 @@ export default function LoginScreen({ navigation }) {
             </View>
 
             <View style={styles.card}>
-
-              {/* Email */}
               <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
               <TextInput
                 value={email}
-                onChangeText={v => { setEmail(v.toLowerCase().trim()); setLoginError(''); }}
+                onChangeText={v => {
+                  setEmail(v.toLowerCase().trim());
+                  setLoginError('');
+                }}
                 placeholder="your.email@example.com"
                 placeholderTextColor="rgba(0,0,0,0.25)"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                style={[styles.input, email.length > 0 && emailError ? { borderColor: '#DC2626' } : {}]}
+                style={[
+                  styles.input,
+                  email.length > 0 && emailError ? { borderColor: '#DC2626' } : {},
+                ]}
               />
               {email.length > 0 && emailError && (
                 <Text style={{ fontSize: 11, color: '#DC2626', marginTop: -12, marginBottom: 12 }}>
@@ -102,37 +114,53 @@ export default function LoginScreen({ navigation }) {
                 </Text>
               )}
 
-              {/* Password */}
               <Text style={styles.inputLabel}>PASSWORD</Text>
               <TextInput
                 value={password}
-                onChangeText={v => { setPassword(v); setLoginError(''); }}
+                onChangeText={v => {
+                  setPassword(v);
+                  setLoginError('');
+                }}
                 placeholder="••••••••"
                 placeholderTextColor="rgba(0,0,0,0.25)"
                 secureTextEntry
                 style={[styles.input, loginError ? { borderColor: '#DC2626' } : {}]}
               />
 
-              {/* Login error — inline, no alert */}
               {loginError ? (
-                <View style={{ backgroundColor: '#FFF1D6', borderRadius: 10, padding: 12, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: '#DC2626', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View
+                  style={{
+                    backgroundColor: '#FFF1D6',
+                    borderRadius: 10,
+                    padding: 12,
+                    marginBottom: 16,
+                    borderLeftWidth: 3,
+                    borderLeftColor: '#DC2626',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
                   <Text style={{ fontSize: 14 }}>⚠️</Text>
-                  <Text style={{ fontSize: 13, color: '#DC2626', fontWeight: '600', flex: 1 }}>{loginError}</Text>
+                  <Text style={{ fontSize: 13, color: '#DC2626', fontWeight: '600', flex: 1 }}>
+                    {loginError}
+                  </Text>
                 </View>
               ) : null}
 
-              {/* Privacy box */}
               <View style={styles.privacyBox}>
                 <View style={styles.privacyHeader}>
                   <Text style={{ fontSize: 14 }}>🛡️</Text>
                   <Text style={styles.privacyTitle}>Privacy & Data Protection</Text>
                 </View>
+
                 {PRIVACY_ITEMS.map((item, i) => (
                   <View key={i} style={styles.privacyItem}>
                     <Text style={styles.privacyCheck}>✓</Text>
                     <Text style={styles.privacyItemText}>{item}</Text>
                   </View>
                 ))}
+
                 <View style={styles.consentRow}>
                   <View style={[styles.checkbox, styles.checkboxChecked]}>
                     <Text style={styles.checkboxTick}>✓</Text>
@@ -143,7 +171,6 @@ export default function LoginScreen({ navigation }) {
                 </View>
               </View>
 
-              {/* Trust badges */}
               <View style={styles.trustBadges}>
                 {TRUST_BADGES.map(badge => (
                   <View key={badge.title} style={styles.trustBadge}>
@@ -158,16 +185,20 @@ export default function LoginScreen({ navigation }) {
                 ))}
               </View>
 
-              {/* Login Button */}
               <TouchableOpacity
                 onPress={handleLogin}
-                disabled={loading}
-                style={[styles.loginBtn, styles.loginBtnActive]}
+                disabled={loading || !canLogin}
+                style={[
+                  styles.loginBtn,
+                  styles.loginBtnActive,
+                  (!canLogin || loading) ? { opacity: 0.7 } : null,
+                ]}
               >
-                {loading
-                  ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.loginBtnText}>🔐  Secure Login to EshMagan</Text>
-                }
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.loginBtnText}>🔐  Secure Login to EshMagan</Text>
+                )}
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -179,10 +210,11 @@ export default function LoginScreen({ navigation }) {
                   <Text style={{ color: '#DC2626', fontWeight: '700' }}>Create Account</Text>
                 </Text>
               </TouchableOpacity>
-
             </View>
 
-            <Text style={styles.footer}>Services operating under secure protocols • Available 24/7</Text>
+            <Text style={styles.footer}>
+              Services operating under secure protocols • Available 24/7
+            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

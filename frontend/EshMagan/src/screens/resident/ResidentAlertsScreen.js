@@ -1,113 +1,366 @@
 // src/screens/resident/ResidentAlertsScreen.js
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, SafeAreaView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
-import { gqlFetch, GET_ALERTS_BY_ROLE } from '../../services/api';
-import styles from '../../styles/screens/ResidentAlertsScreen.styles';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  SafeAreaView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Platform,
+} from 'react-native';
+import {
+  gqlFetch,
+  GET_ALERTS_BY_ROLE,
+  GET_ALL_FIRES,
+} from '../../services/api';
+import { getCurrentLocation } from '../../services/location.service';
+import styles, { C } from '../../styles/screens/ResidentAlertsScreen.styles';
 
-const ALERT_TYPE_STYLE = {
-  FireAlert: { bg: '#fef2f2', border: '#fecaca', color: '#dc2626', emoji: '🔥' },
-  EvacuationAlert: { bg: '#fff7ed', border: '#fed7aa', color: '#ea580c', emoji: '🧭' },
-  PredictionAlert: { bg: '#faf5ff', border: '#e9d5ff', color: '#9333ea', emoji: '🤖' },
+const ALERT_EMOJI = {
+  FireAlert: '🔥',
+  EvacuationAlert: '🚨',
+  PredictionAlert: '⚠️',
 };
 
-function useAlertsData() {
-  const [alerts, setAlerts] = useState([]);
-  const [loading, setLoading] = useState(true);
+const ALERT_RADIUS_METERS = 10000;
 
-  useEffect(() => {
-    if (Platform.OS !== 'web') { setLoading(false); return; }
-    const fetch = async () => {
-      try {
-        const data = await gqlFetch(GET_ALERTS_BY_ROLE, { target_role: 'Resident' });
-        setAlerts(data?.getAlertsByTargetRole || []);
-      } catch (e) { console.error('Failed to fetch alerts:', e); }
-      finally { setLoading(false); }
-    };
-    fetch();
-    const interval = setInterval(fetch, 15000);
-    return () => clearInterval(interval);
-  }, []);
+function fmtDate(val) {
+  if (!val) return 'N/A';
+  let d = new Date(val);
+  if (isNaN(d.getTime())) d = new Date(Number(val));
+  if (isNaN(d.getTime())) return 'N/A';
+  return d.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
-  return { alerts, loading };
+function parsePoint(str) {
+  if (!str) return null;
+
+  try {
+    const geo = JSON.parse(str);
+    if (geo?.type === 'Point' && geo.coordinates?.length === 2) {
+      return { lng: geo.coordinates[0], lat: geo.coordinates[1] };
+    }
+  } catch { }
+
+  const match = String(str).match(/POINT\s*\(\s*([\d.-]+)\s+([\d.-]+)\s*\)/i);
+  if (match) return { lng: parseFloat(match[1]), lat: parseFloat(match[2]) };
+
+  return null;
+}
+
+function getFireCoords(fire) {
+  return parsePoint(fire?.fire_location);
+}
+
+function getDistanceMeters(lat1, lng1, lat2, lng2) {
+  const toRad = d => (d * Math.PI) / 180;
+  const R = 6371000;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+    Math.cos(toRad(lat2)) *
+    Math.sin(dLng / 2) *
+    Math.sin(dLng / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 }
 
 export default function ResidentAlertsScreen({ navigation }) {
   let nav = navigation;
   if (Platform.OS !== 'web') {
-    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch {}
-  }
-
-  let alerts = [], loading = false;
-  const webData = useAlertsData();
-
-  if (Platform.OS !== 'web') {
     try {
-      const { useQuery, gql } = require('@apollo/client');
-      const QUERY = gql`query GetAlertsByTargetRole($target_role: AlertTargetRole!) {
-        getAlertsByTargetRole(target_role: $target_role) {
-          alert_id alert_type target_role alert_message expires_at created_at fire_id
-        }
-      }`;
-      const result = useQuery(QUERY, { variables: { target_role: 'Resident' }, pollInterval: 15000 });
-      alerts = result.data?.getAlertsByTargetRole || [];
-      loading = result.loading;
-    } catch {}
-  } else {
-    alerts = webData.alerts;
-    loading = webData.loading;
+      const { useNavigation } = require('@react-navigation/native');
+      nav = useNavigation();
+    } catch { }
   }
 
-  // Sort newest first
-  const sortedAlerts = [...alerts].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const [alerts, setAlerts] = useState([]);
+  const [allFires, setAllFires] = useState([]);
+  const [myLocation, setMyLocation] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const hasFetchedResidentAlertsRef = useRef(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const initLocation = async () => {
+      try {
+        const loc = await getCurrentLocation();
+        if (mounted && loc) {
+          setMyLocation({ lat: loc.latitude, lng: loc.longitude });
+        }
+      } catch (e) {
+        console.warn('[ResidentAlertsScreen location]', e.message);
+      }
+    };
+
+    initLocation();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchAll = async () => {
+      try {
+        const [alertData, fireData] = await Promise.all([
+          gqlFetch(GET_ALERTS_BY_ROLE, { target_role: 'Resident' }),
+          gqlFetch(GET_ALL_FIRES),
+        ]);
+
+        if (!mounted) return;
+
+        setAlerts(alertData?.getAlertsByTargetRole || []);
+        setAllFires((fireData?.getAllFires || []).filter(f => !f.is_extinguished));
+        hasFetchedResidentAlertsRef.current = true;
+      } catch (e) {
+        console.error('ResidentAlertsScreen fetch error:', e);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    fetchAll();
+    const interval = setInterval(fetchAll, 10000);
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const activeAlerts = useMemo(() => {
+    return alerts.filter(alert => {
+      if (new Date(alert.expires_at) <= new Date()) return false;
+      if (!alert.fire_id) return false;
+      if (!myLocation) return false;
+
+      const fire = allFires.find(f => f.fire_id === alert.fire_id);
+      if (!fire) return false;
+
+      const fireCoords = getFireCoords(fire);
+      if (!fireCoords) return false;
+
+      const distance = getDistanceMeters(
+        myLocation.lat,
+        myLocation.lng,
+        fireCoords.lat,
+        fireCoords.lng
+      );
+
+      return distance <= ALERT_RADIUS_METERS;
+    });
+  }, [alerts, allFires, myLocation]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator color={C.tangerine} size="large" />
+        <Text style={styles.loadingText}>Loading your alerts...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.topBar}>
-        <Text style={styles.title}>Your Alerts</Text>
-        {!loading && <Text style={styles.subtitle}>{sortedAlerts.length} alert{sortedAlerts.length !== 1 ? 's' : ''} received</Text>}
-      </View>
-
-      {loading ? (
-        <View style={styles.loader}><ActivityIndicator size="large" color="#dc2626" /></View>
-      ) : sortedAlerts.length === 0 ? (
-        <View style={styles.emptyWrap}>
-          <Text style={styles.emptyEmoji}>🔔</Text>
-          <Text style={styles.emptyTitle}>No Alerts Yet</Text>
-          <Text style={styles.emptyDesc}>You'll be notified immediately when a fire threat is detected near your location.</Text>
-        </View>
-      ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {sortedAlerts.map(alert => {
-            const s = ALERT_TYPE_STYLE[alert.alert_type] || ALERT_TYPE_STYLE.FireAlert;
-            return (
-              <TouchableOpacity
-                key={alert.alert_id}
-                onPress={() => nav?.navigate('Alert', { alert })}
-                style={[styles.alertCard, { backgroundColor: s.bg, borderColor: s.border }]}
+      <View style={styles.container}>
+        <View
+          style={{
+            paddingHorizontal: 16,
+            paddingTop: 14,
+            paddingBottom: 10,
+            borderBottomWidth: 1,
+            borderBottomColor: 'rgba(236,119,66,0.2)',
+            backgroundColor: C.bg,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10,
+              marginBottom: 8,
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => nav?.goBack?.()}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 7,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: '700',
+                  color: C.tangerine,
+                }}
               >
-                <View style={styles.alertRow}>
-                  <View style={[styles.alertIconWrap, { backgroundColor: s.color + '20' }]}>
-                    <Text style={{ fontSize: 22 }}>{s.emoji}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.alertHeaderRow}>
-                      <Text style={styles.alertType}>{alert.alert_type?.replace(/_/g, ' ')}</Text>
-                      <View style={[styles.alertPriorityBadge, { backgroundColor: s.color + '20' }]}>
-                        <Text style={[styles.alertPriorityText, { color: s.color }]}>{alert.target_role?.toUpperCase()}</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.alertMsg}>{alert.alert_message || 'Fire activity detected in your region.'}</Text>
-                    <View style={styles.alertFooter}>
-                      <Text style={styles.alertLocation}>Fire: {alert.fire_id?.slice(0, 8) || 'Unknown'}</Text>
-                      <Text style={styles.alertTime}>{alert.created_at ? new Date(alert.created_at).toLocaleTimeString() : ''}</Text>
-                    </View>
-                  </View>
+                ‹ Back
+              </Text>
+            </TouchableOpacity>
+
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  color: C.text,
+                  fontSize: 20,
+                  fontWeight: '800',
+                  letterSpacing: -0.3,
+                }}
+              >
+                Your Alerts
+              </Text>
+              <Text
+                style={{
+                  color: C.textMuted,
+                  fontSize: 12,
+                  marginTop: 2,
+                }}
+              >
+                {activeAlerts.length} nearby active alert{activeAlerts.length !== 1 ? 's' : ''}
+              </Text>
+            </View>
+          </View>
+
+          <View
+            style={[
+              styles.alertsInfoBox,
+              myLocation
+                ? styles.alertsInfoBoxLocated
+                : styles.alertsInfoBoxLocating,
+            ]}
+          >
+            <Text style={styles.alertsInfoEmoji}>{myLocation ? '📍' : '🔄'}</Text>
+            <Text style={styles.alertsInfoText}>
+              {myLocation
+                ? `Showing alerts within ${ALERT_RADIUS_METERS / 1000}km of your location`
+                : 'Getting your location to filter nearby alerts...'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.contentContainer}>
+          <Text style={styles.sectionHeader}>
+            {activeAlerts.length} nearby active alerts
+          </Text>
+
+          <View style={{ flex: 1, minHeight: '81.8vh', overflow: 'hidden' }}>
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ gap: 2, paddingBottom: 20 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {activeAlerts.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateEmoji}>✅</Text>
+                  <Text
+                    style={[
+                      styles.emptyStateText,
+                      { color: C.green, fontWeight: '600' },
+                    ]}
+                  >
+                    No active alerts nearby
+                  </Text>
+                  <Text style={styles.emptyStateSubtext}>
+                    All clear within {ALERT_RADIUS_METERS / 1000}km
+                  </Text>
                 </View>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      )}
+              ) : (
+                activeAlerts.map(alert => {
+                  const isExpired = new Date(alert.expires_at) < new Date();
+                  const emoji = ALERT_EMOJI[alert.alert_type] || '⚠️';
+                  const isFireAlert = alert.alert_type === 'FireAlert';
+                  const accentColor = isExpired
+                    ? C.slate
+                    : isFireAlert
+                      ? C.scarlet
+                      : C.tangerine;
+
+                  return (
+                    <TouchableOpacity
+                      key={alert.alert_id}
+                      onPress={() => nav?.navigate?.('Alert', { alert })}
+                      style={[
+                        styles.alertCard,
+                        { borderColor: accentColor + (isExpired ? '30' : '50') },
+                        isExpired && styles.alertCardExpired,
+                      ]}
+                    >
+                      <View style={styles.alertCardContent}>
+                        <View
+                          style={[
+                            styles.alertCardIcon,
+                            { backgroundColor: accentColor + '20' },
+                          ]}
+                        >
+                          <Text style={styles.alertCardEmoji}>{emoji}</Text>
+                        </View>
+
+                        <View style={styles.alertCardInfo}>
+                          <View style={styles.alertCardBadgeRow}>
+                            <View
+                              style={[
+                                styles.alertCardTypeBadge,
+                                { backgroundColor: accentColor + '20' },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.alertCardTypeText,
+                                  { color: accentColor },
+                                ]}
+                              >
+                                {alert.alert_type}
+                              </Text>
+                            </View>
+
+                            {isExpired && (
+                              <View style={styles.alertCardExpiredBadge}>
+                                <Text style={styles.alertCardExpiredText}>EXPIRED</Text>
+                              </View>
+                            )}
+                          </View>
+
+                          <Text style={styles.alertCardMessage}>
+                            {alert.alert_message}
+                          </Text>
+
+                          <View style={styles.alertCardMetaRow}>
+                            <Text style={styles.alertCardMeta}>
+                              🕐 {fmtDate(alert.created_at)}
+                            </Text>
+                            {alert.fire_id && (
+                              <Text style={styles.alertCardMeta}>
+                                🔥 #{alert.fire_id?.slice(0, 8)}
+                              </Text>
+                            )}
+                          </View>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }

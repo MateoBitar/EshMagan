@@ -9,6 +9,7 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import ResidentNavigator from './ResidentNavigator';
 import MunicipalityDashboard from '../screens/municipality/MunicipalityDashboard';
+import AdminDashboard from '../screens/admin/AdminDashboard';
 import ResponderCommandView from '../screens/responder/ResponderCommandView';
 import AlertScreen from '../screens/resident/AlertScreen';
 import EvacuationScreen from '../screens/resident/EvacuationScreen';
@@ -34,10 +35,11 @@ export default function RootNavigator() {
     );
   }
 
-  const role = user?.role;
-  const isMunicipality = role === 'Municipality';
-  const isResponder = role === 'Responder';
-  const isResident = role === 'Resident' || role === 'Admin';
+  const normalizedRole = user?.role?.toLowerCase?.() || '';
+  const isMunicipality = normalizedRole === 'municipality';
+  const isResponder = normalizedRole === 'responder';
+  const isResident = normalizedRole === 'resident';
+  const isAdmin = normalizedRole === 'admin';
 
   return (
     <NavigationContainer>
@@ -52,6 +54,7 @@ export default function RootNavigator() {
             {isResident && <Stack.Screen name="ResidentHome" component={ResidentNavigator} />}
             {isMunicipality && <Stack.Screen name="MunicipalityDashboard" component={MunicipalityDashboard} />}
             {isResponder && <Stack.Screen name="ResponderCommand" component={ResponderCommandView} />}
+            {isAdmin && <Stack.Screen name="AdminDashboard" component={AdminDashboard} />}
             <Stack.Screen name="Alert" component={AlertScreen} options={{ animation: 'fade' }} />
             <Stack.Screen name="Evacuation" component={EvacuationScreen} />
             <Stack.Screen name="ARMode" component={ARModeScreen} options={{ animation: 'fade' }} />

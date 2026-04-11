@@ -374,4 +374,38 @@ export class UserRepository {
         // Step 4: Return count
         return parseInt(rows[0].count, 10);
     }
+
+    async saveFcmToken(user_id, fcm_token) {
+        const sql = `
+            UPDATE users
+            SET fcm_token = $1, updated_at = NOW()
+            WHERE user_id = $2
+            RETURNING *;
+        `;
+        const { rows } = await pool.query(sql, [fcm_token, user_id]);
+        return rows[0] || null;
+    }
+
+    async clearFcmToken(user_id) {
+        const sql = `
+            UPDATE users
+            SET fcm_token = NULL, updated_at = NOW()
+            WHERE user_id = $1
+            RETURNING user_id;
+        `;
+        const { rows } = await pool.query(sql, [user_id]);
+        return rows.length > 0;
+    }
+
+    async getUsersWithFcmByRole(user_role) {
+        const sql = `
+            SELECT user_id, user_role, fcm_token
+            FROM users
+            WHERE user_role = $1
+            AND isactive = true
+            AND fcm_token IS NOT NULL;
+        `;
+        const { rows } = await pool.query(sql, [user_role]);
+        return rows;
+    }
 }

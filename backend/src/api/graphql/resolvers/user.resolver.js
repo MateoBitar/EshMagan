@@ -145,12 +145,21 @@ export const userResolvers = {
     },
 
     // Deactivate user
-    deactivateUser: async (_, { user_id }, { dataSources }) => { 
-      try { 
-        return await dataSources.userService.deactivateUser(user_id); 
-      } catch (err) { 
-        throw new Error(`GraphQL Error - deactivateUser: ${err.message}`); 
-      } 
+    deactivateUser: async (_, { user_id }, { dataSources }) => {
+      try {
+        return await dataSources.userService.deactivateUser(user_id);
+      } catch (err) {
+        throw new Error(`GraphQL Error - deactivateUser: ${err.message}`);
+      }
+    },
+
+    
+    saveFcmToken: async (_, { user_id, fcm_token }, { dataSources }) => {
+      return await dataSources.userService.saveFcmToken(user_id, fcm_token);
+    },
+
+    clearFcmToken: async (_, { user_id }, { dataSources }) => {
+      return await dataSources.userService.clearFcmToken(user_id);
     },
   },
 };

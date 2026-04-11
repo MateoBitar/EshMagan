@@ -56,7 +56,7 @@ export default StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     paddingTop: 20,
-    background:
+    backgroundColor:
       Platform.OS === 'web'
         ? 'linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, transparent 100%)'
         : 'rgba(0,0,0,0.35)',
@@ -167,7 +167,7 @@ export default StyleSheet.create({
     right: 0,
     bottom: 0,
     padding: 20,
-    background:
+    backgroundColor:
       Platform.OS === 'web'
         ? 'linear-gradient(to top, rgba(0,0,0,0.84) 0%, transparent 100%)'
         : 'rgba(0,0,0,0.48)',

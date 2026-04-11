@@ -23,6 +23,10 @@ import WebMunicipalityMap from './maps/WebMunicipalityMap';
 import NativeMunicipalityMap from './maps/NativeMunicipalityMap';
 import AlertsTab from './tabs/AlertsTab';
 import NotificationsTab from './tabs/NotificationsTab';
+import { getDistanceMeters } from '../responder/utils/helpers';
+import { act } from 'react';
+
+const ALERT_RADIUS_METERS = 10000;
 
 const RESPONDER_STATUS_COLORS = {
   Active: '#16a34a',
@@ -222,10 +226,34 @@ export default function MunicipalityDashboard() {
     [fires]
   );
 
+  const activeAlerts = useMemo(() => {
+    if (!municipalityCoords) return [];
+
+    return alerts.filter(alert => {
+      if (alert.expires_at && new Date(alert.expires_at) <= new Date()) return false;
+      if (!alert.fire_id) return false;
+
+      const fire = fires.find(f => f.fire_id === alert.fire_id);
+      if (!fire) return false;
+
+      const fireCoords = parsePoint(fire.fire_location);
+      if (!fireCoords) return false;
+
+      const distance = getDistanceMeters(
+        municipalityCoords.lat,
+        municipalityCoords.lng,
+        fireCoords.lat,
+        fireCoords.lng
+      );
+
+      return distance <= ALERT_RADIUS_METERS;
+    });
+  }, [alerts, fires, municipalityCoords]);
+
   const activeResponderCount = responders.filter(r => r.responder_status === 'Active').length;
   const standbyResponderCount = responders.filter(r => r.responder_status === 'Standby').length;
   const unreadNotifCount = notifications.filter(n => n.notification_status === 'Sent').length;
-  const activeAlertCount = alerts.filter(alert => !alert.expires_at || new Date(alert.expires_at) > new Date()).length;
+  const activeAlertCount = activeAlerts.length;
 
   const tabs = [
     { id: 'map', title: 'Map', count: null },
@@ -438,7 +466,7 @@ export default function MunicipalityDashboard() {
                   ) : null}
                 </View>
 
-                <View style={styles.accordionSection}>
+                <View style={[styles.accordionSection, { maxHeight: '23.3vh' }]}>
                   <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('responders')}>
                     <View style={styles.accordionHeaderLeft}>
                       <View style={[styles.accordionDot, { backgroundColor: '#16a34a' }]} />
@@ -514,7 +542,7 @@ export default function MunicipalityDashboard() {
 
       {activeTab === 'alerts' ? (
         <View style={styles.tabContent}>
-          <AlertsTab alerts={alerts} loading={loading} />
+          <AlertsTab alerts={activeAlerts} loading={loading} />
         </View>
       ) : null}
 

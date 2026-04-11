@@ -26,6 +26,7 @@ import {
   EXTINGUISH_FIRE,
 } from '../../services/api';
 import { getCurrentLocation } from '../../services/location.service';
+import { notifyAlert, notifyInfo } from '../../services/notifications';
 import styles, { C } from '../../styles/screens/ResponderCommandView.styles';
 
 import DashboardHeader from './components/DashboardHeader';
@@ -59,8 +60,13 @@ export default function ResponderCommandView({ navigation }) {
   const [myStatus, setMyStatus] = useState('Active');
   const [fireLocations, setFireLocations] = useState({});
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const seenAlertIdsRef = useRef(new Set());
+  const seenNotificationIdsRef = useRef(new Set());
+  const seenAssignmentIdsRef = useRef(new Set());
+  const hasInitializedNotificationRefs = useRef(false);
+  const hasCompletedInitialFetchRef = useRef(false);
 
-  const ALERT_RADIUS_METERS = 50000;
+  const ALERT_RADIUS_METERS = 25000;
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
@@ -180,11 +186,58 @@ export default function ResponderCommandView({ navigation }) {
       });
       setFireLocations(fireMap);
 
-      setAlerts(alertData?.getAlertsByTargetRole || []);
-      setNotifications(notifData?.getNotificationsByUserId || []);
+      const nextAlerts = alertData?.getAlertsByTargetRole || [];
+      const nextNotifications = notifData?.getNotificationsByUserId || [];
+      const nextAssignmentIds = new Set(assignments.map(a => a.assignment_id));
+      const nextAlertIds = new Set(nextAlerts.map(a => a.alert_id));
+      const nextNotificationIds = new Set(nextNotifications.map(n => n.notification_id));
+
+      setAlerts(nextAlerts);
+      setNotifications(nextNotifications);
+
+      if (!hasInitializedNotificationRefs.current) {
+        if (hasCompletedInitialFetchRef.current) {
+          seenAssignmentIdsRef.current = nextAssignmentIds;
+          seenAlertIdsRef.current = nextAlertIds;
+          seenNotificationIdsRef.current = nextNotificationIds;
+          hasInitializedNotificationRefs.current = true;
+        }
+      } else {
+        for (const assignment of assignments) {
+          if (!seenAssignmentIdsRef.current.has(assignment.assignment_id)) {
+            notifyAlert(
+              'New Assignment',
+              `You were assigned to fire ${assignment.fire_id || 'incident'}.`
+            );
+          }
+        }
+
+        for (const alert of nextAlerts) {
+          if (!seenAlertIdsRef.current.has(alert.alert_id)) {
+            notifyAlert(
+              alert.alert_type || 'New Alert',
+              alert.alert_message || 'A new alert was received.'
+            );
+          }
+        }
+
+        for (const notification of nextNotifications) {
+          if (!seenNotificationIdsRef.current.has(notification.notification_id)) {
+            notifyInfo(
+              'New Notification',
+              notification.notification_message || 'You received a new notification.'
+            );
+          }
+        }
+
+        seenAssignmentIdsRef.current = nextAssignmentIds;
+        seenAlertIdsRef.current = nextAlertIds;
+        seenNotificationIdsRef.current = nextNotificationIds;
+      }
     } catch (e) {
       console.error('ResponderDashboard fetch error:', e);
     } finally {
+      hasCompletedInitialFetchRef.current = true;
       setLoading(false);
     }
   };

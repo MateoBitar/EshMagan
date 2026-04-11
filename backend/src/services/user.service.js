@@ -53,8 +53,8 @@ export class UserService {
         try {
             // Fetch users by ID
             const user = await this.userRepository.getUserById(user_id);
-            if (!user ) return null; // Not found or inactive
-            return user.toDTO(); 
+            if (!user) return null; // Not found or inactive
+            return user.toDTO();
         } catch (err) {
             throw new Error(`Failed to fetch user by ID: ${err.message}`);
         }
@@ -119,7 +119,7 @@ export class UserService {
         try {
             // Fetch user by email and active status
             const user = await this.userRepository.getUserByEmailAndActive(user_email);
-            if (!user ) return null; // Not found or inactive
+            if (!user) return null; // Not found or inactive
             return user.toDTO();
         } catch (err) {
             throw new Error(`Failed to fetch active user by email: ${err.message}`);
@@ -158,7 +158,7 @@ export class UserService {
             throw new Error(`Failed to update user status: ${err.message}`);
         }
     }
-    
+
     async updateLastLogin(user_id) {
         try {
             // Update user's last login timestamp
@@ -198,5 +198,21 @@ export class UserService {
         } catch (err) {
             throw new Error(`Failed to count users: ${err.message}`);
         }
+    }
+
+    async saveFcmToken(user_id, fcm_token) {
+        if (!user_id) throw new Error('Missing user_id');
+        if (!fcm_token) throw new Error('Missing fcm_token');
+        return await this.userRepository.saveFcmToken(user_id, fcm_token);
+    }
+
+    async clearFcmToken(user_id) {
+        if (!user_id) throw new Error('Missing user_id');
+        return await this.userRepository.clearFcmToken(user_id);
+    }
+
+    async getUsersWithFcmByRole(user_role) {
+        if (!user_role) throw new Error('Missing user_role');
+        return await this.userRepository.getUsersWithFcmByRole(user_role);
     }
 }

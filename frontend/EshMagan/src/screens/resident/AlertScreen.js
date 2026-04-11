@@ -16,7 +16,6 @@ function useLatestAlert() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (Platform.OS !== 'web') { setLoading(false); return; }
     const fetch = async () => {
       try {
         const data = await gqlFetch(GET_ALERTS_BY_ROLE, { target_role: 'Resident' });
@@ -46,28 +45,10 @@ export default function AlertScreen({ navigation, route }) {
 
   // Alert can be passed via route params (from alerts list) or fetched fresh
   const passedAlert = routeParams.alert || null;
-  const webData = useLatestAlert();
+  const alertDataFromHook = useLatestAlert();
 
-  let alertData = passedAlert;
-  let loading = false;
-
-  if (Platform.OS !== 'web' && !passedAlert) {
-    try {
-      const { useQuery, gql } = require('@apollo/client');
-      const QUERY = gql`query GetAlertsByTargetRole($target_role: AlertTargetRole!) {
-        getAlertsByTargetRole(target_role: $target_role) {
-          alert_id alert_type target_role alert_message expires_at created_at fire_id
-        }
-      }`;
-      const result = useQuery(QUERY, { variables: { target_role: 'Resident' } });
-      const alerts = result.data?.getAlertsByTargetRole || [];
-      alertData = alerts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0] || null;
-      loading = result.loading;
-    } catch { }
-  } else if (!passedAlert) {
-    alertData = webData.alert;
-    loading = webData.loading;
-  }
+  const alertData = passedAlert || alertDataFromHook.alert;
+  const loading = !passedAlert && alertDataFromHook.loading;
 
   const pulse = useRef(new Animated.Value(1)).current;
   const glow = useRef(new Animated.Value(0.3)).current;

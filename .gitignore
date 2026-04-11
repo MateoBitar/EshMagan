@@ -1,4 +1,5 @@
 # Ignore environment variable files
 backend\.env
 backend/.env
-node_modules
+backend/src/config/eshmagan-firebase-adminsdk.json
+backend/node_modules

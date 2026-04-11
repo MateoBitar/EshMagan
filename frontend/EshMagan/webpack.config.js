@@ -1,6 +1,7 @@
 // webpack.config.js
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const webpack = require('webpack');
 
 const appDirectory = path.resolve(__dirname);
 
@@ -13,6 +14,7 @@ module.exports = {
     },
     resolve: {
         extensions: ['.web.js', '.js', '.web.jsx', '.jsx', '.ts', '.tsx'],
+        mainFields: ['browser', 'module', 'main'],
         alias: {
             'react-native$': 'react-native-web',
             '@react-navigation/native': path.resolve(appDirectory, 'src/stubs/navigation.js'),
@@ -26,6 +28,13 @@ module.exports = {
             'react-native-maps': path.resolve(appDirectory, 'src/stubs/maps.js'),
         },
         fullySpecified: false,
+        fallback: {
+            fs: false,
+            path: false,
+            os: false,
+            crypto: false,
+            process: require.resolve('process/browser'),
+        },
     },
     module: {
         rules: [
@@ -36,7 +45,7 @@ module.exports = {
                     loader: 'babel-loader',
                     options: {
                         presets: [
-                            ['@babel/preset-env', { targets: { browsers: ['last 2 Chrome versions'] }, modules: 'commonjs' }],
+                            ['@babel/preset-env', { targets: { browsers: ['last 2 Chrome versions'] }, modules: false }],
                             '@babel/preset-react',
                             '@babel/preset-typescript',
                         ],
@@ -53,6 +62,12 @@ module.exports = {
     plugins: [
         new HtmlWebpackPlugin({
             template: path.resolve(appDirectory, 'public/index.html'),
+        }),
+        new webpack.DefinePlugin({
+            __DEV__: JSON.stringify(true),
+        }),
+        new webpack.ProvidePlugin({
+            process: 'process/browser',
         }),
     ],
     devServer: {

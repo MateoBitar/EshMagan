@@ -59,33 +59,14 @@ export default function IncidentDetailsScreen({ navigation, route }) {
   const { fireId } = routeParams;
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Web: use hook. Native: use Apollo
-  const webData = useIncidentData(Platform.OS === 'web' ? fireId : null);
+  // Use hook for all platforms
+  const incidentData = useIncidentData(fireId);
 
-  let fire = null, assignments = [], alerts = [], loading = false;
-  let refresh = webData.refresh;
-
-  if (Platform.OS !== 'web') {
-    try {
-      const { useQuery, gql } = require('@apollo/client');
-      const FIRE_Q = gql`query GetFireById($fire_id: ID!) { getFireById(fire_id: $fire_id) { fire_id fire_source fire_location fire_severitylevel is_extinguished is_verified spread_prediction created_at updated_at } }`;
-      const ASSIGN_Q = gql`query GetAssignmentsByFireId($fire_id: ID!) { getAssignmentsByFireId(fire_id: $fire_id) { assignment_id assignment_status fire_id responder_id assigned_at } }`;
-      const ALERTS_Q = gql`query GetAlertsByFireId($fire_id: ID!) { getAlertsByFireId(fire_id: $fire_id) { alert_id alert_type target_role alert_message created_at } }`;
-      const fr = useQuery(FIRE_Q, { variables: { fire_id: fireId }, skip: !fireId });
-      const ar = useQuery(ASSIGN_Q, { variables: { fire_id: fireId }, skip: !fireId });
-      const alr = useQuery(ALERTS_Q, { variables: { fire_id: fireId }, skip: !fireId });
-      fire = fr.data?.getFireById;
-      assignments = ar.data?.getAssignmentsByFireId || [];
-      alerts = alr.data?.getAlertsByFireId || [];
-      loading = fr.loading;
-      refresh = () => { fr.refetch(); ar.refetch(); alr.refetch(); };
-    } catch {}
-  } else {
-    fire = webData.fire;
-    assignments = webData.assignments;
-    alerts = webData.alerts;
-    loading = webData.loading;
-  }
+  const fire = incidentData.fire;
+  const assignments = incidentData.assignments;
+  const alerts = incidentData.alerts;
+  const loading = incidentData.loading;
+  const refresh = incidentData.refresh;
 
   const handleAction = async (action, label) => {
     const confirm = Platform.OS === 'web'

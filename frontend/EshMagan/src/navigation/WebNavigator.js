@@ -5,6 +5,7 @@ import { ActivityIndicator, View } from 'react-native';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import ResidentHomeScreen from '../screens/resident/ResidentHomeScreen';
+import AdminDashboard from '../screens/admin/AdminDashboard';
 import AlertScreen from '../screens/resident/AlertScreen';
 import EvacuationScreen from '../screens/resident/EvacuationScreen';
 import ARModeScreen from '../screens/resident/ARModeScreen';
@@ -24,20 +25,21 @@ export default function WebNavigator({ user, loading }) {
   const [screen, setScreen] = useState(null);
   const [params, setParams] = useState({});
 
+  const normalizedRole = user?.role?.toLowerCase?.() || '';
+
   const getDefaultScreen = () => {
     if (!user) return 'Login';
-    if (user.role === 'Municipality') return 'MunicipalityDashboard';
-    if (user.role === 'Responder') return 'ResponderCommand';
+    if (normalizedRole === 'municipality') return 'MunicipalityDashboard';
+    if (normalizedRole === 'responder') return 'ResponderCommand';
+    if (normalizedRole === 'admin') return 'AdminDashboard';
     return 'ResidentHome';
   };
 
-  // When user state changes (login/logout), reset to the correct screen
+  // Handle login/logout screen reset
   useEffect(() => {
     if (user && AUTH_SCREENS.includes(screen)) {
-      // Just logged in — go to their home
       setScreen(getDefaultScreen());
     } else if (!user && screen && !AUTH_SCREENS.includes(screen)) {
-      // Just logged out — go to login
       setScreen('Login');
     }
   }, [user]);
@@ -48,9 +50,22 @@ export default function WebNavigator({ user, loading }) {
   };
 
   const goBack = () => {
-    if (!user) { setScreen('Login'); return; }
-    if (user.role === 'Municipality') { setScreen('MunicipalityDashboard'); return; }
-    if (user.role === 'Responder') { setScreen('ResponderCommand'); return; }
+    if (!user) {
+      setScreen('Login');
+      return;
+    }
+    if (normalizedRole === 'municipality') {
+      setScreen('MunicipalityDashboard');
+      return;
+    }
+    if (normalizedRole === 'responder') {
+      setScreen('ResponderCommand');
+      return;
+    }
+    if (normalizedRole === 'admin') {
+      setScreen('AdminDashboard');
+      return;
+    }
     setScreen('ResidentHome');
   };
 
@@ -79,6 +94,7 @@ export default function WebNavigator({ user, loading }) {
     MunicipalityDashboard: <MunicipalityDashboard navigation={nav} route={{ params }} />,
     IncidentDetails: <IncidentDetailsScreen navigation={nav} route={{ params }} />,
     ResponderCommand: <ResponderCommandView navigation={nav} route={{ params }} />,
+    AdminDashboard: <AdminDashboard navigation={nav} route={{ params }} />,
   };
 
   return (

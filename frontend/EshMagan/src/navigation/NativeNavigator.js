@@ -6,6 +6,7 @@ import { ActivityIndicator, View } from 'react-native';
 
 import LoginScreen from '../screens/auth/LoginScreen';
 import ResidentNavigator from './ResidentNavigator';
+import AdminDashboard from '../screens/admin/AdminDashboard';
 import MunicipalityDashboard from '../screens/municipality/MunicipalityDashboard';
 import ResponderCommandView from '../screens/responder/ResponderCommandView';
 import AlertScreen from '../screens/resident/AlertScreen';
@@ -25,10 +26,13 @@ export default function NativeNavigator({ user, loading }) {
     );
   }
 
+  const normalizedRole = user?.role?.toLowerCase?.() || '';
+
   const getInitialRoute = () => {
     if (!user) return 'Login';
-    if (user.role === 'Municipality') return 'MunicipalityDashboard';
-    if (user.role === 'Responder') return 'ResponderCommand';
+    if (normalizedRole === 'admin') return 'AdminDashboard';
+    if (normalizedRole === 'municipality') return 'MunicipalityDashboard';
+    if (normalizedRole === 'responder') return 'ResponderCommand';
     return 'ResidentHome';
   };
 
@@ -42,15 +46,22 @@ export default function NativeNavigator({ user, loading }) {
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : (
           <>
-            {(user.role === 'resident' || user.role === 'admin') && (
+            {normalizedRole === 'admin' && (
+              <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
+            )}
+
+            {(normalizedRole === 'resident') && (
               <Stack.Screen name="ResidentHome" component={ResidentNavigator} />
             )}
-            {user.role === 'municipality' && (
+
+            {normalizedRole === 'municipality' && (
               <Stack.Screen name="MunicipalityDashboard" component={MunicipalityDashboard} />
             )}
-            {user.role === 'responder' && (
+
+            {normalizedRole === 'responder' && (
               <Stack.Screen name="ResponderCommand" component={ResponderCommandView} />
             )}
+
             <Stack.Screen name="Alert" component={AlertScreen} options={{ animation: 'fade' }} />
             <Stack.Screen name="Evacuation" component={EvacuationScreen} />
             <Stack.Screen name="ARMode" component={ARModeScreen} options={{ animation: 'fade' }} />

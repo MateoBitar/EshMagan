@@ -59,6 +59,8 @@ export const userTypeDefs = gql`
     updateUserRole(user_id: ID!, user_role: String!): User
     updateUserStatus(user_id: ID!, user_status: Boolean!): User
     deactivateUser(user_id: ID!): Boolean!
+    saveFcmToken(user_id: String!, fcm_token: String!): User
+    clearFcmToken(user_id: String!): Boolean
   }
 
   # -----------------------------
