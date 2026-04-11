@@ -138,6 +138,8 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: C.cardBorder,
     overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
   },
 
   sidePanelHeader: {
@@ -177,7 +179,6 @@ export default StyleSheet.create({
   accordionScrollContent: {
     padding: 12,
     paddingBottom: 20,
-    flexGrow: 1,
   },
 
   accordionSection: {

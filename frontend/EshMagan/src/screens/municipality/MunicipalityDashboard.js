@@ -84,7 +84,7 @@ function parsePoint(value) {
       const lng = Number(geo.coordinates[0]);
       if (isValidCoordPair(lat, lng)) return { lat, lng };
     }
-  } catch {}
+  } catch { }
 
   const match = String(value).match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
   if (match) {
@@ -367,6 +367,7 @@ export default function MunicipalityDashboard() {
                 style={styles.accordionScroll}
                 contentContainerStyle={styles.accordionScrollContent}
                 showsVerticalScrollIndicator={false}
+                nestedScrollEnabled
               >
                 <View style={styles.accordionSection}>
                   <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('fires')}>
