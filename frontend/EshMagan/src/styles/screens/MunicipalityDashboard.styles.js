@@ -182,7 +182,7 @@ export default StyleSheet.create({
   },
 
   accordionSection: {
-    marginBottom: 0,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: C.cardBorder,
     borderRadius: 14,
