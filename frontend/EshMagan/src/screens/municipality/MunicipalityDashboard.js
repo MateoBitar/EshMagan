@@ -383,49 +383,56 @@ export default function MunicipalityDashboard() {
                   </TouchableOpacity>
 
                   {openSections.fires ? (
-                    <View style={styles.accordionBody}>
-                      {firesForMap.length === 0 ? (
-                        <View style={styles.emptyWrap}>
-                          <Text style={styles.emptyTitle}>No active fires</Text>
-                          <Text style={styles.emptyDesc}>New fires will appear here.</Text>
-                        </View>
-                      ) : (
-                        firesForMap.map(fire => {
-                          const severity = getSeverityColor(fire.fire_severitylevel);
-                          const isActive = selectedFireId === fire.fire_id;
+                    <View style={styles.accordionBodyWrapper}>
+                      <ScrollView
+                        style={styles.accordionBodyScroll}
+                        contentContainerStyle={styles.accordionBodyScrollContent}
+                        nestedScrollEnabled
+                        showsVerticalScrollIndicator={false}
+                      >
+                        {firesForMap.length === 0 ? (
+                          <View style={styles.emptyWrap}>
+                            <Text style={styles.emptyTitle}>No active fires</Text>
+                            <Text style={styles.emptyDesc}>New fires will appear here.</Text>
+                          </View>
+                        ) : (
+                          firesForMap.map(fire => {
+                            const severity = getSeverityColor(fire.fire_severitylevel);
+                            const isActive = selectedFireId === fire.fire_id;
 
-                          return (
-                            <TouchableOpacity
-                              key={fire.fire_id}
-                              style={[styles.entityItem, isActive && styles.entityItemActive]}
-                              onPress={() => {
-                                setSelectedResponderId(null);
-                                setSelectedFireId(fire.fire_id);
-                              }}
-                            >
-                              <View style={styles.entityItemTop}>
-                                <Text style={styles.entityItemTitle}>{fire.displayName}</Text>
-                                <View
-                                  style={[
-                                    styles.entityItemBadge,
-                                    {
-                                      backgroundColor: severity.bg,
-                                      borderColor: severity.border,
-                                    },
-                                  ]}
-                                >
-                                  <Text style={[styles.entityItemBadgeText, { color: severity.text }]}>
-                                    {getSeverityLabel(fire.fire_severitylevel)}
-                                  </Text>
+                            return (
+                              <TouchableOpacity
+                                key={fire.fire_id}
+                                style={[styles.entityItem, isActive && styles.entityItemActive]}
+                                onPress={() => {
+                                  setSelectedResponderId(null);
+                                  setSelectedFireId(fire.fire_id);
+                                }}
+                              >
+                                <View style={styles.entityItemTop}>
+                                  <Text style={styles.entityItemTitle}>{fire.displayName}</Text>
+                                  <View
+                                    style={[
+                                      styles.entityItemBadge,
+                                      {
+                                        backgroundColor: severity.bg,
+                                        borderColor: severity.border,
+                                      },
+                                    ]}
+                                  >
+                                    <Text style={[styles.entityItemBadgeText, { color: severity.text }]}>
+                                      {getSeverityLabel(fire.fire_severitylevel)}
+                                    </Text>
+                                  </View>
                                 </View>
-                              </View>
-                              <Text style={styles.entityItemSub}>
-                                {fire.fire_source || 'Unknown source'} • Level {fire.fire_severitylevel ?? 'N/A'}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })
-                      )}
+                                <Text style={styles.entityItemSub}>
+                                  {fire.fire_source || 'Unknown source'} • Level {fire.fire_severitylevel ?? 'N/A'}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })
+                        )}
+                      </ScrollView>
                     </View>
                   ) : null}
                 </View>
@@ -445,49 +452,56 @@ export default function MunicipalityDashboard() {
                   </TouchableOpacity>
 
                   {openSections.responders ? (
-                    <View style={styles.accordionBody}>
-                      {respondersWithCoords.length === 0 ? (
-                        <View style={styles.emptyWrap}>
-                          <Text style={styles.emptyTitle}>No responder locations</Text>
-                          <Text style={styles.emptyDesc}>Responders will appear here when location data is available.</Text>
-                        </View>
-                      ) : (
-                        respondersWithCoords.map(responder => {
-                          const isActive = selectedResponderId === responder.responder_id;
-                          const statusColor = RESPONDER_STATUS_COLORS[responder.responder_status] || '#94a3b8';
+                    <View style={styles.accordionBodyWrapper}>
+                      <ScrollView
+                        style={styles.accordionBodyScroll}
+                        contentContainerStyle={styles.accordionBodyScrollContent}
+                        nestedScrollEnabled
+                        showsVerticalScrollIndicator={false}
+                      >
+                        {respondersWithCoords.length === 0 ? (
+                          <View style={styles.emptyWrap}>
+                            <Text style={styles.emptyTitle}>No responder locations</Text>
+                            <Text style={styles.emptyDesc}>Responders will appear here when location data is available.</Text>
+                          </View>
+                        ) : (
+                          respondersWithCoords.map(responder => {
+                            const isActive = selectedResponderId === responder.responder_id;
+                            const statusColor = RESPONDER_STATUS_COLORS[responder.responder_status] || '#94a3b8';
 
-                          return (
-                            <TouchableOpacity
-                              key={responder.responder_id}
-                              style={[styles.entityItem, isActive && styles.entityItemActive]}
-                              onPress={() => {
-                                setSelectedFireId(null);
-                                setSelectedResponderId(responder.responder_id);
-                              }}
-                            >
-                              <View style={styles.entityItemTop}>
-                                <Text style={styles.entityItemTitle}>{responder.displayName}</Text>
-                                <View
-                                  style={[
-                                    styles.entityItemBadge,
-                                    {
-                                      backgroundColor: `${statusColor}22`,
-                                      borderColor: `${statusColor}66`,
-                                    },
-                                  ]}
-                                >
-                                  <Text style={[styles.entityItemBadgeText, { color: statusColor }]}>
-                                    {responder.responder_status || 'Unknown'}
-                                  </Text>
+                            return (
+                              <TouchableOpacity
+                                key={responder.responder_id}
+                                style={[styles.entityItem, isActive && styles.entityItemActive]}
+                                onPress={() => {
+                                  setSelectedFireId(null);
+                                  setSelectedResponderId(responder.responder_id);
+                                }}
+                              >
+                                <View style={styles.entityItemTop}>
+                                  <Text style={styles.entityItemTitle}>{responder.displayName}</Text>
+                                  <View
+                                    style={[
+                                      styles.entityItemBadge,
+                                      {
+                                        backgroundColor: `${statusColor}22`,
+                                        borderColor: `${statusColor}66`,
+                                      },
+                                    ]}
+                                  >
+                                    <Text style={[styles.entityItemBadgeText, { color: statusColor }]}>
+                                      {responder.responder_status || 'Unknown'}
+                                    </Text>
+                                  </View>
                                 </View>
-                              </View>
-                              <Text style={styles.entityItemSub}>
-                                {responder.assigned_region || responder.unit_nb || 'No region'}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })
-                      )}
+                                <Text style={styles.entityItemSub}>
+                                  {responder.assigned_region || responder.unit_nb || 'No region'}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })
+                        )}
+                      </ScrollView>
                     </View>
                   ) : null}
                 </View>

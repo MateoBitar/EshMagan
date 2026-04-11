@@ -234,7 +234,19 @@ export default StyleSheet.create({
   accordionCountText: { fontSize: 11, fontWeight: '800', color: C.textMuted },
   accordionChevron: { fontSize: 14, fontWeight: '800', color: C.textMuted, marginLeft: 10, bottom: 4 },
 
-  accordionBody: { padding: 10, gap: 8 },
+  accordionBodyWrapper: {
+    maxHeight: isDesktop ? 320 : 260,
+    overflow: 'hidden',
+  },
+
+  accordionBodyScroll: {
+    flexGrow: 0,
+  },
+
+  accordionBodyScrollContent: {
+    padding: 10,
+    gap: 8,
+  },
 
   entityItem: {
     borderWidth: 1,
