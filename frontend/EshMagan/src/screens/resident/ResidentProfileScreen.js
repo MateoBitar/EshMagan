@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Alert, Platform, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
+import { global } from '../../styles/global';
 import { gqlFetch, GET_RESIDENT_BY_EMAIL, GET_NOTIFICATIONS_BY_USER, UPDATE_NOTIFICATION_STATUS } from '../../services/api';
 import styles from '../../styles/screens/ResidentProfileScreen.styles';
 
@@ -48,7 +49,7 @@ export default function ResidentProfileScreen() {
       await gqlFetch(UPDATE_NOTIFICATION_STATUS, {
         notification_id: n.notification_id,
         notification_status: 'Delivered',
-      }).catch(() => {});
+      }).catch(() => { });
     }
   };
 
@@ -67,6 +68,22 @@ export default function ResidentProfileScreen() {
     ? `${profile.resident_fname} ${profile.resident_lname}`
     : user?.email?.split('@')[0] || 'Resident User';
 
+  // INITIAL LOAD: Block screen while fetching profile data
+  if (loading) {
+    return (
+      <SafeAreaView style={global.loaderScreen}>
+        <ActivityIndicator size="large" color="#EC7742" />
+      </SafeAreaView>
+    );
+  }
+
+  const formattedHomeLocation =
+    typeof profile?.home_location === 'string'
+      ? profile.home_location
+      : profile?.home_location?.latitude != null && profile?.home_location?.longitude != null
+        ? `${profile.home_location.latitude}, ${profile.home_location.longitude}`
+        : '';
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -76,17 +93,13 @@ export default function ResidentProfileScreen() {
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarEmoji}>👤</Text>
           </View>
-          {loading ? (
-            <ActivityIndicator color="#3b82f6" style={{ marginVertical: 8 }} />
-          ) : (
-            <>
-              <Text style={styles.userName}>{displayName}</Text>
-              <Text style={styles.userEmail}>{user?.email}</Text>
-              {profile?.home_location && (
-                <Text style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>📍 {profile.home_location}</Text>
-              )}
-            </>
-          )}
+          <Text style={styles.userName}>{displayName}</Text>
+          <Text style={styles.userEmail}>{user?.email}</Text>
+          {formattedHomeLocation ? (
+            <Text style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+              📍 {formattedHomeLocation}
+            </Text>
+          ) : null}
           <View style={styles.roleBadge}>
             <Text style={styles.roleText}>{user?.role || 'Resident'}</Text>
           </View>

@@ -424,15 +424,6 @@ export default function ResponderCommandView({ navigation }) {
 
   const isUnitsTab = activeTab === 'units';
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator color={C.tangerine} size="large" />
-        <Text style={styles.loadingText}>Loading responder dashboard...</Text>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>

@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, Animated, Easing, Platform, ActivityIndicator } from 'react-native';
 import { gqlFetch, GET_ALERTS_BY_ROLE } from '../../services/api';
+import { global } from '../../styles/global';
 import styles from '../../styles/screens/AlertScreen.styles';
 
 const DEFAULT_RECOMMENDATIONS = [
@@ -64,6 +65,15 @@ export default function AlertScreen({ navigation, route }) {
     ])).start();
   }, []);
 
+  // INITIAL LOAD: Block screen while fetching alert data
+  if (loading) {
+    return (
+      <SafeAreaView style={global.loaderScreen}>
+        <ActivityIndicator size="large" color="#ef4444" />
+      </SafeAreaView>
+    );
+  }
+
   const detailRows = alertData ? [
     { icon: '⚠️', title: 'Alert Type', body: alertData.alert_type?.replace(/_/g, ' ') || 'Fire Alert' },
     { icon: '🎯', title: 'Target', body: alertData.target_role || 'Resident' },
@@ -84,10 +94,7 @@ export default function AlertScreen({ navigation, route }) {
           </Animated.View>
         </View>
 
-        {loading ? (
-          <ActivityIndicator color="#ef4444" style={{ marginVertical: 40 }} />
-        ) : (
-          <View style={styles.card}>
+        <View style={styles.card}>
             <View style={styles.priorityBadgeWrap}>
               <View style={styles.priorityBadge}>
                 <Text style={styles.priorityText}>🚨 {alertData ? alertData.alert_type?.replace(/_/g, ' ').toUpperCase() : 'HIGH PRIORITY ALERT'}</Text>
@@ -127,7 +134,6 @@ export default function AlertScreen({ navigation, route }) {
               <Text style={styles.primaryBtnText}>View Evacuation Route</Text>
             </TouchableOpacity>
           </View>
-        )}
 
         <TouchableOpacity
           style={styles.dismissBtn}

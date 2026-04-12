@@ -3,6 +3,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
+import { global, colors } from '../styles/global';
 
 import LoginScreen from '../screens/auth/LoginScreen';
 import ResidentNavigator from './ResidentNavigator';
@@ -20,8 +21,8 @@ const Stack = createNativeStackNavigator();
 export default function NativeNavigator({ user, loading }) {
   if (loading) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#020617' }}>
-        <ActivityIndicator size="large" color="#ef4444" />
+      <View style={global.loaderScreen}>
+        <ActivityIndicator size="large" color={colors.loaderAccent} />
       </View>
     );
   }
