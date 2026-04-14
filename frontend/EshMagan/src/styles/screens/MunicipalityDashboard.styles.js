@@ -1,6 +1,6 @@
 import { StyleSheet, Dimensions, Platform } from 'react-native';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const isDesktop = Platform.OS === 'web' && width >= 1100;
 
 const C = {
@@ -18,6 +18,10 @@ const C = {
   textMuted: '#4b2e1a',
   textDim: 'rgba(0,0,0,0.4)',
 };
+
+const accordionOpenMaxHeight = isDesktop
+  ? Math.max(220, height - 430)
+  : 220;
 
 export default StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: C.bg, minHeight: '100vh' },
@@ -199,6 +203,7 @@ export default StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: C.bg,
+    flexShrink: 0,
   },
 
   accordionHeaderLeft: {
@@ -237,7 +242,7 @@ export default StyleSheet.create({
   accordionChevron: { fontSize: 14, fontWeight: '800', color: C.textMuted, marginLeft: 10, bottom: 4 },
 
   accordionBodyWrapper: {
-    maxHeight: isDesktop ? 220 : 170,
+    maxHeight: accordionOpenMaxHeight,
     overflow: 'hidden',
   },
 
