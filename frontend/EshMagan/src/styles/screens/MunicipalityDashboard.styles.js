@@ -20,7 +20,7 @@ const C = {
 };
 
 const accordionOpenMaxHeight = isDesktop
-  ? Math.max(220, height - 430)
+  ? Math.max(220, height - 450)
   : 220;
 
 export default StyleSheet.create({
