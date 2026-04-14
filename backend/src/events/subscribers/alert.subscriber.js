@@ -8,6 +8,22 @@ import { sendPushToTokens } from '../../services/push.service.js';
 import { UserService } from '../../services/user.service.js';
 import { UserRepository } from '../../domain/repositories/user.repository.js';
 
+function getDistanceMeters(lat1, lng1, lat2, lng2) {
+    const toRad = d => (d * Math.PI) / 180;
+    const R = 6371000;
+
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLng / 2) ** 2;
+
+    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 const CONSUMER_NAME = 'alert-consumer';
 
 export async function startAlertSubscriber() {
@@ -48,24 +64,73 @@ export async function startAlertSubscriber() {
                         console.log(`[NATS] Fetching users with role: ${data.target_role} for push notifications`);
                         const users = await userService.getUsersWithFcmByRole(data.target_role);
 
-                        const tokens = users
+                        // 🔥 get fire location
+                        const fire = await fireRepository.getFireById(data.fire_id);
+
+                        if (!fire) {
+                            console.log('No fire found → skip push');
+                            msg.ack();
+                            return;
+                        }
+
+                        const fireGeo = typeof fire.fire_location === 'string'
+                            ? JSON.parse(fire.fire_location)
+                            : fire.fire_location;
+
+                        const fireCoords = fireGeo?.coordinates
+                            ? { lat: fireGeo.coordinates[1], lng: fireGeo.coordinates[0] }
+                            : null;
+
+                        if (!fireCoords) {
+                            console.log('No fire coords → skip push');
+                            msg.ack();
+                            return;
+                        }
+
+                        // 🎯 same radius logic as frontend
+                        const RADIUS_BY_ROLE = {
+                            Resident: 10000,
+                            Responder: 25000,
+                            Municipality: 10000,
+                        };
+
+                        const radius = RADIUS_BY_ROLE[data.target_role] || 10000;
+
+                        // 🔥 filter users
+                        const validUsers = users.filter(u => {
+                            if (!u.last_known_location) return false;
+
+                            const { latitude, longitude } = u.last_known_location;
+
+                            if (!latitude || !longitude) return false;
+
+                            const distance = getDistanceMeters(
+                                latitude,
+                                longitude,
+                                fireCoords.lat,
+                                fireCoords.lng
+                            );
+
+                            return distance <= radius;
+                        });
+
+                        const tokens = validUsers
                             .map(u => u.fcm_token)
                             .filter(Boolean);
 
                         if (tokens.length > 0) {
                             await sendPushToTokens(tokens, {
                                 title: '🔥 Fire Alert',
-                                body: data.alert_message || 'A fire has been detected near your location.',
+                                body: data.alert_message || 'Fire detected near you',
                                 data: {
-                                    type: 'FireAlert',
                                     fire_id: data.fire_id,
-                                    target_role: data.target_role,
+                                    type: 'FireAlert',
                                 },
                             });
 
-                            console.log(`✅ Push sent to ${tokens.length} users (${data.target_role})`);
+                            console.log(`✅ Push sent to ${tokens.length} nearby users`);
                         } else {
-                            console.log('⚠️ No FCM tokens found for role:', data.target_role);
+                            console.log('⚠️ No nearby users to notify');
                         }
                     } catch (pushErr) {
                         console.error('❌ Push error:', pushErr.message);
