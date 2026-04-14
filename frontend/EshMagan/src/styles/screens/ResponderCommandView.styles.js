@@ -1,5 +1,10 @@
-// src/styles/screens/ResponderCommandView.styles.js
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions, Platform } from 'react-native';
+
+const { width, height } = Dimensions.get('window');
+const isDesktop = Platform.OS === 'web' && width >= 1100;
+const accordionOpenMaxHeight = isDesktop
+  ? Math.max(220, height - 545)
+  : 220;
 
 // ─── COLOR PALETTE ────────────────────────────────────────────────────────────
 const C = {
@@ -49,7 +54,6 @@ export default StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     backgroundColor: C.bg,
@@ -58,39 +62,43 @@ export default StyleSheet.create({
   },
 
   headerIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
     backgroundColor: C.scarlet,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
     shadowColor: C.scarlet,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.25,
     shadowRadius: 6,
-    elevation: 4,
+    elevation: 3,
   },
 
-  headerIconEmoji: {
-    fontSize: 22,
+  headerIconInner: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#ffffff',
+    opacity: 0.95,
   },
 
   headerTextContainer: {
     flex: 1,
+    minWidth: 0,
   },
 
   headerTitle: {
     color: C.text,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
-    letterSpacing: -0.3,
   },
 
   headerLiveRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    marginTop: 2,
+    marginTop: 3,
   },
 
   headerLiveDot: {
@@ -98,82 +106,120 @@ export default StyleSheet.create({
     height: 7,
     borderRadius: 4,
     backgroundColor: C.green,
+    marginRight: 6,
   },
 
   headerLiveText: {
     color: C.textMuted,
-    fontSize: 11,
+    fontSize: 12,
   },
 
   logoutButton: {
     paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1.5,
     borderColor: C.scarlet,
+    backgroundColor: 'transparent',
   },
 
   logoutButtonText: {
+    color: C.scarlet,
     fontSize: 12,
     fontWeight: '700',
-    color: C.scarlet,
   },
 
   // ─── RESPONDER STATUS BAR ───────────────────────────────────────────────────
   statusBar: {
-    backgroundColor: 'rgba(236,119,66,0.08)',
+    backgroundColor: 'rgba(238, 134, 85, 0.06)',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(236,119,66,0.2)',
+    borderBottomColor: 'rgba(236,119,66,0.16)',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'space-between',
+    gap: 12,
+    flexWrap: 'wrap',
+  },
+
+  statusInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 1,
+    minWidth: 0,
   },
 
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 10,
+  },
+
+  statusTextWrap: {
+    minWidth: 0,
+  },
+
+  statusLabel: {
+    color: C.textDim,
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 2,
   },
 
   statusUnitText: {
-    color: C.textMuted,
-    fontSize: 12,
+    color: C.text,
+    fontSize: 13,
+    fontWeight: '700',
   },
 
   statusSpacer: {
     flex: 1,
   },
 
-  statusButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 1,
+  statusActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
   },
 
-  statusButtonActive: {
-    // backgroundColor will be dynamic: RESPONDER_STATUS_COLORS[status] + '30'
-    // borderColor will be dynamic: RESPONDER_STATUS_COLORS[status]
+  statusButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 11,
+    borderWidth: 1,
+    backgroundColor: C.card,
   },
+
+  statusButtonActive: {},
 
   statusButtonInactive: {
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(238, 134, 85, 0.00)',
     borderColor: C.cardBorder,
   },
 
   statusButtonText: {
-    fontSize: 10,
+    fontSize: 12,
   },
 
   statusButtonTextActive: {
     fontWeight: '700',
-    // color will be dynamic: RESPONDER_STATUS_COLORS[status]
   },
 
   statusButtonTextInactive: {
-    fontWeight: '400',
+    fontWeight: '600',
+    color: C.textMuted,
+  },
+
+  statusButtonLocked: {
+    opacity: 0.45,
+  },
+
+  statusButtonTextLocked: {
     color: C.textDim,
   },
 
@@ -187,9 +233,12 @@ export default StyleSheet.create({
 
   tab: {
     flex: 1,
+    minHeight: 48,
+    paddingVertical: 12,
     alignItems: 'center',
-    paddingVertical: 10,
+    justifyContent: 'center',
     borderBottomWidth: 2,
+    flexDirection: 'row',
   },
 
   tabActive: {
@@ -200,51 +249,48 @@ export default StyleSheet.create({
     borderBottomColor: 'transparent',
   },
 
-  tabEmoji: {
-    fontSize: 18,
-  },
-
-  tabTextRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
-  },
-
   tabText: {
-    fontSize: 10,
+    fontSize: 12,
+    fontWeight: '600',
   },
 
   tabTextActive: {
-    fontWeight: '700',
     color: C.tangerine,
   },
 
   tabTextInactive: {
-    fontWeight: '400',
     color: C.textDim,
   },
 
   tabBadge: {
-    borderRadius: 8,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    minWidth: 16,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 5,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
   },
 
-  tabBadgeAlerts: {
-    backgroundColor: C.scarlet,
-  },
-
-  tabBadgeOther: {
+  tabBadgeActive: {
     backgroundColor: C.tangerine,
   },
 
+  tabBadgeInactive: {
+    backgroundColor: 'rgba(236,119,66,0.15)',
+  },
+
   tabBadgeText: {
-    color: '#fff',
     fontSize: 9,
     fontWeight: '700',
+  },
+
+  tabBadgeTextActive: {
+    color: '#fff',
+  },
+
+  tabBadgeTextInactive: {
+    color: C.textMuted,
   },
 
   // ─── CONTENT CONTAINERS ─────────────────────────────────────────────────────
@@ -273,218 +319,309 @@ export default StyleSheet.create({
     marginBottom: 10,
   },
 
-  // ─── UNITS TAB: WEB LAYOUT ──────────────────────────────────────────────────
-  unitsTabContainer: {
-    gap: 10,
-    flex: 1,
-    minHeight: 0,
-    maxHeight: '78.9vh'
-  },
-
-  unitsWebRow: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'stretch',
+  tabFill: {
     flex: 1,
     minHeight: 0,
   },
 
-  unitsMapContainer: {
-    flex: 7,
-    minHeight: 0,
-    backgroundColor: C.card,
-    borderRadius: 18,
-    borderWidth: 0.4,
-    borderColor: 'rgba(236,119,66,0.12)',
-    padding: 2,
-  },
-
-  unitsMapInner: {
+  tabScrollContainer: {
     flex: 1,
-    overflow: 'hidden',
-    borderRadius: 16,
-  },
-
-  unitsListContainer: {
-    flex: 3,
-    gap: 10,
     minHeight: 0,
     overflow: 'hidden',
   },
 
-  unitsListScrollContainer: {
+  tabScrollViewport: {
     flex: 1,
     minHeight: 0,
   },
 
-  unitsListScrollContent: {
+  tabScrollContent: {
     gap: 10,
     paddingBottom: 10,
   },
 
-  // ─── UNITS TAB: MOBILE LAYOUT ───────────────────────────────────────────────
-  unitsMobileContainer: {
+  // ─── UNITS TAB: MUNICIPALITY-LIKE MAP LAYOUT ───────────────────────────────
+  unitsMapTabContainer: {
     flex: 1,
+    backgroundColor: C.bg,
     minHeight: 0,
   },
 
-  unitsMobileMapContainer: {
-    height: 300,
-    marginHorizontal: -25,
-    paddingHorizontal: 16,
-    marginBottom: 10,
+  unitsMapLayout: {
+    flex: 1,
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    gap: 12,
+    minHeight: '78.9vh',
+    maxHeight: '78.9vh',
   },
 
-  unitsMobileMapInner: {
-    flex: 1,
+  unitsMapPane: {
+    flex: Platform.OS === 'web' ? 7 : 0,
+    width: '100%',
+    height: Platform.OS === 'web' ? undefined : 300,
+    minHeight: Platform.OS === 'web' ? 680 : 300,
+    backgroundColor: C.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
     overflow: 'hidden',
-    borderRadius: 16,
+    position: 'relative',
   },
 
-  unitsMobileListScroll: {
+  unitsSidePanel: {
+    flex: Platform.OS === 'web' ? 3 : 1,
+    width: '100%',
+    minWidth: 0,
+    minHeight: 0,
+    backgroundColor: C.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+
+  unitsSidePanelHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: C.cardBorder,
+  },
+
+  unitsSidePanelTitle: {
+    color: C.text,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+
+  unitsSidePanelSubtitle: {
+    color: C.textMuted,
+    fontSize: 12,
+    marginTop: 4,
+  },
+
+  unitsStatsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
+
+  unitsStatCard: {
+    flex: 1,
+    backgroundColor: C.snow,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    borderRadius: 14,
+    padding: 12,
+  },
+
+  unitsStatCardValue: {
+    color: C.text,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+
+  unitsStatCardLabel: {
+    color: C.textMuted,
+    fontSize: 11,
+    marginTop: 2,
+  },
+
+  unitsAccordionScroll: {
     flex: 1,
     minHeight: 0,
   },
 
-  unitsMobileListContent: {
-    gap: 10,
+  unitsAccordionScrollContent: {
+    padding: 12,
     paddingBottom: 20,
   },
 
-  // ─── UNIT CARDS ─────────────────────────────────────────────────────────────
-  unitCardMe: {
-    backgroundColor: C.card,
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1.2,
-    borderColor: C.tangerine,
-    shadowColor: C.tangerine,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-
-  unitCardOther: {
-    backgroundColor: C.card,
-    borderRadius: 14,
-    padding: 14,
+  unitsAccordionSection: {
+    marginBottom: 8,
     borderWidth: 1,
-    borderColor: 'rgba(236,119,66,0.15)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: C.cardBorder,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: C.snow,
+    flexShrink: 0,
   },
 
-  unitCardHeader: {
+  unitsAccordionHeader: {
+    minHeight: 52,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    backgroundColor: C.bg,
+    flexShrink: 0,
   },
 
-  unitCardIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+  unitsAccordionHeaderLeft: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  unitCardIconMe: {
-    backgroundColor: C.tangerine + '20',
-  },
-
-  unitCardIconOther: {
-    // backgroundColor will be dynamic: statusColor + '15'
-  },
-
-  unitCardEmoji: {
-    fontSize: 18,
-  },
-
-  unitCardTextContainer: {
     flex: 1,
   },
 
-  unitCardNameRow: {
+  unitsAccordionDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 10,
+  },
+
+  unitsAccordionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.text,
+  },
+
+  unitsAccordionMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
   },
 
-  unitCardName: {
-    color: C.text,
+  unitsAccordionCount: {
+    minWidth: 26,
+    height: 26,
+    borderRadius: 13,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(236,119,66,0.12)',
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+  },
+
+  unitsAccordionCountText: {
+    fontSize: 11,
     fontWeight: '800',
+    color: C.textMuted,
+  },
+
+  unitsAccordionChevron: {
     fontSize: 14,
+    fontWeight: '800',
+    color: C.textMuted,
+    marginLeft: 10,
+    bottom: 4,
   },
 
-  unitCardYouBadge: {
-    backgroundColor: C.tangerine + '20',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+  unitsAccordionBodyWrapper: {
+    maxHeight: accordionOpenMaxHeight,
+    overflow: 'hidden',
   },
 
-  unitCardYouBadgeText: {
-    color: C.tangerine,
+  unitsAccordionBodyScroll: {
+    flexGrow: 0,
+  },
+
+  unitsAccordionBodyScrollContent: {
+    padding: 10,
+    gap: 8,
+  },
+
+  unitsAccordionBodyContent: {
+    padding: 10,
+  },
+
+  unitsEntityItem: {
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: C.card,
+    marginBottom: 8,
+  },
+
+  unitsEntityItemActive: {
+    borderColor: C.tangerine,
+    backgroundColor: C.bg,
+  },
+
+  unitsEntityItemTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  unitsEntityItemTitle: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: C.text,
+    marginRight: 10,
+  },
+
+  unitsEntityItemSub: {
+    fontSize: 11,
+    color: C.textMuted,
+    marginTop: 4,
+  },
+
+  unitsEntityItemMeta: {
+    fontSize: 11,
+    color: C.textDim,
+    marginTop: 6,
+  },
+
+  unitsEntityItemBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+
+  unitsEntityItemBadgeText: {
     fontSize: 10,
     fontWeight: '700',
   },
 
-  unitCardStatusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    // backgroundColor will be dynamic: statusColor + '20'
-  },
-
-  unitCardStatusText: {
-    fontSize: 11,
-    fontWeight: '700',
-    // color will be dynamic: statusColor
-  },
-
-  unitCardDivider: {
-    height: 1,
-    backgroundColor: C.cardBorder,
-    marginVertical: 8,
-  },
-
-  unitCardLocation: {
-    color: C.textDim,
-    fontSize: 11,
-  },
-
-  // ─── EMPTY STATES ───────────────────────────────────────────────────────────
-  emptyState: {
+  unitsEmptyWrap: {
     alignItems: 'center',
-    paddingVertical: 48,
-    backgroundColor: C.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(236,119,66,0.15)',
+    justifyContent: 'center',
+    padding: 24,
   },
 
-  emptyStateEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
+  unitsEmptyTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.text,
   },
 
-  emptyStateText: {
-    color: C.textDim,
-    fontSize: 13,
-  },
-
-  emptyStateSubtext: {
-    color: C.textDim,
-    fontSize: 11,
+  unitsEmptyDesc: {
+    fontSize: 12,
+    color: C.textMuted,
     marginTop: 4,
+    textAlign: 'center',
   },
 
-  // ─── ASSIGNMENT CARDS (MY JOBS) ─────────────────────────────────────────────
+  // ─── GENERAL EMPTY STATES ───────────────────────────────────────────────────
+  emptyWrap: {
+    flex: 1,
+    minHeight: '60vh',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.text,
+  },
+
+  emptyDesc: {
+    fontSize: 12,
+    color: C.textMuted,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+
+  // ─── ASSIGNMENT CARDS ───────────────────────────────────────────────────────
   assignmentCard: {
     backgroundColor: C.card,
     borderRadius: 14,
@@ -495,7 +632,6 @@ export default StyleSheet.create({
 
   assignmentCardActive: {
     opacity: 1,
-    // borderColor will be dynamic: statusColor + '40'
   },
 
   assignmentCardDone: {
@@ -552,14 +688,11 @@ export default StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 1,
-    // backgroundColor will be dynamic: statusColor + '20'
-    // borderColor will be dynamic: statusColor + '40'
   },
 
   assignmentStatusText: {
     fontSize: 11,
     fontWeight: '800',
-    // color will be dynamic: statusColor
   },
 
   assignmentActionsDivider: {
@@ -609,15 +742,9 @@ export default StyleSheet.create({
     borderWidth: 1,
   },
 
-  assignmentActionButtonActive: {
-    // backgroundColor will be dynamic: btnColor (solid)
-    // borderColor will be dynamic: btnColor
-  },
+  assignmentActionButtonActive: {},
 
-  assignmentActionButtonInactive: {
-    // backgroundColor will be dynamic: btnColor + '15'
-    // borderColor will be dynamic: btnColor + '40'
-  },
+  assignmentActionButtonInactive: {},
 
   assignmentActionButtonDisabled: {
     opacity: 0.4,
@@ -632,38 +759,11 @@ export default StyleSheet.create({
     color: '#fff',
   },
 
-  assignmentActionButtonTextInactive: {
-    // color will be dynamic: btnColor
-  },
+  assignmentActionButtonTextInactive: {},
 
-  // ─── ALERTS TAB ─────────────────────────────────────────────────────────────
-  alertsInfoBox: {
-    backgroundColor: C.card,
-    borderRadius: 10,
-    padding: 10,
-    borderLeftWidth: 3,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-  },
-
-  alertsInfoBoxLocating: {
-    borderLeftColor: C.gold,
-  },
-
-  alertsInfoBoxLocated: {
-    borderLeftColor: C.green,
-  },
-
-  alertsInfoEmoji: {
-    fontSize: 14,
-  },
-
-  alertsInfoText: {
-    color: C.textMuted,
-    fontSize: 11,
-    flex: 1,
+  // ─── ALERTS TAB: MUNICIPALITY-LIKE ──────────────────────────────────────────
+  alertScrollContent: {
+    padding: 16,
   },
 
   alertCard: {
@@ -678,6 +778,25 @@ export default StyleSheet.create({
     opacity: 0.5,
   },
 
+  alertMessage: {
+    color: C.text,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 6,
+  },
+
+  alertFireId: {
+    color: C.textDim,
+    fontSize: 11,
+    marginTop: 2,
+  },
+
+  alertExpires: {
+    color: C.textDim,
+    fontSize: 11,
+    marginTop: 4,
+  },
+
   alertCardContent: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -690,7 +809,6 @@ export default StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    // backgroundColor will be dynamic: accentColor + '20'
   },
 
   alertCardEmoji: {
@@ -712,13 +830,11 @@ export default StyleSheet.create({
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 6,
-    // backgroundColor will be dynamic: accentColor + '20'
   },
 
   alertCardTypeText: {
     fontSize: 10,
     fontWeight: '700',
-    // color will be dynamic: accentColor
   },
 
   alertCardExpiredBadge: {
@@ -734,13 +850,6 @@ export default StyleSheet.create({
     fontWeight: '700',
   },
 
-  alertCardMessage: {
-    color: C.text,
-    fontSize: 13,
-    lineHeight: 18,
-    marginBottom: 6,
-  },
-
   alertCardMetaRow: {
     flexDirection: 'row',
     gap: 12,
@@ -751,7 +860,7 @@ export default StyleSheet.create({
     fontSize: 11,
   },
 
-  // ─── NOTIFICATIONS TAB ──────────────────────────────────────────────────────
+  // ─── NOTIFICATIONS TAB: MUNICIPALITY-LIKE ──────────────────────────────────
   notificationCard: {
     backgroundColor: C.card,
     borderRadius: 14,
@@ -762,6 +871,7 @@ export default StyleSheet.create({
 
   notificationCardUnread: {
     borderColor: C.tangerine + '50',
+    backgroundColor: C.bg,
   },
 
   notificationCardRead: {
@@ -841,8 +951,9 @@ export default StyleSheet.create({
   },
 
   notificationTapHint: {
-    color: C.textDim,
+    color: C.tangerine,
     fontSize: 10,
+    fontWeight: '600',
     marginLeft: 'auto',
   },
 
@@ -900,7 +1011,7 @@ export default StyleSheet.create({
     fontSize: 13,
   },
 
-  // ─── LOADING STATE ──────────────────────────────────────────────────────────
+  // ─── LOADING ────────────────────────────────────────────────────────────────
   loadingContainer: {
     flex: 1,
     backgroundColor: C.bg,
@@ -911,49 +1022,6 @@ export default StyleSheet.create({
   loadingText: {
     marginTop: 10,
     color: C.textMuted,
-  },
-
-  tabFill: {
-    flex: 1,
-    minHeight: 0,
-  },
-
-  tabScrollContainer: {
-    flex: 1,
-    minHeight: 0,
-    overflow: 'hidden',
-  },
-
-  tabScrollViewport: {
-    flex: 1,
-    minHeight: 0,
-  },
-
-  tabScrollContent: {
-    gap: 10,
-    paddingBottom: 10,
-  },
-
-  unitsMobileColumn: {
-    flex: 1,
-    minHeight: 0,
-    gap: 10,
-  },
-
-  unitsMapContainerMobile: {
-    height: 260,
-    minHeight: 260,
-    backgroundColor: C.card,
-    borderRadius: 18,
-    borderWidth: 0.4,
-    borderColor: 'rgba(236,119,66,0.12)',
-    padding: 2,
-    overflow: 'hidden',
-  },
-
-  unitsListContainerMobile: {
-    flex: 1,
-    minHeight: 0,
   },
 });
 

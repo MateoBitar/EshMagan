@@ -205,28 +205,19 @@ export default function ResponderCommandView({ navigation }) {
       } else {
         for (const assignment of assignments) {
           if (!seenAssignmentIdsRef.current.has(assignment.assignment_id)) {
-            notifyAlert(
-              'New Assignment',
-              `You were assigned to fire ${assignment.fire_id || 'incident'}.`
-            );
+            notifyAlert('New Assignment', `You were assigned to fire ${assignment.fire_id || 'incident'}.`);
           }
         }
 
         for (const alert of nextAlerts) {
           if (!seenAlertIdsRef.current.has(alert.alert_id)) {
-            notifyAlert(
-              alert.alert_type || 'New Alert',
-              alert.alert_message || 'A new alert was received.'
-            );
+            notifyAlert(alert.alert_type || 'New Alert', alert.alert_message || 'A new alert was received.');
           }
         }
 
-        for (const notification of nextNotifications) {
-          if (!seenNotificationIdsRef.current.has(notification.notification_id)) {
-            notifyInfo(
-              'New Notification',
-              notification.notification_message || 'You received a new notification.'
-            );
+        for (const notif of nextNotifications) {
+          if (!seenNotificationIdsRef.current.has(notif.notification_id)) {
+            notifyInfo('New Notification', notif.notification_message || 'You received a new notification.');
           }
         }
 
@@ -234,100 +225,97 @@ export default function ResponderCommandView({ navigation }) {
         seenAlertIdsRef.current = nextAlertIds;
         seenNotificationIdsRef.current = nextNotificationIds;
       }
-    } catch (e) {
-      console.error('ResponderDashboard fetch error:', e);
-    } finally {
+
       hasCompletedInitialFetchRef.current = true;
+    } catch (e) {
+      console.error('Responder fetch error:', e);
+    } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchAll();
-    const interval = setInterval(() => fetchAll(), 10000);
+    const interval = setInterval(fetchAll, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [responderId, userId]);
 
-  const handleUpdateAssignment = async (assignment_id, fire_id, status) => {
-    setActionLoading(assignment_id + status);
+  const handleUpdateMyStatus = async nextStatus => {
     try {
-      if ((status === 'Completed' || status === 'Cancelled') && fire_id) {
-        await gqlFetch(EXTINGUISH_FIRE, { fire_id });
-        await gqlFetch(UPDATE_ASSIGNMENT_STATUS, { input: { assignment_id, status } });
-      } else {
-        await gqlFetch(UPDATE_ASSIGNMENT_STATUS, { input: { assignment_id, status } });
+      const hasActiveAssignments = activeAssignments.length > 0;
+
+      if (hasActiveAssignments && nextStatus === 'Unavailable') {
+        return;
+      }
+
+      setActionLoading('status');
+      await gqlFetch(UPDATE_RESPONDER_STATUS, {
+        responder_id: responderId,
+        responder_status: nextStatus,
+      });
+      setMyStatus(nextStatus);
+      setMyResponder(prev => (prev ? { ...prev, responder_status: nextStatus } : prev));
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', e.message || 'Failed to update status.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUpdateAssignment = async (assignmentId, nextStatus, fireId = null) => {
+    try {
+      setActionLoading(assignmentId);
+
+      await gqlFetch(UPDATE_ASSIGNMENT_STATUS, {
+        input: {
+          assignment_id: assignmentId,
+          status: nextStatus,
+        },
+      });
+
+      if (nextStatus === 'Completed' && fireId) {
+        await gqlFetch(EXTINGUISH_FIRE, { fire_id: fireId });
       }
 
       fetchAll();
     } catch (e) {
-      const msg = e.message || 'Update failed';
-      Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Error', msg);
+      console.error(e);
+      Alert.alert('Error', e.message || 'Failed to update assignment.');
     } finally {
       setActionLoading(null);
     }
   };
 
-  const handleUpdateMyStatus = async status => {
-    const activeAssignmentsNow = myAssignments.filter(
-      a => !['Completed', 'Cancelled'].includes(a.assignment_status)
-    );
-
-    if (status === 'Unavailable' && activeAssignmentsNow.length > 0) {
-      const msg = 'You have active assignments. Complete or cancel them before going Unavailable.';
-      Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Cannot Go Unavailable', msg);
-      return;
-    }
-
-    if (!responderId) return;
-
-    setActionLoading('status');
-    try {
-      await gqlFetch(UPDATE_RESPONDER_STATUS, {
-        responder_id: responderId,
-        responder_status: status,
-      });
-      setMyStatus(status);
-      fetchAll();
-    } catch (e) {
-      const msg = e.message || 'Status update failed';
-      Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Error', msg);
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleMarkNotifRead = async notification_id => {
+  const handleMarkNotifRead = async notificationId => {
     try {
       await gqlFetch(UPDATE_NOTIFICATION_STATUS, {
-        notification_id,
+        notification_id: notificationId,
         notification_status: 'Delivered',
       });
-
       setNotifications(prev =>
         prev.map(n =>
-          n.notification_id === notification_id
+          n.notification_id === notificationId
             ? { ...n, notification_status: 'Delivered' }
             : n
         )
       );
-    } catch {
-      console.warn('Failed to mark notification read');
+    } catch (e) {
+      console.error(e);
     }
   };
 
   const activeAssignments = myAssignments.filter(
-    a => !['Completed', 'Cancelled'].includes(a.assignment_status)
+    a => a.assignment_status !== 'Completed' && a.assignment_status !== 'Cancelled'
   );
+
   const unreadNotifs = notifications.filter(n => n.notification_status !== 'Delivered');
+
   const activeAlerts = alerts.filter(alert => {
-    if (new Date(alert.expires_at) <= new Date()) return false;
-    if (!alert.fire_id) return false;
-    if (!myLocation) return false;
+    if (!myLocation || !alert.fire_id) return false;
+    if (alert.expires_at && new Date(alert.expires_at) <= new Date()) return false;
 
-    const fire = allFires.find(f => f.fire_id === alert.fire_id);
-    if (!fire) return false;
-
-    const fireCoords = getFireCoords(fire);
+    const fireCoords = fireLocations[alert.fire_id]?.coords;
     if (!fireCoords) return false;
 
     const distance = getDistanceMeters(
@@ -339,43 +327,50 @@ export default function ResponderCommandView({ navigation }) {
 
     return distance <= ALERT_RADIUS_METERS;
   });
+
   const selfResponderId = myResponder?.responder_id;
   const otherResponders = allResponders.filter(r => r.responder_id !== selfResponderId);
 
-  const unitsForMap = allResponders.map(r => {
-    const coords = getResponderCoords(r);
+  const unitsForMap = allResponders
+    .map(r => {
+      const coords = getResponderCoords(r);
 
-    let unitCoords = null;
-    if (r.unit_location?.latitude && r.unit_location?.longitude) {
-      unitCoords = {
-        lat: r.unit_location.latitude,
-        lng: r.unit_location.longitude,
+      let unitCoords = null;
+      if (r.unit_location?.latitude != null && r.unit_location?.longitude != null) {
+        unitCoords = {
+          lat: Number(r.unit_location.latitude),
+          lng: Number(r.unit_location.longitude),
+        };
+      }
+
+      return {
+        responder_id: r.responder_id,
+        unit_nb: r.unit_nb,
+        status: r.responder_status,
+        coords,
+        unitCoords,
+        isMe: r.responder_id === myResponder?.responder_id,
+        unitId: r.unit_nb || r.responder_id,
+        displayName: r.unit_nb ? `${r.responder_id} - ${r.unit_nb}` : r.responder_id,
       };
-    }
-
-    return {
-      responder_id: r.responder_id,
-      unit_nb: r.unit_nb,
-      status: r.responder_status,
-      coords,
-      unitCoords,
-      isMe: r.responder_id === myResponder?.responder_id,
-    };
-  });
+    })
+    .filter(u => u.coords || u.unitCoords);
 
   const firesForMap = allFires
     .map(fire => ({
       fire_id: fire.fire_id,
+      fire_severitylevel: fire.fire_severitylevel,
       severity: fire.fire_severitylevel,
       coords: getFireCoords(fire),
+      displayName: fire.fire_id ? `Fire ${String(fire.fire_id).slice(0, 8)}` : 'Fire',
     }))
     .filter(fire => fire.coords);
 
   const tabs = [
-    { id: 'units', emoji: '🚒', title: 'Units', count: null },
-    { id: 'assignments', emoji: '📋', title: 'My Jobs', count: activeAssignments.length || null },
-    { id: 'alerts', emoji: '🔥', title: 'Alerts', count: activeAlerts.length || null },
-    { id: 'notifications', emoji: '🔔', title: 'Inbox', count: unreadNotifs.length || null },
+    { id: 'units', title: 'Units', count: null },
+    { id: 'assignments', title: 'My Jobs', count: activeAssignments.length || null },
+    { id: 'alerts', title: 'Alerts', count: activeAlerts.length || null },
+    { id: 'notifications', title: 'Inbox', count: unreadNotifs.length || null },
   ];
 
   const renderMainContent = () => (
@@ -422,8 +417,6 @@ export default function ResponderCommandView({ navigation }) {
     </>
   );
 
-  const isUnitsTab = activeTab === 'units';
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -439,12 +432,20 @@ export default function ResponderCommandView({ navigation }) {
           myStatus={myStatus}
           actionLoading={actionLoading}
           handleUpdateMyStatus={handleUpdateMyStatus}
+          hasActiveAssignments={activeAssignments.length > 0}
         />
 
         <TabBar activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs} />
 
         <View style={styles.contentContainer}>
-          {renderMainContent()}
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator color={C.tangerine} />
+              <Text style={styles.loadingText}>Loading dashboard...</Text>
+            </View>
+          ) : (
+            renderMainContent()
+          )}
         </View>
       </View>
     </SafeAreaView>

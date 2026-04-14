@@ -6,15 +6,18 @@ export default function DashboardHeader({ myLocation, alertRadiusMeters, pulseAn
   return (
     <View style={styles.header}>
       <View style={styles.headerIcon}>
-        <Text style={styles.headerIconEmoji}>🔥</Text>
+        <View style={styles.headerIconInner} />
       </View>
 
       <View style={styles.headerTextContainer}>
         <Text style={styles.headerTitle}>Responder Dashboard</Text>
+
         <View style={styles.headerLiveRow}>
           <Animated.View style={[styles.headerLiveDot, { opacity: pulseAnim }]} />
           <Text style={styles.headerLiveText}>
-            Live • {myLocation ? `${(alertRadiusMeters / 1000).toFixed(0)}km radius` : 'Locating...'}
+            {myLocation
+              ? `Live • ${(alertRadiusMeters / 1000).toFixed(0)} km radius`
+              : 'Live • Locating...'}
           </Text>
         </View>
       </View>

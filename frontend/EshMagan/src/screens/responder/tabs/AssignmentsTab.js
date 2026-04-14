@@ -19,15 +19,14 @@ export default function AssignmentsTab({
 
       <View style={{ flex: 1, minHeight: '76vh', maxHeight: '76vh', overflow: 'hidden' }}>
         <ScrollView
-          style={styles.scrollView}
+          style={{ flex: 1 }}
           contentContainerStyle={{ gap: 2, paddingBottom: 20 }}
           showsVerticalScrollIndicator={false}
         >
           {myAssignments.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyStateEmoji}>📋</Text>
-              <Text style={styles.emptyStateText}>No assignments yet</Text>
-              <Text style={styles.emptyStateSubtext}>You'll be notified when dispatched</Text>
+            <View style={styles.emptyWrap}>
+              <Text style={styles.emptyTitle}>No assignments yet</Text>
+              <Text style={styles.emptyDesc}>You'll be notified when dispatched</Text>
             </View>
           ) : (
             myAssignments.map(a => {
@@ -114,7 +113,7 @@ export default function AssignmentsTab({
                           return (
                             <TouchableOpacity
                               key={status}
-                              onPress={() => handleUpdateAssignment(a.assignment_id, a.fire_id, status)}
+                              onPress={() => handleUpdateAssignment(a.assignment_id, status, a.fire_id)}
                               disabled={!!actionLoading || isActive || myStatus === 'Unavailable'}
                               style={[
                                 styles.assignmentActionButton,

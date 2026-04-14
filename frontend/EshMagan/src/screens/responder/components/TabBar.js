@@ -5,30 +5,29 @@ import styles from '../../../styles/screens/ResponderCommandView.styles';
 export default function TabBar({ activeTab, setActiveTab, tabs }) {
   return (
     <View style={styles.tabBar}>
-      {tabs.map(tab => (
-        <TouchableOpacity
-          key={tab.id}
-          onPress={() => setActiveTab(tab.id)}
-          style={[styles.tab, activeTab === tab.id ? styles.tabActive : styles.tabInactive]}
-        >
-          <Text style={styles.tabEmoji}>{tab.emoji}</Text>
-          <View style={styles.tabTextRow}>
-            <Text style={[styles.tabText, activeTab === tab.id ? styles.tabTextActive : styles.tabTextInactive]}>
+      {tabs.map(tab => {
+        const active = activeTab === tab.id;
+
+        return (
+          <TouchableOpacity
+            key={tab.id}
+            onPress={() => setActiveTab(tab.id)}
+            style={[styles.tab, active ? styles.tabActive : styles.tabInactive]}
+          >
+            <Text style={[styles.tabText, active ? styles.tabTextActive : styles.tabTextInactive]}>
               {tab.title}
             </Text>
-            {tab.count > 0 && (
-              <View
-                style={[
-                  styles.tabBadge,
-                  tab.id === 'alerts' ? styles.tabBadgeAlerts : styles.tabBadgeOther,
-                ]}
-              >
-                <Text style={styles.tabBadgeText}>{tab.count}</Text>
+
+            {tab.count ? (
+              <View style={[styles.tabBadge, active ? styles.tabBadgeActive : styles.tabBadgeInactive]}>
+                <Text style={[styles.tabBadgeText, active ? styles.tabBadgeTextActive : styles.tabBadgeTextInactive]}>
+                  {tab.count > 99 ? '99+' : tab.count}
+                </Text>
               </View>
-            )}
-          </View>
-        </TouchableOpacity>
-      ))}
+            ) : null}
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }

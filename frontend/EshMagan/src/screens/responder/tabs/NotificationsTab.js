@@ -19,10 +19,9 @@ export default function NotificationsTab({
                     showsVerticalScrollIndicator={false}
                 >
                     {notifications.length === 0 ? (
-                        <View style={styles.emptyState}>
-                            <Text style={styles.emptyStateEmoji}>🔔</Text>
-                            <Text style={styles.emptyStateText}>No notifications</Text>
-                            <Text style={styles.emptyStateSubtext}>Assignment alerts will appear here</Text>
+                        <View style={styles.emptyWrap}>
+                            <Text style={styles.emptyTitle}>No notifications</Text>
+                            <Text style={styles.emptyDesc}>Assignment alerts will appear here</Text>
                         </View>
                     ) : (
                         notifications.map(n => {
