@@ -1,6 +1,6 @@
 // src/screens/resident/ResidentSidebar.js
 import React from 'react';
-import { View, Text, TouchableOpacity, Modal, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, Platform, StyleSheet } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 
 const NAV_ITEMS = [
@@ -12,15 +12,16 @@ const NAV_ITEMS = [
 ];
 
 export default function ResidentSidebar({ visible, onClose, navigation, currentScreen }) {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
 
-  const navigate = (screen) => {
+  const navigate = screen => {
     navigation?.navigate(screen);
     onClose();
   };
 
   const handleLogout = () => {
     onClose();
+
     if (Platform.OS === 'web') {
       if (window.confirm('Are you sure you want to log out?')) logout();
     } else {
@@ -33,57 +34,184 @@ export default function ResidentSidebar({ visible, onClose, navigation, currentS
   };
 
   return (
-    <Modal visible={visible} transparent animationIn="slideInLeft" animationOut="slideOutLeft" animationInTiming={10000} animationOutTiming={10000}
-      backdropTrasnitionInTiming={10000} backdropTrasnitionOutTiming={10000} easing="linear" useNativeDriver={true} hideModalContentWhileAnimating={true}
-      onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
       <TouchableOpacity
-        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0)', flexDirection: 'row' }}
+        style={styles.overlay}
         activeOpacity={1}
         onPress={onClose}
       >
+        <TouchableOpacity activeOpacity={1} style={styles.sidebar}>
+          <View style={styles.brandWrap}>
+            <Text style={styles.brandTitle}>EshMagan</Text>
+            <Text style={styles.brandSub}>Resident Panel</Text>
+          </View>
 
-        <TouchableOpacity
-          activeOpacity={1}
-          style={{ width: 280, backgroundColor: '#0f172a', height: '100%', paddingTop: 60, paddingHorizontal: 16, paddingBottom: 32 }}
-        >
-          <Text style={{ color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 20, top: -20, left: 10 }}>EshMagan</Text>
-          {/* Nav items */}
-          <View style={{ flex: 1 }}>
+          <View style={styles.navList}>
             {NAV_ITEMS.map(item => {
               const isActive = currentScreen === item.screen;
+
               return (
                 <TouchableOpacity
                   key={item.screen}
                   onPress={() => navigate(item.screen)}
-                  style={{
-                    flexDirection: 'row', alignItems: 'center', gap: 12,
-                    padding: 12, borderRadius: 12, marginBottom: 4,
-                    backgroundColor: isActive ? 'rgba(239,68,68,0.15)' : 'transparent',
-                  }}
+                  style={[styles.navItem, isActive && styles.navItemActive]}
                 >
-                  <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: isActive ? 'rgba(239,68,68,0.2)' : '#1e293b', alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ fontSize: 18 }}>{item.emoji}</Text>
+                  <View style={[styles.iconWrap, isActive && styles.iconWrapActive]}>
+                    <Text style={styles.iconEmoji}>{item.emoji}</Text>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: isActive ? '#ef4444' : '#fff', fontWeight: '600', fontSize: 14 }}>{item.label}</Text>
-                    <Text style={{ color: '#475569', fontSize: 11 }}>{item.desc}</Text>
+
+                  <View style={styles.navTextWrap}>
+                    <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
+                      {item.label}
+                    </Text>
+                    <Text style={[styles.navDesc, isActive && styles.navDescActive]}>
+                      {item.desc}
+                    </Text>
                   </View>
-                  {isActive && <Text style={{ color: '#ef4444', fontSize: 8 }}>●</Text>}
+
+                  {isActive ? <View style={styles.activeDot} /> : null}
                 </TouchableOpacity>
               );
             })}
           </View>
 
-          {/* Logout */}
-          <TouchableOpacity
-            onPress={handleLogout}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 12, backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)' }}
-          >
-            <Text style={{ fontSize: 18 }}>🚪</Text>
-            <Text style={{ color: '#ef4444', fontWeight: '600', fontSize: 14 }}>Log Out</Text>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+            <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.18)',
+    flexDirection: 'row',
+  },
+
+  sidebar: {
+    width: 290,
+    height: '100%',
+    backgroundColor: '#FFF1D6',
+    paddingTop: 56,
+    paddingHorizontal: 16,
+    paddingBottom: 28,
+    borderTopRightRadius: 24,
+    borderBottomRightRadius: 24,
+    borderRightWidth: 1,
+    borderRightColor: '#F5D7A1',
+    boxShadow: '4px 0px 18px rgba(0, 0, 0, 0.08)',
+  },
+
+  brandWrap: {
+    marginBottom: 22,
+    paddingHorizontal: 6,
+  },
+
+  brandTitle: {
+    color: '#DC2626',
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+
+  brandSub: {
+    color: '#7C2D12',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  navList: {
+    flex: 1,
+  },
+
+  navItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    marginBottom: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F5E7C7',
+  },
+
+  navItemActive: {
+    backgroundColor: '#FFF7ED',
+    borderColor: '#F7B267',
+  },
+
+  iconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#FDE7C0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  iconWrapActive: {
+    backgroundColor: '#FCD9A5',
+  },
+
+  iconEmoji: {
+    fontSize: 18,
+  },
+
+  navTextWrap: {
+    flex: 1,
+  },
+
+  navLabel: {
+    color: '#0F172A',
+    fontWeight: '700',
+    fontSize: 14,
+    marginBottom: 2,
+  },
+
+  navLabelActive: {
+    color: '#C2410C',
+  },
+
+  navDesc: {
+    color: '#78716C',
+    fontSize: 11,
+  },
+
+  navDescActive: {
+    color: '#9A3412',
+  },
+
+  activeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: '#EC7742',
+  },
+
+  logoutBtn: {
+    marginTop: 10,
+    backgroundColor: '#DC2626',
+    borderRadius: 14,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#DC2626',
+  },
+
+  logoutText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 14,
+  },
+});

@@ -13,10 +13,10 @@ import styles from '../../styles/screens/ResidentHomeScreen.styles';
 import { useAuth } from '../../context/AuthContext';
 
 const QUICK_ACTIONS = [
-  { emoji: '🧭', label: 'Evacuation Routes', screen: 'Evacuation', color: '#3b82f6' },
-  { emoji: '🗺️', label: 'Interactive Map', screen: 'ResidentMap', color: '#8b5cf6' },
-  { emoji: '📖', label: 'Safety Tips', screen: 'SafetyTips', color: '#f97316' },
-  { emoji: '⚠️', label: 'My Alerts', screen: 'ResidentAlerts', color: '#10b981' }
+  { emoji: '🧭', label: 'Evacuation Routes', screen: 'Evacuation', color: '#FF6A3D' },
+  { emoji: '🗺️', label: 'Interactive Map', screen: 'ResidentMap', color: '#FF4D2D' }, 
+  { emoji: '📖', label: 'Safety Tips', screen: 'SafetyTips', color: '#E53923' }, 
+  { emoji: '⚠️', label: 'My Alerts', screen: 'ResidentAlerts', color: '#A32020' } 
 ];
 
 const EMERGENCY_CONTACTS = [
@@ -234,6 +234,9 @@ export default function ResidentHomeScreen({ navigation }) {
   const navigate = (screen, params) => { if (!screen) return; nav?.navigate(screen, params); };
   const currentScreen = nav?.currentScreen || 'ResidentHome';
 
+  const headerTitleColor = hasActiveThreat ? '#fff' : '#000';
+  const headerSubColor = hasActiveThreat ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)';
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ResidentSidebar visible={sidebarOpen} onClose={() => setSidebarOpen(false)} navigation={nav} currentScreen={currentScreen} />
@@ -248,8 +251,8 @@ export default function ResidentHomeScreen({ navigation }) {
                 <Text style={styles.headerLogoEmoji}>🔥</Text>
               </View>
               <View>
-                <Text style={styles.headerTitle}>EshMagan</Text>
-                <Text style={styles.headerSub}>Resident Portal</Text>
+                <Text style={[styles.headerTitle, { color: headerTitleColor }]}>EshMagan</Text>
+                <Text style={[styles.headerSub, { color: headerSubColor }]}>Resident Portal</Text>
               </View>
             </View>
             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>

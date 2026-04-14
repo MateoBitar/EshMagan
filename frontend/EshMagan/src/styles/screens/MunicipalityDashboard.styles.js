@@ -109,7 +109,8 @@ export default StyleSheet.create({
     flex: 1,
     backgroundColor: C.bg,
     padding: 16,
-    minHeight: 0,
+    minHeight: '87.5vh',
+    maxHeight: '87.5vh',
   },
 
   mapLayout: {
