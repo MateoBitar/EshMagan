@@ -28,19 +28,89 @@ export const colors = {
   infoBg: '#eff6ff',
   purple: '#8b5cf6',
   purpleBg: '#faf5ff',
+  loaderBg: '#FFF1D6',
+  loaderAccent: '#EC7742',
 };
 
 export const shadows = {
-  sm: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
-  md: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 6 },
-  lg: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 },
+  sm: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  md: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  lg: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
 };
 
 export const global = StyleSheet.create({
-  flex1: { flex: 1 },
-  row: { flexDirection: 'row' },
-  center: { alignItems: 'center', justifyContent: 'center' },
-  card: { backgroundColor: '#ffffff', borderRadius: 16, padding: 16 },
-  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 14 },
+  flex1: {
+    flex: 1,
+  },
+
+  screen: {
+    flex: 1,
+  },
+
+  fullScreen: {
+    flex: 1,
+    width: '100%',
+    minHeight: '100vh',
+  },
+
+  row: {
+    flexDirection: 'row',
+  },
+
+  center: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  centeredScreen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  loaderScreen: {
+    flex: 1,
+    width: '100%',
+    minHeight: '100vh',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF1D6',
+  },
+
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+  },
+
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 14,
+  },
 });

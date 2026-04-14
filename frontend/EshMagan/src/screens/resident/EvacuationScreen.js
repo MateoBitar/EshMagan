@@ -5,6 +5,7 @@ import {
   SafeAreaView, Animated, Platform, ActivityIndicator,
 } from 'react-native';
 import { gqlFetch, GET_EVACUATION_ROUTES, GET_EVACUATIONS_BY_FIRE } from '../../services/api';
+import { global } from '../../styles/global';
 import styles from '../../styles/screens/EvacuationScreen.styles';
 import { getCurrentLocation } from '../../services/location.service';
 
@@ -847,6 +848,15 @@ export default function EvacuationScreen({ navigation, route }) {
     (s === 'Active' || s === 'Open' || s === 'Clear')
       ? { view: styles.routeStatusClear, text: styles.routeStatusClearText }
       : { view: styles.routeStatusCaution, text: styles.routeStatusCautionText };
+
+  // INITIAL LOAD: Block screen while fetching evacuation routes
+  if (routesLoading && routes.length === 0) {
+    return (
+      <SafeAreaView style={global.loaderScreen}>
+        <ActivityIndicator size="large" color="#EC7742" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView

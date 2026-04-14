@@ -1,6 +1,7 @@
 // src/navigation/RootNavigator.js
 import React from 'react';
 import { Platform, ActivityIndicator, View } from 'react-native';
+import { global, colors } from '../styles/global';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
@@ -29,8 +30,8 @@ export default function RootNavigator() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#020617' }}>
-        <ActivityIndicator size="large" color="#ef4444" />
+      <View style={global.loaderScreen}>
+        <ActivityIndicator size="large" color={colors.loaderAccent} />
       </View>
     );
   }

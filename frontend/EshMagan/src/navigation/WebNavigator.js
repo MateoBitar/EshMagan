@@ -1,6 +1,7 @@
 // src/navigation/WebNavigator.js
 import React, { useState, useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { global, colors } from '../styles/global';
 
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
@@ -71,8 +72,8 @@ export default function WebNavigator({ user, loading }) {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#020617' }}>
-        <ActivityIndicator size="large" color="#ef4444" />
+      <View style={global.loaderScreen}>
+        <ActivityIndicator size="large" color={colors.loaderAccent} />
       </View>
     );
   }
@@ -99,7 +100,7 @@ export default function WebNavigator({ user, loading }) {
 
   return (
     <NavigationContext.Provider value={nav}>
-      <View style={{ flex: 1 }}>
+      <View style={global.fullScreen}>
         {screens[currentScreen] || screens['Login']}
       </View>
     </NavigationContext.Provider>
