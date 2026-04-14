@@ -84,6 +84,7 @@ export default StyleSheet.create({
     position: 'relative',
   },
 
+  // 🔥 FIXED: make side panel column layout
   sidePanel: {
     flex: isDesktop ? 3 : 1,
     width: '100%',
@@ -94,6 +95,9 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: C.cardBorder,
     overflow: 'hidden',
+
+    display: 'flex',
+    flexDirection: 'column',
   },
 
   sidePanelHeader: {
@@ -125,6 +129,7 @@ export default StyleSheet.create({
   statCardValue: { color: C.text, fontSize: 18, fontWeight: '800' },
   statCardLabel: { color: C.textMuted, fontSize: 11, marginTop: 2 },
 
+  // 🔥 MAIN SCROLL (whole accordion list)
   accordionScroll: {
     flex: 1,
     minHeight: 0,
@@ -133,9 +138,9 @@ export default StyleSheet.create({
   accordionScrollContent: {
     padding: 12,
     paddingBottom: 20,
-    flexGrow: 1,
   },
 
+  // spacing between accordions (you already fixed 👍)
   accordionSection: {
     marginBottom: 12,
     borderWidth: 1,
@@ -190,7 +195,21 @@ export default StyleSheet.create({
   accordionCountText: { fontSize: 11, fontWeight: '800', color: C.textMuted },
   accordionChevron: { fontSize: 14, fontWeight: '800', color: C.textMuted, marginLeft: 10, bottom: 4 },
 
-  accordionBody: { padding: 10, gap: 8 },
+  // 🔥 NEW: wrapper limits height
+  accordionBodyWrapper: {
+    maxHeight: isDesktop ? 320 : 260,
+    overflow: 'hidden',
+  },
+
+  // 🔥 NEW: inner scroll
+  accordionBodyScroll: {
+    flexGrow: 0,
+  },
+
+  accordionBodyScrollContent: {
+    padding: 10,
+    gap: 8,
+  },
 
   entityItem: {
     borderWidth: 1,

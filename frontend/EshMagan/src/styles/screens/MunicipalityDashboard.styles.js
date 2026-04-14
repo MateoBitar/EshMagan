@@ -188,6 +188,7 @@ export default StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: C.snow,
+    flexShrink: 0,
   },
 
   accordionHeader: {
@@ -236,7 +237,7 @@ export default StyleSheet.create({
   accordionChevron: { fontSize: 14, fontWeight: '800', color: C.textMuted, marginLeft: 10, bottom: 4 },
 
   accordionBodyWrapper: {
-    maxHeight: isDesktop ? 320 : 260,
+    maxHeight: isDesktop ? 220 : 170,
     overflow: 'hidden',
   },
 

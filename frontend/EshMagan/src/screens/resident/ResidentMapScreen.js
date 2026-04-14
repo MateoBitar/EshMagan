@@ -288,6 +288,7 @@ export default function ResidentMapScreen({ navigation }) {
               style={styles.accordionScroll}
               contentContainerStyle={styles.accordionScrollContent}
               showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
             >
               <View style={styles.accordionSection}>
                 <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('fires')}>
@@ -305,47 +306,54 @@ export default function ResidentMapScreen({ navigation }) {
                 </TouchableOpacity>
 
                 {openSections.fires ? (
-                  <View style={styles.accordionBody}>
-                    {firesForMap.length === 0 ? (
-                      <View style={styles.emptyWrap}>
-                        <Text style={styles.emptyTitle}>No active fires</Text>
-                        <Text style={styles.emptyDesc}>New fires will appear here.</Text>
-                      </View>
-                    ) : (
-                      firesForMap.map(fire => {
-                        const severity = getSeverityColor(fire.fire_severitylevel);
-                        const isActive = selectedFireId === fire.fire_id;
+                  <View style={styles.accordionBodyWrapper}>
+                    <ScrollView
+                      style={styles.accordionBodyScroll}
+                      contentContainerStyle={styles.accordionBodyScrollContent}
+                      nestedScrollEnabled
+                      showsVerticalScrollIndicator={false}
+                    >
+                      {firesForMap.length === 0 ? (
+                        <View style={styles.emptyWrap}>
+                          <Text style={styles.emptyTitle}>No active fires</Text>
+                          <Text style={styles.emptyDesc}>New fires will appear here.</Text>
+                        </View>
+                      ) : (
+                        firesForMap.map(fire => {
+                          const severity = getSeverityColor(fire.fire_severitylevel);
+                          const isActive = selectedFireId === fire.fire_id;
 
-                        return (
-                          <TouchableOpacity
-                            key={fire.fire_id}
-                            style={[styles.entityItem, isActive && styles.entityItemActive]}
-                            onPress={() => setSelectedFireId(fire.fire_id)}
-                          >
-                            <View style={styles.entityItemTop}>
-                              <Text style={styles.entityItemTitle}>{fire.displayName}</Text>
-                              <View
-                                style={[
-                                  styles.entityItemBadge,
-                                  {
-                                    backgroundColor: severity.bg,
-                                    borderColor: severity.border,
-                                  },
-                                ]}
-                              >
-                                <Text style={[styles.entityItemBadgeText, { color: severity.text }]}>
-                                  {getSeverityLabel(fire.fire_severitylevel)}
-                                </Text>
+                          return (
+                            <TouchableOpacity
+                              key={fire.fire_id}
+                              style={[styles.entityItem, isActive && styles.entityItemActive]}
+                              onPress={() => setSelectedFireId(fire.fire_id)}
+                            >
+                              <View style={styles.entityItemTop}>
+                                <Text style={styles.entityItemTitle}>{fire.displayName}</Text>
+                                <View
+                                  style={[
+                                    styles.entityItemBadge,
+                                    {
+                                      backgroundColor: severity.bg,
+                                      borderColor: severity.border,
+                                    },
+                                  ]}
+                                >
+                                  <Text style={[styles.entityItemBadgeText, { color: severity.text }]}>
+                                    {getSeverityLabel(fire.fire_severitylevel)}
+                                  </Text>
+                                </View>
                               </View>
-                            </View>
 
-                            <Text style={styles.entityItemSub}>
-                              {fire.fire_source || 'Unknown source'} • Level {fire.fire_severitylevel ?? 'N/A'}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })
-                    )}
+                              <Text style={styles.entityItemSub}>
+                                {fire.fire_source || 'Unknown source'} • Level {fire.fire_severitylevel ?? 'N/A'}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })
+                      )}
+                    </ScrollView>
                   </View>
                 ) : null}
               </View>
