@@ -209,12 +209,6 @@ export default function ResponderCommandView({ navigation }) {
           }
         }
 
-        for (const alert of nextAlerts) {
-          if (!seenAlertIdsRef.current.has(alert.alert_id)) {
-            notifyAlert(alert.alert_type || 'New Alert', alert.alert_message || 'A new alert was received.');
-          }
-        }
-
         for (const notif of nextNotifications) {
           if (!seenNotificationIdsRef.current.has(notif.notification_id)) {
             notifyInfo('New Notification', notif.notification_message || 'You received a new notification.');

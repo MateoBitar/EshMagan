@@ -398,13 +398,54 @@ export class UserRepository {
     }
 
     async getUsersWithFcmByRole(user_role) {
-        const sql = `
-            SELECT user_id, user_role, fcm_token
-            FROM users
-            WHERE user_role = $1
-            AND isactive = true
-            AND fcm_token IS NOT NULL;
-        `;
+        let sql;
+
+        if (user_role === 'Municipality') {
+            sql = `
+                SELECT 
+                    u.user_id,
+                    u.user_role,
+                    u.fcm_token,
+                    m.municipality_location
+                FROM users u
+                JOIN municipalitydetails m
+                    ON u.user_id = m.municipality_id
+                WHERE u.user_role = $1
+                AND u.isactive = true
+                AND u.fcm_token IS NOT NULL;
+            `;
+        } else if (user_role === 'Resident') {
+            sql = `
+                SELECT 
+                    u.user_id,
+                    u.user_role,
+                    u.fcm_token,
+                    res.last_known_location
+                FROM users u
+                JOIN residentdetails res
+                    ON u.user_id = res.resident_id
+                WHERE u.user_role = $1
+                AND u.isactive = true
+                AND u.fcm_token IS NOT NULL;
+            `;
+        } else if (user_role === 'Responder') {
+            sql = `
+                SELECT 
+                    u.user_id,
+                    u.user_role,
+                    u.fcm_token,
+                    r.last_known_location
+                FROM users u
+                JOIN responderdetails r
+                    ON u.user_id = r.responder_id
+                WHERE u.user_role = $1
+                AND u.isactive = true
+                AND u.fcm_token IS NOT NULL;
+            `;
+        } else {
+            return [];
+        }
+
         const { rows } = await pool.query(sql, [user_role]);
         return rows;
     }

@@ -7,6 +7,7 @@ import { AlertRepository } from '../../domain/repositories/alert.repository.js';
 import { sendPushToTokens } from '../../services/push.service.js';
 import { UserService } from '../../services/user.service.js';
 import { UserRepository } from '../../domain/repositories/user.repository.js';
+import { FireRepository } from '../../domain/repositories/fire.repository.js';
 
 function getDistanceMeters(lat1, lng1, lat2, lng2) {
     const toRad = d => (d * Math.PI) / 180;
@@ -24,6 +25,74 @@ function getDistanceMeters(lat1, lng1, lat2, lng2) {
     return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function isValidCoordPair(lat, lng) {
+    return Number.isFinite(lat) && Number.isFinite(lng);
+}
+
+function getUserAnchorForPush(user, targetRole) {
+    if (!user) return null;
+
+    if (targetRole === 'Municipality') {
+        return parsePoint(
+            user.municipality_location ??
+            user.location ??
+            user.last_known_location
+        );
+    }
+
+    if (targetRole === 'Resident' || targetRole === 'Responder') {
+        const lat = Number(user?.last_known_location?.latitude);
+        const lng = Number(user?.last_known_location?.longitude);
+
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            return { lat, lng };
+        }
+
+        return parsePoint(user?.last_known_location);
+    }
+
+    return parsePoint(user?.last_known_location);
+}
+
+function parsePoint(value) {
+    if (!value) return null;
+
+    if (typeof value === 'object') {
+        const lat = Number(
+            value.latitude ?? value.lat ?? value.y ?? value?.coordinates?.[1]
+        );
+        const lng = Number(
+            value.longitude ?? value.lng ?? value.lon ?? value.x ?? value?.coordinates?.[0]
+        );
+
+        if (isValidCoordPair(lat, lng)) return { lat, lng };
+
+        if (value?.type === 'Point' && Array.isArray(value.coordinates) && value.coordinates.length === 2) {
+            const geoLat = Number(value.coordinates[1]);
+            const geoLng = Number(value.coordinates[0]);
+            if (isValidCoordPair(geoLat, geoLng)) return { lat: geoLat, lng: geoLng };
+        }
+    }
+
+    try {
+        const geo = typeof value === 'string' ? JSON.parse(value) : value;
+        if (geo?.type === 'Point' && Array.isArray(geo.coordinates) && geo.coordinates.length === 2) {
+            const lat = Number(geo.coordinates[1]);
+            const lng = Number(geo.coordinates[0]);
+            if (isValidCoordPair(lat, lng)) return { lat, lng };
+        }
+    } catch { }
+
+    const match = String(value).match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
+    if (match) {
+        const lng = Number(match[1]);
+        const lat = Number(match[2]);
+        if (isValidCoordPair(lat, lng)) return { lat, lng };
+    }
+
+    return null;
+}
+
 const CONSUMER_NAME = 'alert-consumer';
 
 export async function startAlertSubscriber() {
@@ -32,6 +101,7 @@ export async function startAlertSubscriber() {
         const alertRepository = new AlertRepository();
         const userRepository = new UserRepository();
         const userService = new UserService(userRepository);
+        const fireRepository = new FireRepository();
 
         const consumer = await js.consumers.get('ESHMAGAN', CONSUMER_NAME);
         const messages = await consumer.consume();
@@ -73,13 +143,7 @@ export async function startAlertSubscriber() {
                             return;
                         }
 
-                        const fireGeo = typeof fire.fire_location === 'string'
-                            ? JSON.parse(fire.fire_location)
-                            : fire.fire_location;
-
-                        const fireCoords = fireGeo?.coordinates
-                            ? { lat: fireGeo.coordinates[1], lng: fireGeo.coordinates[0] }
-                            : null;
+                        const fireCoords = parsePoint(fire.fire_location);
 
                         if (!fireCoords) {
                             console.log('No fire coords → skip push');
@@ -98,15 +162,12 @@ export async function startAlertSubscriber() {
 
                         // 🔥 filter users
                         const validUsers = users.filter(u => {
-                            if (!u.last_known_location) return false;
-
-                            const { latitude, longitude } = u.last_known_location;
-
-                            if (!latitude || !longitude) return false;
+                            const anchor = getUserAnchorForPush(u, data.target_role);
+                            if (!anchor) return false;
 
                             const distance = getDistanceMeters(
-                                latitude,
-                                longitude,
+                                anchor.lat,
+                                anchor.lng,
                                 fireCoords.lat,
                                 fireCoords.lng
                             );

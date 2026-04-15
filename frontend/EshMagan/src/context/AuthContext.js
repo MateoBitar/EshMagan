@@ -1,5 +1,5 @@
 // src/context/AuthContext.js
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import {
   authService,
@@ -10,6 +10,7 @@ import {
   GET_ALL_FIRES,
   SAVE_FCM_TOKEN,
   CLEAR_FCM_TOKEN,
+  GET_MUNICIPALITY_BY_ID,
 } from '../services/api';
 import {
   startResidentLocationTracking,
@@ -30,9 +31,6 @@ import {
 import { createNotificationChannel } from '../services/notification.channel';
 import { getDistanceMeters } from '../screens/responder/utils/helpers';
 
-const notifiedGlobalAlertIds = new Set();
-let hasInitializedGlobalAlerts = false;
-
 const getStorage = () => {
   if (Platform.OS === 'web') {
     return {
@@ -46,12 +44,79 @@ const getStorage = () => {
   return require('@react-native-async-storage/async-storage').default;
 };
 
+function isValidCoordPair(lat, lng) {
+  return Number.isFinite(lat) && Number.isFinite(lng);
+}
+
+function parsePoint(value) {
+  if (!value) return null;
+
+  if (typeof value === 'object') {
+    const lat = Number(
+      value.latitude ?? value.lat ?? value.y ?? value?.coordinates?.[1]
+    );
+    const lng = Number(
+      value.longitude ?? value.lng ?? value.lon ?? value.x ?? value?.coordinates?.[0]
+    );
+
+    if (isValidCoordPair(lat, lng)) return { lat, lng };
+
+    if (value?.type === 'Point' && Array.isArray(value.coordinates) && value.coordinates.length === 2) {
+      const geoLat = Number(value.coordinates[1]);
+      const geoLng = Number(value.coordinates[0]);
+      if (isValidCoordPair(geoLat, geoLng)) return { lat: geoLat, lng: geoLng };
+    }
+  }
+
+  try {
+    const geo = typeof value === 'string' ? JSON.parse(value) : value;
+    if (geo?.type === 'Point' && Array.isArray(geo.coordinates) && geo.coordinates.length === 2) {
+      const lat = Number(geo.coordinates[1]);
+      const lng = Number(geo.coordinates[0]);
+      if (isValidCoordPair(lat, lng)) return { lat, lng };
+    }
+  } catch { }
+
+  const match = String(value).match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
+  if (match) {
+    const lng = Number(match[1]);
+    const lat = Number(match[2]);
+    if (isValidCoordPair(lat, lng)) return { lat, lng };
+  }
+
+  return null;
+}
+
 const AuthContext = createContext({});
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState(null);
+  const seenWebAlertIdsRef = useRef(new Set());
+  const hasInitializedWebAlertsRef = useRef(false);
+
+  const getAlertAnchorByRole = async (role, userId, currentUserLocation) => {
+    if (role === 'Municipality') {
+      const municipalityData = await gqlFetch(GET_MUNICIPALITY_BY_ID, {
+        municipality_id: userId,
+      });
+
+      return parsePoint(
+        municipalityData?.getMunicipalityById?.municipality_location ||
+        municipalityData?.getMunicipalityById?.location
+      );
+    }
+
+    if (currentUserLocation?.lat != null && currentUserLocation?.lng != null) {
+      return currentUserLocation;
+    }
+
+    const loc = await getCurrentLocation();
+    if (!loc) return null;
+
+    return { lat: loc.latitude, lng: loc.longitude };
+  };
 
   const setupPushNotifications = async (userId) => {
     try {
@@ -199,18 +264,17 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
-    if (!user?.role) return;
+    if (!user?.role || !user?.id) return;
 
     let interval;
 
     const fetchAndNotifyAlerts = async () => {
       try {
+        const normalizedRole =
+          user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase();
+
         const [alertData, fireData] = await Promise.all([
-          gqlFetch(GET_ALERTS_BY_ROLE, {
-            target_role:
-              user.role?.charAt(0).toUpperCase() +
-              user.role?.slice(1).toLowerCase(),
-          }),
+          gqlFetch(GET_ALERTS_BY_ROLE, { target_role: normalizedRole }),
           gqlFetch(GET_ALL_FIRES),
         ]);
 
@@ -218,37 +282,23 @@ export function AuthProvider({ children }) {
         const fires = fireData?.getAllFires || [];
         const radius = ALERT_RADIUS_BY_ROLE[user.role] || 10000;
 
-        const validAlerts = alerts.filter(a => {
-          if (!a.alert_id) return false;
-          if (!a.fire_id) return false;
-          if (new Date(a.expires_at) <= new Date()) return false;
+        const anchor = await getAlertAnchorByRole(user.role, user.id, userLocation);
+        if (!anchor) return;
 
-          // 🚨 NO LOCATION → DON'T NOTIFY
-          const fire = fires.find(f => f.fire_id === a.fire_id);
-          if (!fire) return false;
+        const validAlerts = alerts.filter(alert => {
+          if (!alert.alert_id) return false;
+          if (!alert.fire_id) return false;
+          if (alert.expires_at && new Date(alert.expires_at) <= new Date()) return false;
 
-          let fireCoords = null;
+          const fire = fires.find(f => f.fire_id === alert.fire_id);
+          if (!fire || fire.is_extinguished) return false;
 
-          let geo = null;
-
-          try {
-            geo = typeof fire.fire_location === 'string'
-              ? JSON.parse(fire.fire_location)
-              : fire.fire_location;
-          } catch { }
-
-          if (geo?.coordinates) {
-            fireCoords = {
-              lat: geo.coordinates[1],
-              lng: geo.coordinates[0],
-            };
-          }
-
+          const fireCoords = parsePoint(fire.fire_location);
           if (!fireCoords) return false;
 
           const distance = getDistanceMeters(
-            userLocation.lat,
-            userLocation.lng,
+            anchor.lat,
+            anchor.lng,
             fireCoords.lat,
             fireCoords.lng
           );
@@ -256,45 +306,34 @@ export function AuthProvider({ children }) {
           return distance <= radius;
         });
 
-        const currentIds = validAlerts.map(a => a.alert_id);
+        const nextAlertIds = new Set(validAlerts.map(alert => alert.alert_id));
 
-        // 🚫 FIRST LOAD → DO NOT NOTIFY (prevent spam)
-        if (!hasInitializedGlobalAlerts) {
-          currentIds.forEach(id => notifiedGlobalAlertIds.add(id));
-          hasInitializedGlobalAlerts = true;
-          console.log('✅ Alerts initialized (no spam)');
+        if (!hasInitializedWebAlertsRef.current) {
+          seenWebAlertIdsRef.current = nextAlertIds;
+          hasInitializedWebAlertsRef.current = true;
           return;
         }
 
-        // 🔥 ONLY NEW ALERTS
         for (const alert of validAlerts) {
-          if (!notifiedGlobalAlertIds.has(alert.alert_id)) {
-            console.log('🚨 GLOBAL NEW ALERT:', alert.alert_id);
-
+          if (!seenWebAlertIdsRef.current.has(alert.alert_id)) {
             notifyAlert(
               alert.alert_type || 'EshMagan Alert',
               alert.alert_message || 'New alert detected'
             );
-
-            notifiedGlobalAlertIds.add(alert.alert_id);
           }
         }
 
+        seenWebAlertIdsRef.current = nextAlertIds;
       } catch (e) {
-        console.warn('Global alert listener error:', e.message);
+        console.warn('Unified web alert listener error:', e.message);
       }
     };
-
-    if (!userLocation) return;
 
     fetchAndNotifyAlerts();
     interval = setInterval(fetchAndNotifyAlerts, 10000);
 
-    return () => {
-      clearInterval(interval);
-    };
-
-  }, [user?.role, userLocation]);
+    return () => clearInterval(interval);
+  }, [user?.role, user?.id, userLocation]);
 
   useEffect(() => {
     let mounted = true;
@@ -394,8 +433,8 @@ export function AuthProvider({ children }) {
     } catch (e) {
       console.error('Logout error:', e);
     } finally {
-      notifiedGlobalAlertIds.clear();
-      hasInitializedGlobalAlerts = false;
+      seenWebAlertIdsRef.current.clear();
+      hasInitializedWebAlertsRef.current = false;
       setUserLocation(null);
       setUser(null);
     }
