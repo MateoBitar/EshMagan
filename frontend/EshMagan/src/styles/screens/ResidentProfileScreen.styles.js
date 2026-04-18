@@ -1,29 +1,30 @@
-// src/styles/screens/ResidentProfileScreen.styles.js
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
+
+const isWeb = Platform.OS === 'web';
 
 export default StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFF1D6',
-    minHeight: '100vh',
   },
 
   scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-    minHeight: '100vh',
+    padding: 16,
+    paddingBottom: 32,
+    width: '100%',
+    alignSelf: 'center',
   },
 
   header: {
-    width: '50%',
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    marginBottom: 24,
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
+    marginBottom: 20,
   },
 
   headerRow: {
     position: 'relative',
-    height: 42,
+    minHeight: 42,
     justifyContent: 'center',
   },
 
@@ -59,7 +60,7 @@ export default StyleSheet.create({
     bottom: 0,
     zIndex: 1,
     textAlign: 'center',
-    fontSize: 30,
+    fontSize: isWeb ? 30 : 24,
     fontWeight: '800',
     color: '#0f172a',
     lineHeight: 42,
@@ -74,39 +75,42 @@ export default StyleSheet.create({
   avatarCard: {
     backgroundColor: '#fff',
     borderRadius: 24,
-    padding: 24,
+    padding: 20,
     alignItems: 'center',
     marginBottom: 16,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)',
-    width: '50%',
-    marginLeft: 'auto',
-    marginRight: 'auto',
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
+    boxShadow: isWeb ? '0px 2px 8px rgba(0, 0, 0, 0.06)' : undefined,
+    elevation: isWeb ? undefined : 2,
   },
 
-  logoIcon: { 
-    width: 60, 
-    height: 60, 
-    borderRadius: 12, 
-    alignItems: 'center', 
-    justifyContent: 'center',
-    marginBottom: 5
-  },
-
-  logoImage: { 
+  logoIcon: {
     width: 60,
-    height: 60 
+    height: 60,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 5,
+  },
+
+  logoImage: {
+    width: 60,
+    height: 60,
   },
 
   userName: {
     fontSize: 18,
     fontWeight: '700',
     color: '#0f172a',
+    textAlign: 'center',
   },
 
   userEmail: {
     fontSize: 13,
     color: '#64748b',
     marginTop: 2,
+    textAlign: 'center',
   },
 
   roleBadge: {
@@ -131,22 +135,24 @@ export default StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    width: '50%',
-    marginLeft: 'auto',
-    marginRight: 'auto',
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
   },
 
   infoHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 24,
+    gap: 12,
   },
 
   infoHeaderTitle: {
     fontSize: 16,
     fontWeight: '800',
     color: '#0f172a',
+    flexShrink: 1,
   },
 
   editBtn: {
@@ -196,6 +202,7 @@ export default StyleSheet.create({
     paddingVertical: 12,
     marginBottom: 12,
     color: '#0f172a',
+    width: '100%',
   },
 
   lastInput: {
@@ -203,12 +210,14 @@ export default StyleSheet.create({
   },
 
   formActions: {
-    flexDirection: 'row',
+    flexDirection: isWeb ? 'row' : 'column',
     gap: 10,
+    width: '100%',
   },
 
   primaryBtn: {
-    flex: 1,
+    flex: isWeb ? 1 : 0,
+    width: '100%',
     backgroundColor: '#EC7742',
     borderRadius: 12,
     alignItems: 'center',
@@ -223,7 +232,8 @@ export default StyleSheet.create({
   },
 
   secondaryBtn: {
-    flex: 1,
+    flex: isWeb ? 1 : 0,
+    width: '100%',
     backgroundColor: '#fff',
     borderRadius: 12,
     borderWidth: 1,
@@ -246,9 +256,9 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e2e8f0',
     overflow: 'hidden',
-    width: '50%',
-    marginLeft: 'auto',
-    marginRight: 'auto',
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
   },
 
   settingRow: {
@@ -270,6 +280,8 @@ export default StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
+    marginRight: 10,
   },
 
   settingEmoji: {
@@ -280,12 +292,14 @@ export default StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#1e293b',
+    flexShrink: 1,
   },
 
   settingBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 10,
+    flexShrink: 0,
   },
 
   settingBadgeText: {
@@ -318,20 +332,22 @@ export default StyleSheet.create({
   },
 
   bottomActionsWrap: {
-    width: '50%',
-    marginLeft: 'auto',
-    marginRight: 'auto',
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
   },
 
   bottomActions: {
-    flexDirection: 'row',
+    flexDirection: isWeb ? 'row' : 'column',
     gap: 8,
     marginTop: 4,
+    width: '100%',
   },
 
   actionBtn: {
-    flex: 1,
-    height: 44,
+    flex: isWeb ? 1 : 0,
+    width: '100%',
+    minHeight: 44,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -368,6 +384,7 @@ export default StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff1d6',
+    paddingHorizontal: 20,
   },
 
   emptyTitle: {
