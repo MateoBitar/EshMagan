@@ -454,7 +454,13 @@ export default function RegisterScreen({ navigation }) {
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={{ maxWidth: 480, width: '100%', alignSelf: 'center' }}>
             <View style={styles.header}>
-              <View style={styles.logoContainer}><Text style={styles.logoEmoji}>🔥</Text></View>
+              <View style={styles.logoContainer}>
+                <Image
+                  source={{ uri: '/EshMagan_Logo-Badge.png' }}
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
+              </View>
               <Text style={styles.appName}>EshMagan</Text>
               <Text style={styles.tagline}>Create Your Resident Account</Text>
             </View>

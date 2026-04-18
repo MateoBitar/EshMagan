@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Platform,
+  Image,
 } from 'react-native';
 import { gqlFetch, GET_ALL_FIRES } from '../../services/api';
 import { getCurrentLocation } from '../../services/location.service';
@@ -52,7 +53,7 @@ function parsePoint(value) {
       const lng = Number(geo.coordinates[0]);
       if (isValidCoordPair(lat, lng)) return { lat, lng };
     }
-  } catch {}
+  } catch { }
 
   const match = String(value).match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
   if (match) {
@@ -219,7 +220,11 @@ export default function ResidentMapScreen({ navigation }) {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.topBar}>
         <View style={styles.logoIcon}>
-          <Text style={styles.logoIconText}>🔥</Text>
+          <Image
+            source={{ uri: '/EshMagan_Logo-Badge.png' }}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </View>
 
         <View style={{ flex: 1 }}>

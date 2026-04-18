@@ -83,18 +83,18 @@ export default StyleSheet.create({
     marginRight: 'auto',
   },
 
-  avatarCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: '#3b82f6',
-    alignItems: 'center',
+  logoIcon: { 
+    width: 60, 
+    height: 60, 
+    borderRadius: 12, 
+    alignItems: 'center', 
     justifyContent: 'center',
-    marginBottom: 14,
+    marginBottom: 5
   },
 
-  avatarEmoji: {
-    fontSize: 40,
+  logoImage: { 
+    width: 60,
+    height: 60 
   },
 
   userName: {

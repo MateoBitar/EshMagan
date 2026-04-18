@@ -10,6 +10,7 @@ import {
   Platform,
   ActivityIndicator,
   TextInput,
+  Image,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { global } from '../../styles/global';
@@ -341,7 +342,7 @@ export default function ResidentProfileScreen({ navigation }) {
               style={styles.backButton}
               hitSlop={styles.backHitSlop}
             >
-              <Text style={styles.backText}>{'< Back'}</Text>
+              <Text style={styles.backText}>{'‹ Back'}</Text>
             </TouchableOpacity>
 
             <Text style={styles.headerTitle}>Profile</Text>
@@ -351,8 +352,12 @@ export default function ResidentProfileScreen({ navigation }) {
         </View>
 
         <View style={styles.avatarCard}>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarEmoji}>👤</Text>
+          <View style={styles.logoIcon}>
+            <Image
+              source={{ uri: '/EshMagan_Logo-Badge.png' }}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
 
           <Text style={styles.userName}>{fullName}</Text>

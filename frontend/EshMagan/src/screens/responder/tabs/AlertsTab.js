@@ -1,12 +1,7 @@
 import React from 'react';
-import { View, ScrollView, Text, ActivityIndicator } from 'react-native';
+import { View, ScrollView, Text, ActivityIndicator, Image } from 'react-native';
 import styles, { C } from '../../../styles/screens/ResponderCommandView.styles';
 
-const ALERT_EMOJI = {
-  FireAlert: '🔥',
-  EvacuationAlert: '🚨',
-  PredictionAlert: '⚠️',
-};
 
 export default function AlertsTab({
   alerts,
@@ -58,7 +53,6 @@ export default function AlertsTab({
           ) : (
             sorted.map(alert => {
               const isExpired = alert.expires_at ? new Date(alert.expires_at) < new Date() : false;
-              const emoji = ALERT_EMOJI[alert.alert_type] || '⚠️';
               const isFireAlert = alert.alert_type === 'FireAlert';
               const accentColor = isExpired ? C.slate : isFireAlert ? C.scarlet : C.tangerine;
 
@@ -75,10 +69,13 @@ export default function AlertsTab({
                     <View
                       style={[
                         styles.alertCardIcon,
-                        { backgroundColor: accentColor + '20' },
                       ]}
                     >
-                      <Text style={styles.alertCardEmoji}>{emoji}</Text>
+                      <Image
+                        source={{ uri: '/EshMagan_Logo-Badge.png' }}
+                        style={styles.logoImage}
+                        resizeMode="contain"
+                      />
                     </View>
 
                     <View style={styles.alertCardInfo}>
@@ -117,7 +114,7 @@ export default function AlertsTab({
 
                         {alert.fire_id ? (
                           <Text style={styles.alertCardMeta}>
-                            🔥 #{String(alert.fire_id).slice(0, 8)}
+                            🔥#{String(alert.fire_id).slice(0, 8)}
                           </Text>
                         ) : null}
                       </View>

@@ -37,22 +37,20 @@ export default StyleSheet.create({
   },
 
   logoIcon: {
-    width: 40,
-    height: 40,
-    backgroundColor: C.scarlet,
+    width: 50,
+    height: 50,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-    shadowColor: C.scarlet,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
   },
 
-  logoIconText: { fontSize: 20 },
-  appName: { color: C.text, fontSize: 16, fontWeight: '800' },
+  logoImage: {
+    width: 50,
+    height: 50,
+  },
+
+  appName: { color: C.text, fontSize: 20, fontWeight: '800' },
   portalLabel: { color: C.textMuted, fontSize: 12, marginTop: 2 },
 
   logoutBtn: {

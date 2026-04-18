@@ -9,6 +9,7 @@ import {
   Alert,
   ScrollView,
   useWindowDimensions,
+  Image,
 } from "react-native";
 import {
   gqlFetch,
@@ -1069,7 +1070,19 @@ export default function AdminDashboard({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.topBar}>
-        <Text style={styles.mainTitle}>Admin Dashboard</Text>
+        <View style={styles.topBarLogoWrap}>
+          <View style={styles.topBarLogoIcon}>
+            <Image
+              source={{ uri: '/EshMagan_Logo-Badge.png' }}
+              style={styles.topBarLogoImage}
+              resizeMode="contain"
+            />
+          </View>
+          <View>
+            <Text style={styles.topBarTitle}>EshMagan</Text>
+            <Text style={styles.topBarSubtitle}>Admin Dashboard</Text>
+          </View>
+        </View>
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Text style={styles.logoutBtnText}>Logout</Text>
         </TouchableOpacity>

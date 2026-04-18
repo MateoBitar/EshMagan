@@ -76,7 +76,7 @@ export default function NotificationsTab({
 
                                                 {n.fire_id && (
                                                     <Text style={styles.notificationFireId}>
-                                                        🔥 #{n.fire_id?.slice(0, 8)}
+                                                        🔥#{n.fire_id?.slice(0, 8)}
                                                     </Text>
                                                 )}
 

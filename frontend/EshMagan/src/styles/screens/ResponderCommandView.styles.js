@@ -50,49 +50,54 @@ export default StyleSheet.create({
     flexDirection: 'column',
   },
 
-  // ─── HEADER ─────────────────────────────────────────────────────────────────
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+  // ─── HEADER ─────────────────────────────────────
+
+  topBar: {
     backgroundColor: C.bg,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(236,119,66,0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 
-  headerIcon: {
-    width: 40,
-    height: 40,
-    backgroundColor: C.scarlet,
+  logoIcon: {
+    width: 50,
+    height: 50,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-    shadowColor: C.scarlet,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
   },
 
-  headerIconInner: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#ffffff',
-    opacity: 0.95,
+  logoImage: {
+    width: 50,
+    height: 50,
   },
 
-  headerTextContainer: {
+  topBarTextWrap: {
     flex: 1,
-    minWidth: 0,
+    justifyContent: 'center',
   },
 
-  headerTitle: {
+  appName: {
     color: C.text,
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '800',
+  },
+
+  subRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 2,
+  },
+
+  portalLabel: {
+    color: C.textMuted,
+    fontSize: 12,
+    marginTop: 2,
   },
 
   headerLiveRow: {
@@ -114,7 +119,7 @@ export default StyleSheet.create({
     fontSize: 12,
   },
 
-  logoutButton: {
+  logoutBtn: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
@@ -123,7 +128,7 @@ export default StyleSheet.create({
     backgroundColor: 'transparent',
   },
 
-  logoutButtonText: {
+  logoutBtnText: {
     color: C.scarlet,
     fontSize: 12,
     fontWeight: '700',
@@ -804,15 +809,16 @@ export default StyleSheet.create({
   },
 
   alertCardIcon: {
-    width: 36,
-    height: 36,
+    width: 50,
+    height: 50,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  alertCardEmoji: {
-    fontSize: 18,
+  logoImage: {
+    width: 50,
+    height: 50,
   },
 
   alertCardInfo: {

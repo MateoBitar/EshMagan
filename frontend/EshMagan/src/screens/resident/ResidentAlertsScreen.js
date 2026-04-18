@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Platform,
+  Image,
 } from 'react-native';
 import {
   gqlFetch,
@@ -16,12 +17,6 @@ import {
 } from '../../services/api';
 import { getCurrentLocation } from '../../services/location.service';
 import styles, { C } from '../../styles/screens/ResidentAlertsScreen.styles';
-
-const ALERT_EMOJI = {
-  FireAlert: '🔥',
-  EvacuationAlert: '🚨',
-  PredictionAlert: '⚠️',
-};
 
 const ALERT_RADIUS_METERS = 10000;
 
@@ -284,7 +279,6 @@ export default function ResidentAlertsScreen({ navigation }) {
               ) : (
                 activeAlerts.map(alert => {
                   const isExpired = new Date(alert.expires_at) < new Date();
-                  const emoji = ALERT_EMOJI[alert.alert_type] || '⚠️';
                   const isFireAlert = alert.alert_type === 'FireAlert';
                   const accentColor = isExpired
                     ? C.slate
@@ -306,10 +300,13 @@ export default function ResidentAlertsScreen({ navigation }) {
                         <View
                           style={[
                             styles.alertCardIcon,
-                            { backgroundColor: accentColor + '20' },
                           ]}
                         >
-                          <Text style={styles.alertCardEmoji}>{emoji}</Text>
+                          <Image
+                            source={{ uri: '/EshMagan_Logo-Badge.png' }}
+                            style={styles.logoImage}
+                            resizeMode="contain"
+                          />
                         </View>
 
                         <View style={styles.alertCardInfo}>
@@ -347,7 +344,7 @@ export default function ResidentAlertsScreen({ navigation }) {
                             </Text>
                             {alert.fire_id && (
                               <Text style={styles.alertCardMeta}>
-                                🔥 #{alert.fire_id?.slice(0, 8)}
+                                🔥#{alert.fire_id?.slice(0, 8)}
                               </Text>
                             )}
                           </View>

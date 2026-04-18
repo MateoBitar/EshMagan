@@ -7,8 +7,8 @@ export default StyleSheet.create({
   scrollContent: { flexGrow: 1, minHeight: '100vh', padding: 20, paddingBottom: 40, backgroundColor: '#FFF1D6' },
 
   header: { alignItems: 'center', marginTop: 20, marginBottom: 32 },
-  logoContainer: { width: 68, height: 68, backgroundColor: '#EC7742', borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 16, boxShadow: '0px 8px 16px rgba(236, 119, 66, 0.4)' },
-  logoEmoji: { fontSize: 32 },
+  logoContainer: { width: 68, height: 68, alignItems: 'center', justifyContent: 'center' },
+  logoImage: { width: 68, height: 68 },
   appName: { fontSize: 34, fontWeight: '800', color: '#DC2626', letterSpacing: -1 },
   tagline: { fontSize: 13, color: '#000000', marginTop: 6, fontWeight: '500', opacity: 0.6 },
   subtitle: { fontSize: 12, color: '#000000', marginTop: 4, opacity: 0.5 },

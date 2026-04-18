@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  ActivityIndicator, KeyboardAvoidingView, Platform, SafeAreaView,
+  ActivityIndicator, KeyboardAvoidingView, Platform, SafeAreaView, Image,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import styles from '../../styles/screens/LoginScreen.styles';
@@ -19,11 +19,11 @@ const PRIVACY_ITEMS = [
 ];
 
 const KNOWN_DOMAINS = [
-  'gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com',
-  'live.com','msn.com','protonmail.com','proton.me','mail.com',
-  'aol.com','ymail.com','googlemail.com','me.com','mac.com', 'eshmagan.com',
-  'hotmail.fr','hotmail.co.uk','yahoo.fr','yahoo.co.uk','yahoo.com.au',
-  'edu.lb','ul.edu.lb','balamand.edu.lb','usj.edu.lb','lau.edu.lb',
+  'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com',
+  'live.com', 'msn.com', 'protonmail.com', 'proton.me', 'mail.com',
+  'aol.com', 'ymail.com', 'googlemail.com', 'me.com', 'mac.com', 'eshmagan.com',
+  'hotmail.fr', 'hotmail.co.uk', 'yahoo.fr', 'yahoo.co.uk', 'yahoo.com.au',
+  'edu.lb', 'ul.edu.lb', 'balamand.edu.lb', 'usj.edu.lb', 'lau.edu.lb',
 ];
 
 function validateEmail(email) {
@@ -40,7 +40,7 @@ function validateEmail(email) {
 export default function LoginScreen({ navigation }) {
   let nav = navigation;
   if (Platform.OS !== 'web') {
-    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch {}
+    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch { }
   }
 
   const { login } = useAuth();
@@ -84,7 +84,11 @@ export default function LoginScreen({ navigation }) {
           <View style={{ maxWidth: 480, width: '100%', alignSelf: 'center' }}>
             <View style={styles.header}>
               <View style={styles.logoContainer}>
-                <Text style={styles.logoEmoji}>🔥</Text>
+                <Image
+                  source={{ uri: '/EshMagan_Logo-Badge.png' }}
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
               </View>
               <Text style={styles.appName}>EshMagan</Text>
               <Text style={styles.tagline}>Wildfire Alert & Preparedness System</Text>

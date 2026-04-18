@@ -1,6 +1,6 @@
 // src/screens/resident/ResidentSidebar.js
 import React from 'react';
-import { View, Text, TouchableOpacity, Modal, Platform, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, Platform, StyleSheet, Image, } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 
 const NAV_ITEMS = [
@@ -47,6 +47,13 @@ export default function ResidentSidebar({ visible, onClose, navigation, currentS
       >
         <TouchableOpacity activeOpacity={1} style={styles.sidebar}>
           <View style={styles.brandWrap}>
+            <View style={styles.brandLogoIcon}>
+              <Image
+                source={{ uri: '/EshMagan_Logo-Badge.png' }}
+                style={styles.brandLogoImage}
+                resizeMode="contain"
+              />
+            </View>
             <Text style={styles.brandTitle}>EshMagan</Text>
             <Text style={styles.brandSub}>Resident Panel</Text>
           </View>
@@ -113,6 +120,20 @@ const styles = StyleSheet.create({
   brandWrap: {
     marginBottom: 22,
     paddingHorizontal: 6,
+    marginRight: '10px',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  brandLogoIcon: { 
+    width: 50, 
+    height: 50, 
+    borderRadius: 12,
+  },
+
+  brandLogoImage: {
+    width: 50, 
+    height: 50
   },
 
   brandTitle: {

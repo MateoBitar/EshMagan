@@ -9,6 +9,7 @@ import {
   Platform,
   Alert,
   Animated,
+  Image,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import {

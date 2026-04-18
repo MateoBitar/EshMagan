@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Platform,
+  Image,
 } from 'react-native';
 import {
   gqlFetch,
@@ -288,7 +289,11 @@ export default function MunicipalityDashboard() {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.topBar}>
         <View style={styles.logoIcon}>
-          <Text style={styles.logoIconText}>🔥</Text>
+          <Image
+            source={{ uri: '/EshMagan_Logo-Badge.png' }}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </View>
 
         <View style={{ flex: 1 }}>

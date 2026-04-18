@@ -1,6 +1,6 @@
 // src/screens/resident/ResidentHomeScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Linking, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Linking, Platform, Image } from 'react-native';
 import {
   getCurrentLocation,
   getPlaceName,
@@ -14,9 +14,9 @@ import { useAuth } from '../../context/AuthContext';
 
 const QUICK_ACTIONS = [
   { emoji: '🧭', label: 'Evacuation Routes', screen: 'Evacuation', color: '#FF6A3D' },
-  { emoji: '🗺️', label: 'Interactive Map', screen: 'ResidentMap', color: '#FF4D2D' }, 
-  { emoji: '📖', label: 'Safety Tips', screen: 'SafetyTips', color: '#E53923' }, 
-  { emoji: '⚠️', label: 'My Alerts', screen: 'ResidentAlerts', color: '#A32020' } 
+  { emoji: '🗺️', label: 'Interactive Map', screen: 'ResidentMap', color: '#FF4D2D' },
+  { emoji: '📖', label: 'Safety Tips', screen: 'SafetyTips', color: '#E53923' },
+  { emoji: '⚠️', label: 'My Alerts', screen: 'ResidentAlerts', color: '#A32020' }
 ];
 
 const EMERGENCY_CONTACTS = [
@@ -248,7 +248,11 @@ export default function ResidentHomeScreen({ navigation }) {
           <View style={styles.headerRow}>
             <View style={styles.headerLogoWrap}>
               <View style={styles.headerLogoIcon}>
-                <Text style={styles.headerLogoEmoji}>🔥</Text>
+                <Image
+                  source={{ uri: '/EshMagan_Logo-Badge.png' }}
+                  style={styles.headerLogoImage}
+                  resizeMode="contain"
+                />
               </View>
               <View>
                 <Text style={[styles.headerTitle, { color: headerTitleColor }]}>EshMagan</Text>

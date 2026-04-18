@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ScrollView, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, ScrollView, Text, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import styles, { C, ASSIGNMENT_COLORS } from '../../../styles/screens/ResponderCommandView.styles';
 
 export default function AssignmentsTab({
@@ -45,7 +45,11 @@ export default function AssignmentsTab({
                   <View style={styles.assignmentCardHeader}>
                     <View style={styles.assignmentCardInfo}>
                       <View style={styles.assignmentFireRow}>
-                        <Text style={styles.assignmentFireEmoji}>🔥</Text>
+                        <Image
+                          source={{ uri: '/EshMagan_Logo-Badge.png' }}
+                          style={styles.logoImage}
+                          resizeMode="contain"
+                        />
                         <Text style={styles.assignmentFireSource}>
                           {fireLocations[a.fire_id]?.source || 'Active Fire'}
                         </Text>

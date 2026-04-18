@@ -200,15 +200,16 @@ export default StyleSheet.create({
   },
 
   alertCardIcon: {
-    width: 42,
-    height: 42,
+    width: 50,
+    height: 50,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  alertCardEmoji: {
-    fontSize: 20,
+  logoImage: {
+    width: 50,
+    height: 50,
   },
 
   alertCardInfo: {

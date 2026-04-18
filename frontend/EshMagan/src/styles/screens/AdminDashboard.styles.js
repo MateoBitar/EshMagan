@@ -22,10 +22,34 @@ export default function stylesFactory(width, height) {
       flexWrap: "wrap",
     },
 
-    mainTitle: {
-      fontSize: isSmall ? 22 : isTablet ? 30 : 26,
-      fontWeight: "800",
-      color: "#000000",
+    topBarLogoWrap: { 
+      flexDirection: 'row',
+       alignItems: 'center', 
+       gap: 10 
+    },
+
+    topBarLogoIcon: { 
+      width: 50,
+      height: 50,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+
+    topBarLogoImage: { 
+      width: 50, 
+      height: 50 
+    },
+
+    topBarTitle: { 
+      color: '#000', 
+      fontSize: 20, 
+      fontWeight: '800' 
+    },
+
+    topBarSubtitle: { 
+      color: 'rgba(0,0,0,0.8)', 
+      fontSize: 12 
     },
 
     logoutBtn: {

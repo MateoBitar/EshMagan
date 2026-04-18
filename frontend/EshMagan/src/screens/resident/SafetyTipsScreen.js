@@ -1,6 +1,6 @@
 // src/screens/resident/SafetyTipsScreen.js
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Platform, Image, } from 'react-native';
 import styles from '../../styles/screens/SafetyTipsScreen.styles';
 
 const PREPARATION = [
@@ -18,7 +18,7 @@ const DURING_FIRE = [
 export default function SafetyTipsScreen({ navigation }) {
   let nav = navigation;
   if (Platform.OS !== 'web') {
-    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch {}
+    try { const { useNavigation } = require('@react-navigation/native'); nav = useNavigation(); } catch { }
   }
 
   return (
@@ -28,7 +28,13 @@ export default function SafetyTipsScreen({ navigation }) {
           <Text style={styles.backText}>‹ Back</Text>
         </TouchableOpacity>
         <View style={styles.headerRow}>
-          <View style={styles.headerIcon}><Text style={{ fontSize: 24 }}>🔥</Text></View>
+          <View style={styles.headerIcon}>
+            <Image
+              source={{ uri: '/EshMagan_Logo-Badge.png' }}
+              style={styles.headerLogoImage}
+              resizeMode="contain"
+            />
+          </View>
           <Text style={styles.headerTitle}>Safety Tips</Text>
         </View>
         <Text style={styles.headerSub}>Wildfire preparedness and response guide</Text>
@@ -72,7 +78,7 @@ export default function SafetyTipsScreen({ navigation }) {
             <Text style={{ fontSize: 22 }}>📞</Text>
             <Text style={styles.emergencyTitle}>Emergency Contacts</Text>
           </View>
-          {[{ name: 'Fire Emergency', num: '125' }, { name: 'Medical Emergency', num: '140' },{ name: 'Police', num: '112' }].map(c => (
+          {[{ name: 'Fire Emergency', num: '125' }, { name: 'Medical Emergency', num: '140' }, { name: 'Police', num: '112' }].map(c => (
             <View key={c.name} style={styles.emergencyRow}>
               <Text style={styles.emergencyName}>{c.name}</Text>
               <View style={styles.emergencyNumBadge}><Text style={styles.emergencyNum}>{c.num}</Text></View>
