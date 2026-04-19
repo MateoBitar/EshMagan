@@ -8,6 +8,7 @@ import {
   Modal,
   Alert,
   ScrollView,
+  Platform,
   useWindowDimensions,
   Image,
 } from "react-native";
@@ -666,43 +667,47 @@ export default function AdminDashboard({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={styles.tableWrapper}>
-          <View style={styles.tableHeader}>
-            {currentHeaders.map((header) => {
-              let style;
+      <View style={{ maxHeight: height * 0.6, minHeight: 0 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.tableWrapper}>
+            <View style={styles.tableHeader}>
+              {currentHeaders.map((header) => {
+                let style;
 
-              if (header === "ID") {
-                style = [styles.headerCell, styles.cellId];
-              } else if (header === "Email") {
-                style = [styles.headerCell, styles.cellMedium];
-              } else {
-                style = [styles.headerCell, styles.cellSmall];
-              }
+                if (header === "ID") {
+                  style = [styles.headerCell, styles.cellId];
+                } else if (header === "Email") {
+                  style = [styles.headerCell, styles.cellMedium];
+                } else {
+                  style = [styles.headerCell, styles.cellSmall];
+                }
 
-              return (
-                <Text key={header} style={style}>
-                  {header}
-                </Text>
-              );
-            })}
-            <Text style={styles.headerActionsCell}>Actions</Text>
+                return (
+                  <Text key={header} style={style}>
+                    {header}
+                  </Text>
+                );
+              })}
+              <Text style={styles.headerActionsCell}>Actions</Text>
+            </View>
+
+            {currentLoading ? (
+              <Text style={styles.loadingText}>Loading...</Text>
+            ) : currentData.length === 0 ? (
+              <Text style={styles.emptyText}>No {activeTab.toLowerCase()} found</Text>
+            ) : (
+              <FlatList
+                data={currentData}
+                keyExtractor={(item) => item.admin_id || item.responder_id || item.municipality_id}
+                renderItem={renderCurrentRow}
+                scrollEnabled={true}
+                nestedScrollEnabled={true}
+                style={{ maxHeight: height * 0.6 - 50 }}
+              />
+            )}
           </View>
-
-          {currentLoading ? (
-            <Text style={styles.loadingText}>Loading...</Text>
-          ) : currentData.length === 0 ? (
-            <Text style={styles.emptyText}>No {activeTab.toLowerCase()} found</Text>
-          ) : (
-            <FlatList
-              data={currentData}
-              keyExtractor={(item) => item.admin_id || item.responder_id || item.municipality_id}
-              renderItem={renderCurrentRow}
-              scrollEnabled={false}
-            />
-          )}
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     </View>
   );
 
@@ -1090,7 +1095,7 @@ export default function AdminDashboard({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      <View style={{ flexDirection: "row", gap: 8, marginBottom: 14 }}>
+      <View style={{ flexDirection: "row", gap: 8, marginBottom: 14, marginLeft: 15 }}>
         {TABS.map((tab) => (
           <TouchableOpacity
             key={tab}
@@ -1114,14 +1119,15 @@ export default function AdminDashboard({ navigation }) {
       <TextInput
         style={styles.searchInput}
         placeholder={`Search ${activeTab.toLowerCase()}...`}
+        placeholderTextColor="#000"
         value={search}
         onChangeText={setSearch}
         autoCapitalize="none"
       />
 
-      <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: height * 0.8, minHeight: height * 0.8 }}>
+      <View style={{ flex: 1 }}>
         {renderTabContent()}
-      </ScrollView>
+      </View>
 
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
