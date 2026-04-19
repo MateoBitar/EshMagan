@@ -289,7 +289,7 @@ export class ResidentRepository {
             WHERE ST_DWithin(
                 last_known_location,
                 ST_GeomFromText($1, 4326)::geography,
-                1000
+                10000
             ) AND u.isactive = true
         `;
         const locationWKT = `POINT(${last_known_location.longitude} ${last_known_location.latitude})`;

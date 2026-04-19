@@ -209,13 +209,7 @@ export default function ResponderCommandView({ navigation }) {
             notifyAlert('New Assignment', `You were assigned to fire ${assignment.fire_id || 'incident'}.`);
           }
         }
-
-        for (const notif of nextNotifications) {
-          if (!seenNotificationIdsRef.current.has(notif.notification_id)) {
-            notifyInfo('New Notification', notif.notification_message || 'You received a new notification.');
-          }
-        }
-
+        
         seenAssignmentIdsRef.current = nextAssignmentIds;
         seenAlertIdsRef.current = nextAlertIds;
         seenNotificationIdsRef.current = nextNotificationIds;
@@ -269,7 +263,7 @@ export default function ResponderCommandView({ navigation }) {
         },
       });
 
-      if (nextStatus === 'Completed' && fireId) {
+      if (nextStatus === 'Completed' || nextStatus === 'Cancelled' && fireId) {
         await gqlFetch(EXTINGUISH_FIRE, { fire_id: fireId });
       }
 

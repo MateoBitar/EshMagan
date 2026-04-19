@@ -225,7 +225,7 @@ export class MunicipalityRepository {
         WHERE ST_DWithin(
             m.municipality_location,
             ST_GeomFromText($1, 4326)::geography,
-            1000
+            10000
         )
         AND u.isactive = true
         LIMIT 1

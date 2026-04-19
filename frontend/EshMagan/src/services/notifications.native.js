@@ -1,5 +1,6 @@
 import { Vibration } from 'react-native';
 import Sound from 'react-native-sound';
+import notifee from '@notifee/react-native';
 
 Sound.setCategory('Playback');
 
@@ -22,7 +23,7 @@ export async function requestAppNotificationPermission() {
   return 'granted';
 }
 
-export function showBrowserNotification() {}
+export function showBrowserNotification() { }
 
 export function vibrateAlert(pattern = [0, 800, 200, 800, 200, 800]) {
   Vibration.vibrate(pattern);
@@ -30,7 +31,10 @@ export function vibrateAlert(pattern = [0, 800, 200, 800, 200, 800]) {
 
 export function playAlertSound() {
   try {
-    if (!alertSoundInstance) return;
+    if (!alertSoundInstance) {
+      console.warn('alertSoundInstance is null');
+      return;
+    }
 
     alertSoundInstance.stop(() => {
       alertSoundInstance.play(success => {
@@ -47,4 +51,21 @@ export function notifyAlert(title, body) {
   playAlertSound();
 }
 
-export function notifyInfo(title, body) {}
+export async function notifyInfo(title, body) {
+  try {
+    await notifee.displayNotification({
+      title: title || 'New Notification',
+      body: body || 'You received a new notification.',
+      android: {
+        channelId: 'notifications',
+        pressAction: {
+          id: 'default',
+        },
+        sound: undefined,
+        vibrationPattern: [],
+      },
+    });
+  } catch (e) {
+    console.warn('Info notification display error', e);
+  }
+}

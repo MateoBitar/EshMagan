@@ -215,4 +215,14 @@ export class UserService {
         if (!user_role) throw new Error('Missing user_role');
         return await this.userRepository.getUsersWithFcmByRole(user_role);
     }
+
+    async getFcmTokenByUserId(user_id) {
+        if (!user_id) throw new Error('Missing user_id');
+        return await this.userRepository.getFcmTokenByUserId(user_id);
+    }
+
+    async removeFcmToken(token) {
+        if (!token) throw new Error('Missing token');
+        return await this.userRepository.removeFcmToken(token);
+    }
 }

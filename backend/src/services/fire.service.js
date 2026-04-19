@@ -310,10 +310,24 @@ export class FireService {
                 const assignments = await this.fireAssignmentService.getAssignmentsByFireId(fire_id);
 
                 for (const assignment of assignments) {
+
+                    // 1. Complete assignment if needed
                     if (!['Completed', 'Cancelled'].includes(assignment.assignment_status)) {
                         await this.fireAssignmentService.updateAssignmentStatus(
                             assignment.assignment_id,
                             'Completed'
+                        );
+                    }
+
+                    // 2. Move responder to Standby
+                    try {
+                        await this.responderService.updateResponderStatus(
+                            assignment.responder_id,
+                            'Standby'
+                        );
+                    } catch (statusErr) {
+                        console.warn(
+                            `Failed to update responder ${assignment.responder_id} to Standby: ${statusErr.message}`
                         );
                     }
                 }
@@ -367,9 +381,18 @@ export class FireService {
                 responder_id: nearestResponder.responder_id
             });
 
-            await this.responderService.updateResponderStatus(nearestResponder.responder_id, 'Unavailable');
+            // If responder was Standby, move them to Active once assigned.
+            // If already Active, keep them Active.
+            // Never force assigned responders to Unavailable.
+            if (nearestResponder.responder_status === 'Standby') {
+                await this.responderService.updateResponderStatus(
+                    nearestResponder.responder_id,
+                    'Active'
+                );
+            }
 
             return assignment;
+
         } catch (err) {
             throw new Error(`Failed to dispatch closest responder: ${err.message}`);
         }
