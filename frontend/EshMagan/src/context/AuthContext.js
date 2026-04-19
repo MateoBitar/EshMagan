@@ -11,6 +11,7 @@ import {
   SAVE_FCM_TOKEN,
   CLEAR_FCM_TOKEN,
   GET_MUNICIPALITY_BY_ID,
+  GET_NOTIFICATIONS_BY_USER,
 } from '../services/api';
 import {
   startResidentLocationTracking,
@@ -21,6 +22,7 @@ import {
 import {
   requestAppNotificationPermission,
   notifyAlert,
+  notifyInfo,
   preloadAlertSound,
 } from '../services/notifications';
 import {
@@ -95,6 +97,8 @@ export function AuthProvider({ children }) {
   const [userLocation, setUserLocation] = useState(null);
   const seenWebAlertIdsRef = useRef(new Set());
   const hasInitializedWebAlertsRef = useRef(false);
+  const seenWebNotificationIdsRef = useRef(new Set());
+  const hasInitializedWebNotificationsRef = useRef(false);
 
   const getAlertAnchorByRole = async (role, userId, currentUserLocation) => {
     if (role === 'Municipality') {
@@ -138,7 +142,6 @@ export function AuthProvider({ children }) {
       }
 
       const fcmToken = await getNativePushToken();
-      console.log('FCM token:', fcmToken);
 
       if (!fcmToken) {
         console.warn('No FCM token received');
@@ -150,7 +153,6 @@ export function AuthProvider({ children }) {
         fcm_token: fcmToken,
       });
 
-      console.log('FCM token saved to backend');
     } catch (e) {
       console.warn('Push setup failed', e);
     }
@@ -247,14 +249,20 @@ export function AuthProvider({ children }) {
       const title =
         remoteMessage?.notification?.title ||
         remoteMessage?.data?.title ||
-        'EshMagan Alert';
+        'EshMagan';
 
       const body =
         remoteMessage?.notification?.body ||
         remoteMessage?.data?.body ||
-        'You received a new alert.';
+        'You received a new update.';
 
-      notifyAlert(title, body);
+      const type = remoteMessage?.data?.type || '';
+
+      if (type === 'FireAlert') {
+        notifyAlert(title, body);
+      } else {
+        notifyInfo(title, body);
+      }
     });
 
     return () => {
@@ -306,6 +314,7 @@ export function AuthProvider({ children }) {
           return distance <= radius;
         });
 
+
         const nextAlertIds = new Set(validAlerts.map(alert => alert.alert_id));
 
         if (!hasInitializedWebAlertsRef.current) {
@@ -334,6 +343,56 @@ export function AuthProvider({ children }) {
 
     return () => clearInterval(interval);
   }, [user?.role, user?.id, userLocation]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    if (!user?.id) return;
+
+    let interval;
+
+    const fetchAndNotifyNotifications = async () => {
+      try {
+        const notifData = await gqlFetch(GET_NOTIFICATIONS_BY_USER, {
+          user_id: user.id,
+        });
+
+        const notifications = notifData?.getNotificationsByUserId || [];
+
+        const validNotifications = notifications.filter(n => {
+          if (!n.notification_id) return false;
+          if (n.notification_status === 'Delivered') return false;
+          if (n.expires_at && new Date(n.expires_at) <= new Date()) return false;
+          return true;
+        });
+
+        const nextIds = new Set(validNotifications.map(n => n.notification_id));
+
+        if (!hasInitializedWebNotificationsRef.current) {
+          seenWebNotificationIdsRef.current = nextIds;
+          hasInitializedWebNotificationsRef.current = true;
+          return;
+        }
+
+        for (const notif of validNotifications) {
+          if (!seenWebNotificationIdsRef.current.has(notif.notification_id)) {
+            notifyInfo(
+              'New Notification',
+              notif.notification_message || 'You received a new notification.'
+            );
+          }
+        }
+
+        seenWebNotificationIdsRef.current = nextIds;
+      } catch (e) {
+        console.warn('Unified web notification listener error:', e.message);
+      }
+    };
+
+    fetchAndNotifyNotifications();
+    interval = setInterval(fetchAndNotifyNotifications, 10000);
+
+    return () => clearInterval(interval);
+  }, [user?.id]);
 
   useEffect(() => {
     let mounted = true;
@@ -419,10 +478,9 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      if (user?.id) {
+      if (user?.id && Platform.OS !== 'web') {
         try {
           await gqlFetch(CLEAR_FCM_TOKEN, { user_id: user.id });
-          console.log('FCM token cleared from backend');
         } catch (e) {
           console.warn('Failed to clear FCM token on logout', e);
         }
@@ -435,6 +493,8 @@ export function AuthProvider({ children }) {
     } finally {
       seenWebAlertIdsRef.current.clear();
       hasInitializedWebAlertsRef.current = false;
+      seenWebNotificationIdsRef.current.clear();
+      hasInitializedWebNotificationsRef.current = false;
       setUserLocation(null);
       setUser(null);
     }

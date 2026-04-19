@@ -1,13 +1,15 @@
 // src/events/subscribers/alert.subscriber.js
-//
-// Responsible for creating ALERTS only.
-// Listens to: alert.created
+
 import { getJetStream, sc, SUBJECTS } from '../../config/nats.js';
 import { AlertRepository } from '../../domain/repositories/alert.repository.js';
 import { sendPushToTokens } from '../../services/push.service.js';
 import { UserService } from '../../services/user.service.js';
 import { UserRepository } from '../../domain/repositories/user.repository.js';
 import { FireRepository } from '../../domain/repositories/fire.repository.js';
+
+const CONSUMER_NAME = 'alert-consumer';
+
+/* -------------------- GEO HELPERS -------------------- */
 
 function getDistanceMeters(lat1, lng1, lat2, lng2) {
     const toRad = d => (d * Math.PI) / 180;
@@ -29,6 +31,48 @@ function isValidCoordPair(lat, lng) {
     return Number.isFinite(lat) && Number.isFinite(lng);
 }
 
+function parsePoint(value) {
+    if (!value) return null;
+
+    // Object formats
+    if (typeof value === 'object') {
+        const lat = Number(
+            value.latitude ?? value.lat ?? value.y ?? value?.coordinates?.[1]
+        );
+        const lng = Number(
+            value.longitude ?? value.lng ?? value.lon ?? value.x ?? value?.coordinates?.[0]
+        );
+
+        if (isValidCoordPair(lat, lng)) return { lat, lng };
+
+        if (value?.type === 'Point' && Array.isArray(value.coordinates)) {
+            const geoLat = Number(value.coordinates[1]);
+            const geoLng = Number(value.coordinates[0]);
+            if (isValidCoordPair(geoLat, geoLng)) return { lat: geoLat, lng: geoLng };
+        }
+    }
+
+    // JSON string
+    try {
+        const geo = typeof value === 'string' ? JSON.parse(value) : value;
+        if (geo?.type === 'Point' && Array.isArray(geo.coordinates)) {
+            const lat = Number(geo.coordinates[1]);
+            const lng = Number(geo.coordinates[0]);
+            if (isValidCoordPair(lat, lng)) return { lat, lng };
+        }
+    } catch {}
+
+    // WKT format: POINT(lng lat)
+    const match = String(value).match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
+    if (match) {
+        const lng = Number(match[1]);
+        const lat = Number(match[2]);
+        if (isValidCoordPair(lat, lng)) return { lat, lng };
+    }
+
+    return null;
+}
+
 function getUserAnchorForPush(user, targetRole) {
     if (!user) return null;
 
@@ -40,67 +84,17 @@ function getUserAnchorForPush(user, targetRole) {
         );
     }
 
-    if (targetRole === 'Resident' || targetRole === 'Responder') {
-        const lat = Number(user?.last_known_location?.latitude);
-        const lng = Number(user?.last_known_location?.longitude);
-
-        if (Number.isFinite(lat) && Number.isFinite(lng)) {
-            return { lat, lng };
-        }
-
-        return parsePoint(user?.last_known_location);
-    }
-
-    return parsePoint(user?.last_known_location);
+    return parsePoint(user.last_known_location);
 }
 
-function parsePoint(value) {
-    if (!value) return null;
-
-    if (typeof value === 'object') {
-        const lat = Number(
-            value.latitude ?? value.lat ?? value.y ?? value?.coordinates?.[1]
-        );
-        const lng = Number(
-            value.longitude ?? value.lng ?? value.lon ?? value.x ?? value?.coordinates?.[0]
-        );
-
-        if (isValidCoordPair(lat, lng)) return { lat, lng };
-
-        if (value?.type === 'Point' && Array.isArray(value.coordinates) && value.coordinates.length === 2) {
-            const geoLat = Number(value.coordinates[1]);
-            const geoLng = Number(value.coordinates[0]);
-            if (isValidCoordPair(geoLat, geoLng)) return { lat: geoLat, lng: geoLng };
-        }
-    }
-
-    try {
-        const geo = typeof value === 'string' ? JSON.parse(value) : value;
-        if (geo?.type === 'Point' && Array.isArray(geo.coordinates) && geo.coordinates.length === 2) {
-            const lat = Number(geo.coordinates[1]);
-            const lng = Number(geo.coordinates[0]);
-            if (isValidCoordPair(lat, lng)) return { lat, lng };
-        }
-    } catch { }
-
-    const match = String(value).match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
-    if (match) {
-        const lng = Number(match[1]);
-        const lat = Number(match[2]);
-        if (isValidCoordPair(lat, lng)) return { lat, lng };
-    }
-
-    return null;
-}
-
-const CONSUMER_NAME = 'alert-consumer';
+/* -------------------- SUBSCRIBER -------------------- */
 
 export async function startAlertSubscriber() {
     try {
         const js = getJetStream();
+
         const alertRepository = new AlertRepository();
-        const userRepository = new UserRepository();
-        const userService = new UserService(userRepository);
+        const userService = new UserService(new UserRepository());
         const fireRepository = new FireRepository();
 
         const consumer = await js.consumers.get('ESHMAGAN', CONSUMER_NAME);
@@ -117,7 +111,7 @@ export async function startAlertSubscriber() {
                     }
 
                     const data = JSON.parse(sc.decode(msg.data));
-                    console.log(`[NATS] alert.created received for fire_id: ${data.fire_id}`);
+                    /* -------------------- SAVE ALERT -------------------- */
 
                     await alertRepository.createAlert({
                         alert_type: data.alert_type,
@@ -129,29 +123,25 @@ export async function startAlertSubscriber() {
                         fire_id: data.fire_id,
                     });
 
-                    // 🔥 SEND PUSH NOTIFICATIONS
-                    try {
-                        console.log(`[NATS] Fetching users with role: ${data.target_role} for push notifications`);
-                        const users = await userService.getUsersWithFcmByRole(data.target_role);
+                    /* -------------------- PUSH LOGIC -------------------- */
 
-                        // 🔥 get fire location
+                    try {
+
+                        const users = await userService.getUsersWithFcmByRole(data.target_role);
                         const fire = await fireRepository.getFireById(data.fire_id);
 
                         if (!fire) {
-                            console.log('No fire found → skip push');
                             msg.ack();
-                            return;
+                            continue;
                         }
 
                         const fireCoords = parsePoint(fire.fire_location);
 
                         if (!fireCoords) {
-                            console.log('No fire coords → skip push');
                             msg.ack();
-                            return;
+                            continue;
                         }
 
-                        // 🎯 same radius logic as frontend
                         const RADIUS_BY_ROLE = {
                             Resident: 10000,
                             Responder: 25000,
@@ -160,7 +150,6 @@ export async function startAlertSubscriber() {
 
                         const radius = RADIUS_BY_ROLE[data.target_role] || 10000;
 
-                        // 🔥 filter users
                         const validUsers = users.filter(u => {
                             const anchor = getUserAnchorForPush(u, data.target_role);
                             if (!anchor) return false;
@@ -188,19 +177,17 @@ export async function startAlertSubscriber() {
                                     type: 'FireAlert',
                                 },
                             });
-
-                            console.log(`✅ Push sent to ${tokens.length} nearby users`);
                         } else {
-                            console.log('⚠️ No nearby users to notify');
+                            console.log('⚠️ No users matched → no push sent');
                         }
                     } catch (pushErr) {
                         console.error('❌ Push error:', pushErr.message);
                     }
+
                     msg.ack();
 
                 } catch (err) {
                     console.error(`[NATS] Error processing alert.created: ${err.message}`);
-                    // no ack → JetStream retry
                 }
             }
         })();

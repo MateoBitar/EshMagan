@@ -402,51 +402,74 @@ export class UserRepository {
 
         if (user_role === 'Municipality') {
             sql = `
-                SELECT 
-                    u.user_id,
-                    u.user_role,
-                    u.fcm_token,
-                    m.municipality_location
-                FROM users u
-                JOIN municipalitydetails m
-                    ON u.user_id = m.municipality_id
-                WHERE u.user_role = $1
-                AND u.isactive = true
-                AND u.fcm_token IS NOT NULL;
-            `;
+            SELECT 
+                u.user_id,
+                u.user_role,
+                u.fcm_token,
+                ST_AsText(m.municipality_location::geometry) AS municipality_location
+            FROM users u
+            JOIN municipalitydetails m
+                ON u.user_id = m.municipality_id
+            WHERE u.user_role = $1
+            AND u.isactive = true
+            AND u.fcm_token IS NOT NULL;
+        `;
         } else if (user_role === 'Resident') {
             sql = `
-                SELECT 
-                    u.user_id,
-                    u.user_role,
-                    u.fcm_token,
-                    res.last_known_location
-                FROM users u
-                JOIN residentdetails res
-                    ON u.user_id = res.resident_id
-                WHERE u.user_role = $1
-                AND u.isactive = true
-                AND u.fcm_token IS NOT NULL;
-            `;
+            SELECT 
+                u.user_id,
+                u.user_role,
+                u.fcm_token,
+                ST_AsText(res.last_known_location::geometry) AS last_known_location
+            FROM users u
+            JOIN residentdetails res
+                ON u.user_id = res.resident_id
+            WHERE u.user_role = $1
+            AND u.isactive = true
+            AND u.fcm_token IS NOT NULL;
+        `;
         } else if (user_role === 'Responder') {
             sql = `
-                SELECT 
-                    u.user_id,
-                    u.user_role,
-                    u.fcm_token,
-                    r.last_known_location
-                FROM users u
-                JOIN responderdetails r
-                    ON u.user_id = r.responder_id
-                WHERE u.user_role = $1
-                AND u.isactive = true
-                AND u.fcm_token IS NOT NULL;
-            `;
+            SELECT 
+                u.user_id,
+                u.user_role,
+                u.fcm_token,
+                ST_AsText(r.last_known_location::geometry) AS last_known_location
+            FROM users u
+            JOIN responderdetails r
+                ON u.user_id = r.responder_id
+            WHERE u.user_role = $1
+            AND u.isactive = true
+            AND u.fcm_token IS NOT NULL;
+        `;
         } else {
             return [];
         }
 
         const { rows } = await pool.query(sql, [user_role]);
         return rows;
+    }
+    
+    async getFcmTokenByUserId(user_id) {
+        const sql = `
+            SELECT fcm_token
+            FROM users
+            WHERE user_id = $1
+            AND isactive = true
+            AND fcm_token IS NOT NULL
+            LIMIT 1;
+        `;
+        const { rows } = await pool.query(sql, [user_id]);
+        return rows[0]?.fcm_token || null;
+    }
+
+    async removeFcmToken(token) {
+        const sql = `
+            UPDATE users
+            SET fcm_token = NULL, updated_at = NOW()
+            WHERE fcm_token = $1
+        `;
+        const { rows } = await pool.query(sql, [token]);
+        return rows.length > 0;
     }
 }

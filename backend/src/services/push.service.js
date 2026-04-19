@@ -1,30 +1,20 @@
 import { getFirebaseMessaging } from '../config/firebaseAdmin.js';
-import { pool } from '../config/db.js';
+import { UserService } from './user.service.js';
+import { UserRepository } from '../domain/repositories/user.repository.js';
 
-const INVALID_TOKEN_ERRORS = new Set([
-  'messaging/registration-token-not-registered',
-  'messaging/invalid-registration-token',
-]);
-
-async function clearInvalidTokens(tokens = []) {
-  const uniqueTokens = [...new Set(tokens.filter(Boolean))];
-  if (!uniqueTokens.length) return;
-
+async function clearInvalidTokens(tokens) {
   try {
-    await pool.query(
-      `UPDATE users
-       SET fcm_token = NULL
-       WHERE fcm_token = ANY($1::text[])`,
-      [uniqueTokens]
-    );
+    const userService = new UserService(new UserRepository());
 
-    console.log(`🧹 Cleared ${uniqueTokens.length} invalid FCM token(s) from DB`);
-  } catch (err) {
-    console.error('Failed to clear invalid FCM tokens:', err.message);
+    for (const token of tokens) {
+      await userService.removeFcmToken(token);
+    }
+  } catch (e) {
+    console.warn('Failed to clear invalid tokens', e);
   }
 }
 
-export async function sendPushToTokens(tokens = [], { title, body, data = {} }) {
+export async function sendPushToTokens(tokens = [], { title, body, data = {}, android = {} }) {
   const cleanTokens = [...new Set(tokens.filter(Boolean))];
 
   if (cleanTokens.length === 0) {
@@ -33,42 +23,57 @@ export async function sendPushToTokens(tokens = [], { title, body, data = {} }) 
 
   const messaging = getFirebaseMessaging();
 
-  const response = await messaging.sendEachForMulticast({
+  const payload = {
     tokens: cleanTokens,
     notification: {
-      title: title || 'EshMagan Alert',
-      body: body || 'You have a new alert.',
+      title: String(title || 'EshMagan Alert'),
+      body: String(body || 'You have a new alert.'),
     },
-    data: Object.fromEntries(
-      Object.entries(data).map(([k, v]) => [k, String(v ?? '')])
-    ),
+    data: {
+      title: String(title || 'EshMagan Alert'),
+      body: String(body || 'You have a new alert.'),
+      ...Object.fromEntries(
+        Object.entries(data).map(([k, v]) => [k, String(v ?? '')])
+      ),
+    },
     android: {
-      priority: 'high',
+      priority: android.priority || 'high',
       notification: {
-        sound: 'alert_sound',
-        channelId: 'alerts',
+        channelId: data?.type === 'GeneralNotification' ? 'notifications' : 'alerts',
+        sound: data?.type === 'GeneralNotification' ? undefined : 'alert_sound',
       },
     },
-  });
+  };
 
-  const invalidTokens = [];
+  try {
+    const response = await messaging.sendEachForMulticast(payload);
+    const invalidTokens = [];
 
-  response.responses.forEach((result, index) => {
-    if (!result.success) {
-      const errorCode = result.error?.code;
-      const failedToken = cleanTokens[index];
+    response.responses.forEach((result, index) => {
+      const token = cleanTokens[index];
 
-      console.warn(`FCM send failed for token ${failedToken}: ${errorCode || 'unknown error'}`);
+      if (result.success) {
+        console.log(`✔️ Token success: ${token}`);
+      } else {
+        const errorCode = result.error?.code;
 
-      if (INVALID_TOKEN_ERRORS.has(errorCode)) {
-        invalidTokens.push(failedToken);
+        if (
+          errorCode === 'messaging/registration-token-not-registered' ||
+          errorCode === 'messaging/invalid-registration-token'
+        ) {
+          invalidTokens.push(token);
+        }
       }
+    });
+
+    if (invalidTokens.length > 0) {
+      await clearInvalidTokens(invalidTokens);
     }
-  });
 
-  if (invalidTokens.length > 0) {
-    await clearInvalidTokens(invalidTokens);
+    return response;
+
+  } catch (err) {
+    console.error('🔥 FCM SEND CRASH:', err);
+    throw err;
   }
-
-  return response;
 }

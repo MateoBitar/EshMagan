@@ -12,5 +12,11 @@ export async function createNotificationChannel() {
     vibration: true,
   });
 
-  console.log('Notification channel created');
+  await notifee.createChannel({
+    id: 'notifications',
+    name: 'Notifications',
+    importance: AndroidImportance.DEFAULT,
+    sound: undefined,
+    vibration: false,
+  });
 }

@@ -350,7 +350,7 @@ export class ResponderRepository {
         WHERE ST_DWithin(
             r.last_known_location,
             ST_GeomFromText($1, 4326)::geography,
-            1000
+            25000
         ) AND u.isactive = true
     `;
         const locationWKT = `POINT(${last_known_location.longitude} ${last_known_location.latitude})`;
@@ -504,7 +504,7 @@ export class ResponderRepository {
                ) AS distance_meters
         FROM responderdetails r
         JOIN users u ON r.responder_id = u.user_id
-        WHERE r.responder_status = 'Active'
+        WHERE r.responder_status IN ('Active', 'Standby')
           AND u.isactive = true
         ORDER BY distance_meters ASC
         LIMIT 1

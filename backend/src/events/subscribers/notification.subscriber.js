@@ -15,6 +15,9 @@ import { NotificationRepository } from '../../domain/repositories/notification.r
 import { ResidentRepository } from '../../domain/repositories/resident.repository.js';
 import { ResponderRepository } from '../../domain/repositories/responder.repository.js';
 import { MunicipalityRepository } from '../../domain/repositories/municipality.repository.js';
+import { sendPushToTokens } from '../../services/push.service.js';
+import { UserService } from '../../services/user.service.js';
+import { UserRepository } from '../../domain/repositories/user.repository.js';
 
 const CONSUMER_NAME = 'notification-consumer';
 
@@ -25,6 +28,8 @@ export async function startNotificationSubscriber() {
         const residentRepository = new ResidentRepository();
         const responderRepository = new ResponderRepository();
         const municipalityRepository = new MunicipalityRepository();
+        const userRepository = new UserRepository();
+        const userService = new UserService(userRepository);
 
         const consumer = await js.consumers.get('ESHMAGAN', CONSUMER_NAME);
         const messages = await consumer.consume();
@@ -36,8 +41,6 @@ export async function startNotificationSubscriber() {
                 if (msg.subject === SUBJECTS.FIRE_RISK_PREDICTED) {
                     try {
                         const data = JSON.parse(sc.decode(msg.data));
-                        console.log(`[NATS] fire.risk.predicted received for zone: ${data.zone_location}`);
-
                         const coords = parseWKTPoint(data.zone_location);
                         if (!coords) {
                             console.warn(`[NATS] Could not parse zone location: ${data.zone_location}`);
@@ -63,6 +66,26 @@ export async function startNotificationSubscriber() {
                                     fire_id,
                                     user_id: resident.resident_id,
                                 });
+
+                                const token = await userService.getFcmTokenByUserId(resident.resident_id);
+                                if (token) {
+                                    await sendPushToTokens([token], {
+                                        title: 'EshMagan Notification',
+                                        body: message,
+                                        data: {
+                                            type: 'GeneralNotification',
+                                            user_id: resident.resident_id,
+                                            fire_id: fire_id || '',
+                                        },
+                                        android: {
+                                            priority: 'normal',
+                                            notification: {
+                                                channelId: 'notifications',
+                                                sound: null,
+                                            },
+                                        },
+                                    });
+                                }
                                 total++;
                             } catch (e) {
                                 console.warn(`[NATS] Failed notification for resident ${resident.resident_id}: ${e.message}`);
@@ -81,6 +104,27 @@ export async function startNotificationSubscriber() {
                                     fire_id,
                                     user_id: responder.responder_id,
                                 });
+
+                                const token = await userService.getFcmTokenByUserId(responder.responder_id);
+
+                                if (token) {
+                                    await sendPushToTokens([token], {
+                                        title: 'EshMagan Notification',
+                                        body: message,
+                                        data: {
+                                            type: 'GeneralNotification',
+                                            user_id: responder.responder_id,
+                                            fire_id: fire_id || '',
+                                        },
+                                        android: {
+                                            priority: 'normal',
+                                            notification: {
+                                                channelId: 'notifications',
+                                                sound: null,
+                                            },
+                                        },
+                                    });
+                                }
                                 total++;
                             } catch (e) {
                                 console.warn(`[NATS] Failed notification for responder ${responder.responder_id}: ${e.message}`);
@@ -101,13 +145,32 @@ export async function startNotificationSubscriber() {
                                     fire_id,
                                     user_id: municipality.municipality_id,
                                 });
+
+                                const token = await userService.getFcmTokenByUserId(municipality.municipality_id);
+                                if (token) {
+                                    await sendPushToTokens([token], {
+                                        title: 'EshMagan Notification',
+                                        body: message,
+                                        data: {
+                                            type: 'GeneralNotification',
+                                            user_id: municipality.municipality_id,
+                                            fire_id: fire_id || '',
+                                        },
+                                        android: {
+                                            priority: 'normal',
+                                            notification: {
+                                                channelId: 'notifications',
+                                                sound: null,
+                                            },
+                                        },
+                                    });
+                                }
                                 total++;
                             } catch (e) {
                                 console.warn(`[NATS] Failed notification for municipality ${municipality.municipality_id}: ${e.message}`);
                             }
                         }
 
-                        console.log(`[NATS] Prediction notifications created for ${total} user(s) across all roles`);
                         msg.ack();
 
                     } catch (err) {
