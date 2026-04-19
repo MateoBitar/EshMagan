@@ -1073,7 +1073,9 @@ export default function AdminDashboard({ navigation }) {
         <View style={styles.topBarLogoWrap}>
           <View style={styles.topBarLogoIcon}>
             <Image
-              source={{ uri: '/EshMagan_Logo-Badge.png' }}
+              source={Platform.OS === 'web'
+                ? { uri: '/EshMagan_Logo-Badge.png' }
+                : { uri: 'eshmagan_logo_badge' }}
               style={styles.topBarLogoImage}
               resizeMode="contain"
             />

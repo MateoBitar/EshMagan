@@ -30,7 +30,9 @@ export default function SafetyTipsScreen({ navigation }) {
         <View style={styles.headerRow}>
           <View style={styles.headerIcon}>
             <Image
-              source={{ uri: '/EshMagan_Logo-Badge.png' }}
+              source={Platform.OS === 'web'
+                ? { uri: '/EshMagan_Logo-Badge.png' }
+                : { uri: 'eshmagan_logo_badge' }}
               style={styles.headerLogoImage}
               resizeMode="contain"
             />

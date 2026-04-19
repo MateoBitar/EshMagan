@@ -49,7 +49,9 @@ export default function ResidentSidebar({ visible, onClose, navigation, currentS
           <View style={styles.brandWrap}>
             <View style={styles.brandLogoIcon}>
               <Image
-                source={{ uri: '/EshMagan_Logo-Badge.png' }}
+                source={Platform.OS === 'web'
+                    ? { uri: '/EshMagan_Logo-Badge.png' }
+                    : { uri: 'eshmagan_logo_badge' }}
                 style={styles.brandLogoImage}
                 resizeMode="contain"
               />
@@ -125,14 +127,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  brandLogoIcon: { 
-    width: 50, 
-    height: 50, 
+  brandLogoIcon: {
+    width: 50,
+    height: 50,
     borderRadius: 12,
   },
 
   brandLogoImage: {
-    width: 50, 
+    width: 50,
     height: 50
   },
 

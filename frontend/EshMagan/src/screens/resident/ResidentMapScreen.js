@@ -221,7 +221,9 @@ export default function ResidentMapScreen({ navigation }) {
       <View style={styles.topBar}>
         <View style={styles.logoIcon}>
           <Image
-            source={{ uri: '/EshMagan_Logo-Badge.png' }}
+            source={Platform.OS === 'web'
+              ? { uri: '/EshMagan_Logo-Badge.png' }
+              : { uri: 'eshmagan_logo_badge' }}
             style={styles.logoImage}
             resizeMode="contain"
           />

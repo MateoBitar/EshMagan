@@ -85,7 +85,9 @@ export default function LoginScreen({ navigation }) {
             <View style={styles.header}>
               <View style={styles.logoContainer}>
                 <Image
-                  source={{ uri: '/EshMagan_Logo-Badge.png' }}
+                  source={Platform.OS === 'web'
+                    ? { uri: '/EshMagan_Logo-Badge.png' }
+                    : { uri: 'eshmagan_logo_badge' }}
                   style={styles.logoImage}
                   resizeMode="contain"
                 />

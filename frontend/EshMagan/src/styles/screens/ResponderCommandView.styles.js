@@ -79,6 +79,7 @@ export default StyleSheet.create({
   topBarTextWrap: {
     flex: 1,
     justifyContent: 'center',
+    minWidth: 0,
   },
 
   appName: {
@@ -94,16 +95,27 @@ export default StyleSheet.create({
     marginTop: 2,
   },
 
+  subRowMobile: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 2,
+  },
+
   portalLabel: {
     color: C.textMuted,
     fontSize: 12,
     marginTop: 2,
+    flexShrink: 1,
   },
 
   headerLiveRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 3,
+  },
+
+  headerLiveRowMobile: {
+    marginTop: 2,
   },
 
   headerLiveDot: {
@@ -117,6 +129,7 @@ export default StyleSheet.create({
   headerLiveText: {
     color: C.textMuted,
     fontSize: 12,
+    flexShrink: 1,
   },
 
   logoutBtn: {

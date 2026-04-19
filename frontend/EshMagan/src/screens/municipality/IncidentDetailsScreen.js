@@ -1,6 +1,6 @@
 // src/screens/municipality/IncidentDetailsScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, SafeAreaView, TouchableOpacity, ActivityIndicator, Platform, Alert } from 'react-native';
+import { View, Text, ScrollView, SafeAreaView, TouchableOpacity, ActivityIndicator, Platform, Alert, Image } from 'react-native';
 import styles from '../../styles/screens/IncidentDetailsScreen.styles';
 import { gqlFetch, GET_FIRE, GET_ASSIGNMENTS_BY_FIRE, GET_ALERTS_BY_FIRE, VERIFY_FIRE, EXTINGUISH_FIRE, DISPATCH_CLOSEST_RESPONDER, UPDATE_ASSIGNMENT_STATUS } from '../../services/api';
 
@@ -53,7 +53,7 @@ export default function IncidentDetailsScreen({ navigation, route }) {
       const { useNavigation, useRoute } = require('@react-navigation/native');
       nav = useNavigation();
       routeParams = useRoute().params || {};
-    } catch {}
+    } catch { }
   }
 
   const { fireId } = routeParams;
@@ -72,9 +72,9 @@ export default function IncidentDetailsScreen({ navigation, route }) {
     const confirm = Platform.OS === 'web'
       ? window.confirm(`${label} this fire?`)
       : await new Promise(resolve => Alert.alert(label, `Are you sure you want to ${label.toLowerCase()} this fire?`, [
-          { text: 'Cancel', onPress: () => resolve(false), style: 'cancel' },
-          { text: label, onPress: () => resolve(true) },
-        ]));
+        { text: 'Cancel', onPress: () => resolve(false), style: 'cancel' },
+        { text: label, onPress: () => resolve(true) },
+      ]));
     if (!confirm) return;
     setActionLoading(true);
     try {
@@ -132,7 +132,13 @@ export default function IncidentDetailsScreen({ navigation, route }) {
           <View style={styles.mainCard}>
             <View style={styles.mainCardHeader}>
               <View style={styles.mainCardIcon}>
-                <Text style={{ fontSize: 24 }}>🔥</Text>
+                <Image
+                  source={Platform.OS === 'web'
+                    ? { uri: '/EshMagan_Logo-Badge.png' }
+                    : { uri: 'eshmagan_logo_badge' }}
+                  style={styles.mainLogoImage}
+                  resizeMode="contain"
+                />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.mainCardTitle}>{fire.fire_location || 'Unknown Location'}</Text>
