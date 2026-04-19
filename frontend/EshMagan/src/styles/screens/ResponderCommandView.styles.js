@@ -3,7 +3,7 @@ import { StyleSheet, Dimensions, Platform } from 'react-native';
 const { width, height } = Dimensions.get('window');
 const isDesktop = Platform.OS === 'web' && width >= 1100;
 const accordionOpenMaxHeight = isDesktop
-  ? Math.max(220, height - 545)
+  ? Math.max(220, height - 550)
   : 220;
 
 // ─── COLOR PALETTE ────────────────────────────────────────────────────────────
@@ -358,7 +358,7 @@ export default StyleSheet.create({
     paddingBottom: 10,
   },
 
-  // ─── UNITS TAB: MUNICIPALITY-LIKE MAP LAYOUT ───────────────────────────────
+  // ─── UNITS TAB ───────────────────────────────
   unitsMapTabContainer: {
     flex: 1,
     backgroundColor: C.bg,
@@ -369,8 +369,8 @@ export default StyleSheet.create({
     flex: 1,
     flexDirection: Platform.OS === 'web' ? 'row' : 'column',
     gap: 12,
-    minHeight: '78.9vh',
-    maxHeight: '78.9vh',
+    minHeight: '77.85vh',
+    maxHeight: '77.85vh',
   },
 
   unitsMapPane: {
@@ -779,7 +779,7 @@ export default StyleSheet.create({
 
   assignmentActionButtonTextInactive: {},
 
-  // ─── ALERTS TAB: MUNICIPALITY-LIKE ──────────────────────────────────────────
+  // ─── ALERTS TAB ──────────────────────────────────────────
   alertScrollContent: {
     padding: 16,
   },
@@ -879,7 +879,7 @@ export default StyleSheet.create({
     fontSize: 11,
   },
 
-  // ─── NOTIFICATIONS TAB: MUNICIPALITY-LIKE ──────────────────────────────────
+  // ─── NOTIFICATIONS TAB ──────────────────────────────────
   notificationCard: {
     backgroundColor: C.card,
     borderRadius: 14,

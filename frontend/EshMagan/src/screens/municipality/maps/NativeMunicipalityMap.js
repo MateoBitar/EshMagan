@@ -42,17 +42,18 @@ export default function NativeMunicipalityMap({
         #map { height:100%; width:100%; }
 
         .fire-hover-tooltip {
-          background: rgba(0,0,0,0.8);
-          border: none;
-          box-shadow: none;
-          color: #fff;
-          font-size: 11px;
-          font-weight: 700;
-          padding: 3px 7px;
-          border-radius: 6px;
+          background: #000 !important;
+          color: #fff !important;
+          border: none !important;
+          border-radius: 6px !important;
+          padding: 4px 8px !important;
+          font-size: 11px !important;
+          font-weight: 700 !important;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.25) !important;
         }
 
-        .fire-hover-tooltip::before { display: none; }
+        .fire-hover-tooltip:before,
+        .fire-hover-tooltip::before { display: none !important; }
 
         .leaflet-interactive {
           outline: none !important;
@@ -60,16 +61,19 @@ export default function NativeMunicipalityMap({
           tap-highlight-color: transparent !important;
         }
 
+        .leaflet-interactive:focus,
+        .leaflet-interactive:active,
         svg path:focus,
         svg path:active {
           outline: none !important;
+          box-shadow: none !important;
         }
       </style>
     </head>
     <body>
       <div id="map"></div>
       <script>
-        const map = L.map('map').setView([33.8938, 35.5018], 9);
+        const map = L.map('map', { zoomControl: true }).setView([33.8938, 35.5018], 9);
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
           attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
@@ -83,13 +87,70 @@ export default function NativeMunicipalityMap({
         let municipalityMarker = null;
         let focusMarkers = { fires: {}, responders: {}, municipality: null };
         let hasFitted = false;
+        let latestResponders = [];
+        let latestFires = [];
+        let latestMunicipality = null;
+        let activeFireSidePopup = null;
+        let activeFireTapTooltip = null;
+        let suppressNextMapClick = false;
 
         function validPair(lat, lng) {
           return Number.isFinite(Number(lat)) && Number.isFinite(Number(lng));
         }
 
+        function hideRecenter() {
+          window.ReactNativeWebView.postMessage('HIDE_RECENTER');
+        }
+
+        function closeFireSidePopup() {
+          if (activeFireSidePopup) {
+            try { map.closePopup(activeFireSidePopup); } catch {}
+            activeFireSidePopup = null;
+          }
+        }
+
+        function closeFireTapTooltip() {
+          if (activeFireTapTooltip) {
+            try { map.removeLayer(activeFireTapTooltip); } catch {}
+            activeFireTapTooltip = null;
+          }
+        }
+
+        function closeAllLayerPopups() {
+          markers.forEach(layer => {
+            try { layer.closePopup(); } catch {}
+          });
+          if (municipalityMarker) {
+            try { municipalityMarker.closePopup(); } catch {}
+          }
+        }
+
+        function closeAllFireTooltips() {
+          closeFireTapTooltip();
+        }
+
+        function buildFirePopupHtml(fire) {
+          return (
+            '<div style="min-width:140px">' +
+              '<div style="font-weight:700">' + (fire.displayName || 'Fire') + '</div>' +
+              '<div style="font-size:12px;color:#475569;margin-top:4px">' +
+                (fire.severityLabel || 'Unknown') + ' · ' + (fire.fire_severitylevel || fire.severity || 'N/A') +
+              '</div>' +
+              '<div style="font-size:11px;color:#64748b;margin-top:4px">' + (fire.fire_source || 'Unknown source') + '</div>' +
+            '</div>'
+          );
+        }
+
         map.on('dragstart zoomstart', function() {
           window.ReactNativeWebView.postMessage('SHOW_RECENTER');
+        });
+
+        map.on('click', function() {
+          if (suppressNextMapClick) {
+            suppressNextMapClick = false;
+            return;
+          }
+          closeAllFireTooltips();
         });
 
         function fitEverythingOnce() {
@@ -106,28 +167,20 @@ export default function NativeMunicipalityMap({
             } catch {}
           }
 
-          const allBounds = [];
-
-          markers.forEach(m => {
-            try { allBounds.push(m.getLatLng()); } catch {}
-          });
-
-          fireZones.forEach(z => {
-            try { allBounds.push(z.getBounds()); } catch {}
-          });
-
-          if (allBounds.length === 0) return;
-
           let combinedBounds = null;
 
-          allBounds.forEach(item => {
-            if (item && typeof item.getSouthWest === 'function') {
-              combinedBounds = combinedBounds ? combinedBounds.extend(item) : item;
-            } else if (item) {
-              combinedBounds = combinedBounds
-                ? combinedBounds.extend(item)
-                : L.latLngBounds([item, item]);
-            }
+          markers.forEach(layer => {
+            try {
+              const ll = layer.getLatLng();
+              combinedBounds = combinedBounds ? combinedBounds.extend(ll) : L.latLngBounds([ll, ll]);
+            } catch {}
+          });
+
+          fireZones.forEach(layer => {
+            try {
+              const bounds = layer.getBounds();
+              combinedBounds = combinedBounds ? combinedBounds.extend(bounds) : bounds;
+            } catch {}
           });
 
           if (combinedBounds) {
@@ -137,6 +190,8 @@ export default function NativeMunicipalityMap({
         }
 
         window.setMunicipality = function(muni) {
+          latestMunicipality = muni || null;
+
           if (municipalityMarker) {
             try { municipalityMarker.remove(); } catch {}
             municipalityMarker = null;
@@ -173,13 +228,15 @@ export default function NativeMunicipalityMap({
         };
 
         window.updateResponders = function(responders) {
+          latestResponders = responders || [];
+
           markers.forEach(m => {
             try { m.remove(); } catch {}
           });
           markers = [];
           focusMarkers.responders = {};
 
-          const validResponders = (responders || []).filter(
+          const validResponders = latestResponders.filter(
             r => r.coords && validPair(r.coords.lat, r.coords.lng)
           );
 
@@ -210,7 +267,7 @@ export default function NativeMunicipalityMap({
           });
 
           const responderGroups = {};
-          (responders || []).forEach(responder => {
+          latestResponders.forEach(responder => {
             if (!responder.unit_nb || !responder.unitCoords || !validPair(responder.unitCoords.lat, responder.unitCoords.lng)) return;
             if (!responderGroups[responder.unit_nb]) {
               responderGroups[responder.unit_nb] = responder;
@@ -251,16 +308,19 @@ export default function NativeMunicipalityMap({
         };
 
         window.updateFires = function(fires) {
+          latestFires = fires || [];
+
+          closeFireSidePopup();
+          closeAllFireTooltips();
+
           fireZones.forEach(f => {
             try { f.remove(); } catch {}
           });
           fireZones = [];
           focusMarkers.fires = {};
 
-          (fires || []).forEach(fire => {
+          latestFires.forEach(fire => {
             if (!fire.coords || !validPair(fire.coords.lat, fire.coords.lng)) return;
-
-            const severityLevel = Number(fire.fire_severitylevel ?? fire.severity ?? 0);
 
             const zone = L.circle([fire.coords.lat, fire.coords.lng], {
               radius: fire.radius,
@@ -270,130 +330,112 @@ export default function NativeMunicipalityMap({
               fillOpacity: fire.fillOpacity
             }).addTo(map);
 
-            zone.bindPopup(
-              '<div style="min-width:140px">' +
-                '<div style="font-weight:700">' + (fire.displayName || 'Fire') + '</div>' +
-                '<div style="font-size:12px;color:#475569;margin-top:4px">' + (fire.severityLabel || 'Unknown') + ' · ' + (severityLevel || 'N/A') + '</div>' +
-                '<div style="font-size:11px;color:#64748b;margin-top:4px">' + (fire.fire_source || 'Unknown source') + '</div>' +
-              '</div>'
-            );
+            zone.fireData = fire;
+
+            zone.on('click', function(e) {
+              suppressNextMapClick = true;
+              closeFireSidePopup();
+              closeAllLayerPopups();
+              closeAllFireTooltips();
+
+              activeFireTapTooltip = L.tooltip({
+                permanent: false,
+                direction: 'top',
+                opacity: 1,
+                className: 'fire-hover-tooltip',
+                offset: [0, -2],
+              })
+                .setLatLng(e.latlng)
+                .setContent(fire.displayName || ('Fire ' + String(fire.fire_id).slice(0, 8)))
+                .addTo(map);
+
+              if (e && e.originalEvent) {
+                if (typeof e.originalEvent.preventDefault === 'function') e.originalEvent.preventDefault();
+                if (typeof e.originalEvent.stopPropagation === 'function') e.originalEvent.stopPropagation();
+              }
+            });
 
             focusMarkers.fires[fire.fire_id] = zone;
-
-            const tooltip = L.tooltip({
-              permanent: false,
-              direction: 'top',
-              opacity: 1,
-              className: 'fire-hover-tooltip',
-              offset: [0, -2],
-              sticky: true
-            }).setContent(fire.displayName || ('Fire ' + String(fire.fire_id).slice(0, 8)));
-
-            zone.bindTooltip(tooltip);
-
-            let holdTimeout = null;
-            let tooltipOpenedByHold = false;
-
-            zone.on('touchstart', function(e) {
-              L.DomEvent.stopPropagation(e);
-              tooltipOpenedByHold = false;
-
-              holdTimeout = setTimeout(function() {
-                tooltipOpenedByHold = true;
-                zone.openTooltip();
-              }, 300);
-            });
-
-            zone.on('touchend touchcancel', function() {
-              if (holdTimeout) {
-                clearTimeout(holdTimeout);
-                holdTimeout = null;
-              }
-
-              if (tooltipOpenedByHold) {
-                zone.closeTooltip();
-                tooltipOpenedByHold = false;
-              }
-            });
-
-            zone.on('mouseover', function() {
-              zone.openTooltip();
-            });
-
-            zone.on('mouseout', function() {
-              zone.closeTooltip();
-            });
-
             fireZones.push(zone);
           });
 
           fitEverythingOnce();
         };
 
-        window.focusEntity = function(fireId, responderId) {
-          const fireTarget = fireId ? focusMarkers.fires[fireId] : null;
-          const responderTarget = responderId ? focusMarkers.responders[responderId] : null;
-          const target = fireTarget || responderTarget;
-          if (!target) return;
+        window.focusResponder = function(responderId) {
+          closeFireSidePopup();
+          closeAllFireTooltips();
 
-          let latlng = null;
+          const marker = focusMarkers.responders[responderId];
+          if (!marker) return;
 
-          if (typeof target.getLatLng === 'function') {
-            latlng = target.getLatLng();
-          } else if (typeof target.getBounds === 'function') {
-            latlng = target.getBounds().getCenter();
-          }
+          const ll = marker.getLatLng();
+          try { marker.openPopup(); } catch {}
 
-          if (!latlng || !validPair(latlng.lat, latlng.lng)) return;
-
-          map.flyTo(latlng, 15, { animate: true, duration: 0.8 });
-
-          if (typeof target.openPopup === 'function') target.openPopup();
-          if (typeof target.openTooltip === 'function' && fireTarget) target.openTooltip();
+          map.flyTo([ll.lat, ll.lng], 15, { animate: true, duration: 0.8 });
+          map.once('moveend', function() { hideRecenter(); });
         };
 
-        window.recenterToAll = function(muni, responders, fires) {
-          if (muni && validPair(muni.lat, muni.lng)) {
-            map.flyTo([Number(muni.lat), Number(muni.lng)], 15, {
-              animate: true,
-              duration: 0.8
-            });
+        window.focusFire = function(fireId) {
+          closeFireSidePopup();
+          closeAllFireTooltips();
+          closeAllLayerPopups();
+
+          const circle = focusMarkers.fires[fireId];
+          if (!circle || !circle.fireData) return;
+
+          const fire = circle.fireData;
+          const center = circle.getBounds().getCenter();
+
+          activeFireSidePopup = L.popup({
+            closeButton: true,
+            autoClose: false,
+            closeOnClick: true,
+            offset: [0, -8],
+          })
+            .setLatLng(center)
+            .setContent(buildFirePopupHtml(fire))
+            .openOn(map);
+
+          map.flyTo([center.lat, center.lng], Math.max(map.getZoom(), 14), { animate: true, duration: 0.8 });
+          map.once('moveend', function() { hideRecenter(); });
+        };
+
+        window.resetMap = function() {
+          closeFireSidePopup();
+          closeAllFireTooltips();
+
+          if (latestMunicipality && validPair(latestMunicipality.lat, latestMunicipality.lng)) {
+            map.flyTo(
+              [Number(latestMunicipality.lat), Number(latestMunicipality.lng)],
+              15,
+              { animate: true, duration: 0.8 }
+            );
+            map.once('moveend', function() { hideRecenter(); });
             return;
           }
 
-          const validResponders = (responders || []).filter(
-            r => r.coords && validPair(r.coords.lat, r.coords.lng)
-          );
-
-          const validFires = (fires || []).filter(
-            f => f.coords && validPair(f.coords.lat, f.coords.lng)
-          );
-
           let combinedBounds = null;
 
-          validResponders.forEach(r => {
-            const ll = L.latLng(Number(r.coords.lat), Number(r.coords.lng));
-            combinedBounds = combinedBounds ? combinedBounds.extend(ll) : L.latLngBounds([ll, ll]);
+          markers.forEach(layer => {
+            try {
+              const ll = layer.getLatLng();
+              combinedBounds = combinedBounds ? combinedBounds.extend(ll) : L.latLngBounds([ll, ll]);
+            } catch {}
           });
 
-          (responders || []).forEach(r => {
-            if (!r.unitCoords || !validPair(r.unitCoords.lat, r.unitCoords.lng)) return;
-            const ll = L.latLng(Number(r.unitCoords.lat), Number(r.unitCoords.lng));
-            combinedBounds = combinedBounds ? combinedBounds.extend(ll) : L.latLngBounds([ll, ll]);
-          });
-
-          validFires.forEach(f => {
-            const circleBounds = L.circle(
-              [Number(f.coords.lat), Number(f.coords.lng)],
-              { radius: Number(f.radius) || 0 }
-            ).getBounds();
-
-            combinedBounds = combinedBounds ? combinedBounds.extend(circleBounds) : circleBounds;
+          fireZones.forEach(layer => {
+            try {
+              const bounds = layer.getBounds();
+              combinedBounds = combinedBounds ? combinedBounds.extend(bounds) : bounds;
+            } catch {}
           });
 
           if (combinedBounds && typeof combinedBounds.isValid === 'function' && combinedBounds.isValid()) {
             map.fitBounds(combinedBounds, { padding: [40, 40] });
           }
+
+          setTimeout(() => { hideRecenter(); }, 50);
         };
 
         window.ReactNativeWebView.postMessage('MAP_READY');
@@ -454,43 +496,30 @@ export default function NativeMunicipalityMap({
   }, [municipalityCoords, mapReady]);
 
   useEffect(() => {
-    if (!mapReady || !webViewRef.current) return;
+    if (!mapReady || !webViewRef.current || !selectedResponderId) return;
 
     webViewRef.current.injectJavaScript(`
-      window.focusEntity(${JSON.stringify(selectedFireId || null)}, ${JSON.stringify(selectedResponderId || null)});
+      window.focusResponder(${JSON.stringify(selectedResponderId)});
       true;
     `);
-  }, [selectedFireId, selectedResponderId, mapReady]);
+    setShowRecenter(false);
+  }, [selectedResponderId, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady || !webViewRef.current || !selectedFireId) return;
+
+    webViewRef.current.injectJavaScript(`
+      window.focusFire(${JSON.stringify(selectedFireId)});
+      true;
+    `);
+    setShowRecenter(false);
+  }, [selectedFireId, mapReady]);
 
   const handleRecenter = () => {
     if (!mapReady || !webViewRef.current) return;
 
-    const respondersPayload = JSON.stringify(
-      responders.map(r => ({
-        ...r,
-        statusColor: RESPONDER_STATUS_COLORS[r.responder_status] || C.slate,
-      }))
-    );
-
-    const firesPayload = JSON.stringify(
-      fires.map(fire => {
-        const severityLevel = Number(fire.fire_severitylevel ?? fire.severity ?? 0);
-        const style = getFireZoneStyle(severityLevel);
-
-        return {
-          ...fire,
-          fire_severitylevel: severityLevel,
-          radius: getFireZoneRadiusMeters(severityLevel),
-          stroke: style.stroke,
-          fill: style.fill,
-          fillOpacity: style.fillOpacity,
-          severityLabel: getSeverityLabel(severityLevel),
-        };
-      })
-    );
-
     webViewRef.current.injectJavaScript(`
-      window.recenterToAll(${JSON.stringify(municipalityCoords || null)}, ${respondersPayload}, ${firesPayload});
+      window.resetMap();
       true;
     `);
 
@@ -498,36 +527,37 @@ export default function NativeMunicipalityMap({
   };
 
   return (
-    <View style={{ flex: 1, borderRadius: 16, overflow: 'hidden' }}>
+    <View style={styles.mapPlaceholder}>
       <WebView
         ref={webViewRef}
         originWhitelist={['*']}
         source={{ html: mapHTML }}
-        style={{ flex: 1, backgroundColor: '#ddd' }}
+        style={{ flex: 1, backgroundColor: 'transparent' }}
         onMessage={event => {
           const msg = event.nativeEvent.data;
           if (msg === 'MAP_READY') setMapReady(true);
           else if (msg === 'SHOW_RECENTER') setShowRecenter(true);
+          else if (msg === 'HIDE_RECENTER') setShowRecenter(false);
         }}
         javaScriptEnabled
         domStorageEnabled
         mixedContentMode="always"
         allowFileAccess
         allowUniversalAccessFromFileURLs
-        startInLoadingState
-        renderLoading={() => (
-          <View style={styles.mapLoadingOverlay}>
-            <ActivityIndicator color={C.tangerine} />
-            <Text style={styles.mapLoadingText}>Loading map.</Text>
-          </View>
-        )}
       />
 
-      {showRecenter && (
+      {!mapReady ? (
+        <View style={styles.mapLoadingOverlay}>
+          <ActivityIndicator color={C.tangerine} />
+          <Text style={styles.mapLoadingText}>Loading map...</Text>
+        </View>
+      ) : null}
+
+      {showRecenter ? (
         <TouchableOpacity onPress={handleRecenter} style={styles.recenterButton}>
-          <Text style={styles.recenterButtonText}>📍 Recenter</Text>
+          <Text style={styles.recenterButtonText}>📍Recenter</Text>
         </TouchableOpacity>
-      )}
+      ) : null}
     </View>
   );
 }

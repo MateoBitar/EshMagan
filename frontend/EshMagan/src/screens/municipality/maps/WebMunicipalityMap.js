@@ -124,24 +124,20 @@ export default function WebMunicipalityMap({
     const L = window.L;
     if (!map || !L) return;
 
-    markerLayerRef.current.forEach(m => {
-      try {
-        m.remove();
-      } catch {}
+    markerLayerRef.current.forEach(layer => {
+      try { layer.remove(); } catch {}
     });
     markerLayerRef.current = [];
 
-    fireLayerRef.current.forEach(f => {
-      try {
-        f.remove();
-      } catch {}
+    fireLayerRef.current.forEach(layer => {
+      try { layer.remove(); } catch {}
     });
     fireLayerRef.current = [];
 
     markerMapRef.current = { fires: {}, responders: {}, municipality: null };
 
-    const validResponders = responders.filter(r => r.coords && isValidCoordPair(r.coords.lat, r.coords.lng));
-    const validFires = fires.filter(f => f.coords && isValidCoordPair(f.coords.lat, f.coords.lng));
+    const validResponders = (responders || []).filter(r => r.coords && isValidCoordPair(r.coords.lat, r.coords.lng));
+    const validFires = (fires || []).filter(f => f.coords && isValidCoordPair(f.coords.lat, f.coords.lng));
 
     let combinedBounds = null;
 
@@ -241,13 +237,7 @@ export default function WebMunicipalityMap({
       const baseIcon = L.divIcon({
         className: '',
         html: `
-          <div style="
-            width:36px;
-            height:36px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-          ">
+          <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;">
             <svg width="30" height="30" viewBox="0 0 24 24" fill="white" stroke="#EC7742" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 10L12 3l9 7"></path>
               <path d="M5 10v9h14v-9"></path>
@@ -297,6 +287,14 @@ export default function WebMunicipalityMap({
         sticky: true,
       });
 
+      circle.bindPopup(`
+        <div style="min-width:140px">
+          <div style="font-weight:700">${fire.displayName || 'Fire'}</div>
+          <div style="font-size:12px;color:#475569;margin-top:4px">${getSeverityLabel(severityLevel)} · ${severityLevel || 'N/A'}</div>
+          <div style="font-size:11px;color:#64748b;margin-top:4px">${fire.fire_source || 'Unknown source'}</div>
+        </div>
+      `);
+
       if (circle._path) {
         const stopEverything = e => {
           L.DomEvent.stopPropagation(e);
@@ -309,40 +307,29 @@ export default function WebMunicipalityMap({
         L.DomEvent.on(circle._path, 'click', stopEverything);
         L.DomEvent.on(circle._path, 'dblclick', stopEverything);
         L.DomEvent.on(circle._path, 'contextmenu', stopEverything);
+
+        circle.on('mouseover', function () {
+          this.openTooltip();
+        });
+
+        circle.on('mouseout', function () {
+          this.closeTooltip();
+        });
       }
-
-      circle.on('mouseover', function () {
-        this.openTooltip();
-      });
-
-      circle.on('mouseout', function () {
-        this.closeTooltip();
-      });
-
-      circle.bindPopup(`
-        <div style="min-width:140px">
-          <div style="font-weight:700">${fire.displayName || 'Fire'}</div>
-          <div style="font-size:12px;color:#475569;margin-top:4px">${getSeverityLabel(severityLevel)} · ${severityLevel || 'N/A'}</div>
-          <div style="font-size:11px;color:#64748b;margin-top:4px">${fire.fire_source || 'Unknown source'}</div>
-        </div>
-      `);
 
       markerMapRef.current.fires[fire.fire_id] = circle;
       fireLayerRef.current.push(circle);
       extendBoundsWithBounds(circle.getBounds());
     });
 
-    if (!hasFittedRef.current) {
+    if (!hasFittedRef.current && combinedBounds) {
       if (municipalityCoords && isValidCoordPair(municipalityCoords.lat, municipalityCoords.lng)) {
         map.setView(
           [Number(municipalityCoords.lat), Number(municipalityCoords.lng)],
           15
         );
         hasFittedRef.current = true;
-        return;
-      }
-
-      if (combinedBounds) {
+      } else {
         map.fitBounds(combinedBounds, { padding: [40, 40] });
         hasFittedRef.current = true;
       }
@@ -360,18 +347,19 @@ export default function WebMunicipalityMap({
 
     try {
       let latlng = null;
+      let zoom = 15;
 
       if (typeof target.getLatLng === 'function') {
         latlng = target.getLatLng();
       } else if (typeof target.getBounds === 'function') {
         latlng = target.getBounds().getCenter();
+        zoom = Math.max(map.getZoom(), 14);
       }
 
       if (!latlng || !isValidCoordPair(latlng.lat, latlng.lng)) return;
 
-      map.flyTo(latlng, 15, { animate: true, duration: 0.8 });
+      map.flyTo(latlng, zoom, { animate: true, duration: 0.8 });
       if (typeof target.openPopup === 'function') target.openPopup();
-      if (typeof target.openTooltip === 'function' && fireTarget) target.openTooltip();
       setShowRecenter(false);
     } catch {}
   }, [selectedFireId, selectedResponderId]);
@@ -438,13 +426,13 @@ export default function WebMunicipalityMap({
   };
 
   return (
-    <View style={{ width: '100%', height: '100%', backgroundColor: '#ddd', position: 'relative' }}>
+    <View style={styles.mapPlaceholder}>
       <View ref={divRef} style={{ width: '100%', height: '100%' }} />
-      {showRecenter && (
+      {showRecenter ? (
         <TouchableOpacity onPress={handleRecenter} style={styles.recenterButton}>
-          <Text style={styles.recenterButtonText}>📍 Recenter</Text>
+          <Text style={styles.recenterButtonText}>📍Recenter</Text>
         </TouchableOpacity>
-      )}
+      ) : null}
     </View>
   );
 }

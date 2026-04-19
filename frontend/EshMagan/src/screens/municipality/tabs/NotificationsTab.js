@@ -1,124 +1,123 @@
 import React from 'react';
-import { View, ScrollView, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
-import styles from '../../../styles/screens/MunicipalityDashboard.styles';
+import { View, ScrollView, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import styles, { C } from '../../../styles/screens/MunicipalityDashboard.styles';
 
-function timeAgo(iso) {
-  if (!iso) return '';
-  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
-
-function NotificationsTab({ notifications = [], loading, onMarkRead }) {
+export default function NotificationsTab({
+  notifications = [],
+  loading,
+  onMarkRead,
+}) {
   const sorted = [...notifications].sort(
     (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
   );
-  const unread = sorted.filter(
-    notification => notification.notification_status === 'Sent'
+
+  const unreadNotifs = sorted.filter(
+    n => n.notification_status !== 'Delivered'
   );
 
   if (loading) {
     return (
-      <View style={styles.emptyWrap}>
-        <ActivityIndicator color="#EC7742" />
-        <Text style={styles.emptyDesc}>Loading notifications.</Text>
-      </View>
-    );
-  }
-
-  if (!sorted.length) {
-    return (
-      <View style={styles.emptyWrap}>
-        <Text style={styles.emptyTitle}>No notifications</Text>
-        <Text style={styles.emptyDesc}>
-          Notifications for your municipality will appear here.
-        </Text>
-      </View>
+      <>
+        <Text style={styles.sectionHeader}>0 unread • 0 total</Text>
+        <View style={{ flex: 1, minHeight: '75.1vh', maxHeight: '75.1vh', overflow: 'hidden' }}>
+          <View style={styles.emptyWrap}>
+            <ActivityIndicator color={C.tangerine} />
+            <Text style={styles.emptyDesc}>Loading notifications.</Text>
+          </View>
+        </View>
+      </>
     );
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      {unread.length > 0 ? (
-        <View style={styles.unreadBanner}>
-          <Text style={styles.unreadBannerText}>
-            {unread.length} unread notification{unread.length !== 1 ? 's' : ''}
-          </Text>
-          <TouchableOpacity
-            style={styles.markAllReadBtn}
-            onPress={() => unread.forEach(n => onMarkRead?.(n.notification_id))}
-          >
-            <Text style={styles.markAllReadBtnText}>Mark all read</Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
+    <>
+      <Text style={styles.sectionHeader}>
+        {unreadNotifs.length} unread • {sorted.length} total
+      </Text>
 
-      <ScrollView
-        contentContainerStyle={styles.notifScrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {sorted.map(notification => {
-          const isUnread = notification.notification_status === 'Sent';
+      <View style={{ flex: 1, minHeight: '83vh', maxHeight: '83vh', overflow: 'hidden' }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ gap: 2, paddingBottom: 20 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {sorted.length === 0 ? (
+            <View style={styles.emptyWrap}>
+              <Text style={styles.emptyTitle}>No notifications</Text>
+              <Text style={styles.emptyDesc}>Notifications for your municipality will appear here.</Text>
+            </View>
+          ) : (
+            sorted.map(n => {
+              const isUnread = n.notification_status !== 'Delivered';
 
-          return (
-            <TouchableOpacity
-              key={notification.notification_id}
-              onPress={() => isUnread && onMarkRead?.(notification.notification_id)}
-              style={[
-                styles.notifCard,
-                isUnread ? styles.notifCardUnread : styles.notifCardRead,
-              ]}
-            >
-              <View style={styles.notifRow}>
-                <View
+              return (
+                <TouchableOpacity
+                  key={n.notification_id}
+                  onPress={() => isUnread && onMarkRead?.(n.notification_id)}
+                  activeOpacity={isUnread ? 0.7 : 1}
                   style={[
-                    styles.notifDot,
-                    isUnread ? styles.notifDotUnread : styles.notifDotRead,
+                    styles.notificationCard,
+                    isUnread ? styles.notificationCardUnread : styles.notificationCardRead,
                   ]}
-                />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.notifMessage}>
-                    {notification.notification_message}
-                  </Text>
-                  <View style={styles.notifFooter}>
-                    <View
-                      style={[
-                        styles.notifStatusBadge,
-                        isUnread
-                          ? styles.notifStatusBadgeUnread
-                          : styles.notifStatusBadgeRead,
-                      ]}
-                    >
+                >
+                  <View style={styles.notificationCardContent}>
+                    {isUnread ? <View style={styles.notificationUnreadDot} /> : null}
+
+                    <View style={styles.notificationInfo}>
                       <Text
                         style={[
-                          styles.notifStatusText,
+                          styles.notificationMessage,
                           isUnread
-                            ? styles.notifStatusTextUnread
-                            : styles.notifStatusTextRead,
+                            ? styles.notificationMessageUnread
+                            : styles.notificationMessageRead,
                         ]}
                       >
-                        {notification.notification_status}
+                        {n.notification_message || 'No notification message provided.'}
                       </Text>
+
+                      <View style={styles.notificationMetaRow}>
+                        <View
+                          style={[
+                            styles.notificationStatusBadge,
+                            isUnread
+                              ? styles.notificationStatusBadgeUnread
+                              : styles.notificationStatusBadgeRead,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.notificationStatusText,
+                              isUnread
+                                ? styles.notificationStatusTextUnread
+                                : styles.notificationStatusTextRead,
+                            ]}
+                          >
+                            {n.notification_status === 'Sent'
+                              ? 'Unread'
+                              : n.notification_status === 'Delivered'
+                                ? 'Read'
+                                : n.notification_status || 'Unknown'}
+                          </Text>
+                        </View>
+
+                        {n.fire_id ? (
+                          <Text style={styles.notificationFireId}>
+                            🔥#{String(n.fire_id).slice(0, 8)}
+                          </Text>
+                        ) : null}
+
+                        {isUnread ? (
+                          <Text style={styles.notificationTapHint}>Tap to mark read</Text>
+                        ) : null}
+                      </View>
                     </View>
-                    <Text style={styles.notifTimeText}>
-                      {timeAgo(notification.created_at)}
-                    </Text>
                   </View>
-                  {notification.fire_id ? (
-                    <Text style={styles.notifFireId}>
-                      Fire: {String(notification.fire_id).slice(0, 12)}
-                    </Text>
-                  ) : null}
-                </View>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-    </View>
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </ScrollView>
+      </View>
+    </>
   );
 }
-
-export default NotificationsTab;

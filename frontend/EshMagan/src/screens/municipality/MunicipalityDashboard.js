@@ -24,8 +24,7 @@ import WebMunicipalityMap from './maps/WebMunicipalityMap';
 import NativeMunicipalityMap from './maps/NativeMunicipalityMap';
 import AlertsTab from './tabs/AlertsTab';
 import NotificationsTab from './tabs/NotificationsTab';
-import { getDistanceMeters } from '../responder/utils/helpers';
-import { act } from 'react';
+import { getDistanceMeters, fmtDate } from '../responder/utils/helpers';
 
 const ALERT_RADIUS_METERS = 10000;
 
@@ -473,7 +472,7 @@ export default function MunicipalityDashboard() {
                   ) : null}
                 </View>
 
-                <View style={[styles.accordionSection, { maxHeight: '23.3vh' }]}>
+                <View style={[styles.accordionSection]}>
                   <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('responders')}>
                     <View style={styles.accordionHeaderLeft}>
                       <View style={[styles.accordionDot, { backgroundColor: '#16a34a' }]} />
@@ -549,7 +548,7 @@ export default function MunicipalityDashboard() {
 
       {activeTab === 'alerts' ? (
         <View style={styles.tabContent}>
-          <AlertsTab alerts={activeAlerts} loading={loading} />
+          <AlertsTab alerts={activeAlerts} loading={loading} fmtDate={fmtDate} />
         </View>
       ) : null}
 

@@ -131,10 +131,7 @@ export function AuthProvider({ children }) {
         return;
       }
 
-      console.log('Push setup starting...');
-
       const granted = await requestNativePushPermission();
-      console.log('Permission granted:', granted);
 
       if (!granted) {
         console.warn('Native push permission not granted');
@@ -202,38 +199,40 @@ export function AuthProvider({ children }) {
               console.warn('Restored-session push setup failed', e);
             }
 
-            try {
-              const loc = await getCurrentLocation();
-              if (loc) {
-                setUserLocation({ lat: loc.latitude, lng: loc.longitude });
-              }
-
-              if (role === 'Resident') {
-                if (loc) {
-                  await gqlFetch(UPDATE_RESIDENT, {
-                    resident_id: userId,
-                    input: {
-                      last_known_location: {
-                        latitude: loc.latitude,
-                        longitude: loc.longitude,
-                      },
-                    },
-                  });
-                }
-                startResidentLocationTracking(userId);
-              } else if (role === 'Responder') {
-                if (loc) {
-                  await gqlFetch(UPDATE_RESPONDER_LOCATION, {
-                    responder_id: userId,
-                    latitude: loc.latitude,
-                    longitude: loc.longitude,
-                  });
-                }
-                startResponderLocationTracking(userId);
-              }
-            } catch (e) {
-              console.warn('Initial restored-session location push failed', e);
+            if (role === 'Resident') {
+              startResidentLocationTracking(userId);
+            } else if (role === 'Responder') {
+              startResponderLocationTracking(userId);
             }
+
+            (async () => {
+              try {
+                const loc = await getCurrentLocation();
+                if (loc) {
+                  setUserLocation({ lat: loc.latitude, lng: loc.longitude });
+
+                  if (role === 'Resident') {
+                    await gqlFetch(UPDATE_RESIDENT, {
+                      resident_id: userId,
+                      input: {
+                        last_known_location: {
+                          latitude: loc.latitude,
+                          longitude: loc.longitude,
+                        },
+                      },
+                    });
+                  } else if (role === 'Responder') {
+                    await gqlFetch(UPDATE_RESPONDER_LOCATION, {
+                      responder_id: userId,
+                      latitude: loc.latitude,
+                      longitude: loc.longitude,
+                    });
+                  }
+                }
+              } catch (e) {
+                console.warn('Location skipped at startup');
+              }
+            })();
           }
         }
       } catch (e) {
@@ -394,23 +393,6 @@ export function AuthProvider({ children }) {
     return () => clearInterval(interval);
   }, [user?.id]);
 
-  useEffect(() => {
-    let mounted = true;
-
-    const initLocation = async () => {
-      try {
-        const loc = await getCurrentLocation();
-        if (mounted && loc) {
-          setUserLocation({ lat: loc.latitude, lng: loc.longitude });
-        }
-      } catch { }
-    };
-
-    initLocation();
-
-    return () => { mounted = false };
-  }, []);
-
   const login = async (email, password) => {
     const data = await authService.login(email, password);
     const userRole = data.user?.user_role;
@@ -439,38 +421,40 @@ export function AuthProvider({ children }) {
         console.warn('Login push setup failed', e);
       }
 
-      try {
-        const loc = await getCurrentLocation();
-        if (loc) {
-          setUserLocation({ lat: loc.latitude, lng: loc.longitude });
-        }
-
-        if (userRole === 'Resident') {
-          if (loc) {
-            await gqlFetch(UPDATE_RESIDENT, {
-              resident_id: userId,
-              input: {
-                last_known_location: {
-                  latitude: loc.latitude,
-                  longitude: loc.longitude,
-                },
-              },
-            });
-          }
-          startResidentLocationTracking(userId);
-        } else if (userRole === 'Responder') {
-          if (loc) {
-            await gqlFetch(UPDATE_RESPONDER_LOCATION, {
-              responder_id: userId,
-              latitude: loc.latitude,
-              longitude: loc.longitude,
-            });
-          }
-          startResponderLocationTracking(userId);
-        }
-      } catch (e) {
-        console.warn('Initial location push failed', e);
+      if (userRole === 'Resident') {
+        startResidentLocationTracking(userId);
+      } else if (userRole === 'Responder') {
+        startResponderLocationTracking(userId);
       }
+
+      (async () => {
+        try {
+          const loc = await getCurrentLocation();
+          if (loc) {
+            setUserLocation({ lat: loc.latitude, lng: loc.longitude });
+
+            if (userRole === 'Resident') {
+              await gqlFetch(UPDATE_RESIDENT, {
+                resident_id: userId,
+                input: {
+                  last_known_location: {
+                    latitude: loc.latitude,
+                    longitude: loc.longitude,
+                  },
+                },
+              });
+            } else if (userRole === 'Responder') {
+              await gqlFetch(UPDATE_RESPONDER_LOCATION, {
+                responder_id: userId,
+                latitude: loc.latitude,
+                longitude: loc.longitude,
+              });
+            }
+          }
+        } catch (e) {
+          console.warn('Location skipped after login');
+        }
+      })();
     }
 
     return data;
