@@ -43,22 +43,22 @@ export class ResponderRepository {
         const { rows: responderRows } = await pool.query(responderSql, responderValues);
         const row = responderRows[0];
 
-        const unitLoc = JSON.parse(row.unit_location);
-        const lastLoc = JSON.parse(row.last_known_location);
+        const unitLoc = row.unit_location ? JSON.parse(row.unit_location) : null;
+        const lastLoc = row.last_known_location ? JSON.parse(row.last_known_location) : null;
 
         return Responder.fromEntity({
             responder_id: row.responder_id,
             unit_nb: row.unit_nb,
-            unit_location: {
+            unit_location: unitLoc ? {
                 longitude: unitLoc.coordinates[0],
                 latitude: unitLoc.coordinates[1]
-            },
+            } : null,
             assigned_region: row.assigned_region,
             responder_status: row.responder_status,
-            last_known_location: {
+            last_known_location: lastLoc ? {
                 longitude: lastLoc.coordinates[0],
                 latitude: lastLoc.coordinates[1]
-            },
+            } : null,
             user: User.fromEntity(user)
         });
     }
@@ -82,22 +82,22 @@ export class ResponderRepository {
         if (rows.length === 0) return [];
 
         return rows.map(row => {
-            const unitLoc = JSON.parse(row.unit_location);
-            const lastLoc = JSON.parse(row.last_known_location);
+            const unitLoc = row.unit_location ? JSON.parse(row.unit_location) : null;
+            const lastLoc = row.last_known_location ? JSON.parse(row.last_known_location) : null;
 
             return Responder.fromEntity({
                 responder_id: row.responder_id,
                 unit_nb: row.unit_nb,
-                unit_location: {
+                unit_location: unitLoc ? {
                     longitude: unitLoc.coordinates[0],
                     latitude: unitLoc.coordinates[1]
-                },
+                } : null,
                 assigned_region: row.assigned_region,
                 responder_status: row.responder_status,
-                last_known_location: {
+                last_known_location: lastLoc ? {
                     longitude: lastLoc.coordinates[0],
                     latitude: lastLoc.coordinates[1]
-                },
+                } : null,
                 updated_at: row.responder_updated_at,
                 user: User.fromEntity({
                     ...row,
@@ -127,22 +127,22 @@ export class ResponderRepository {
         if (rows.length === 0) return null;
 
         const row = rows[0];
-        const unitLoc = JSON.parse(row.unit_location);
-        const lastLoc = JSON.parse(row.last_known_location);
+        const unitLoc = row.unit_location ? JSON.parse(row.unit_location) : null;
+        const lastLoc = row.last_known_location ? JSON.parse(row.last_known_location) : null;
 
         return Responder.fromEntity({
             responder_id: row.responder_id,
             unit_nb: row.unit_nb,
-            unit_location: {
+            unit_location: unitLoc ? {
                 longitude: unitLoc.coordinates[0],
                 latitude: unitLoc.coordinates[1]
-            },
+            } : null,
             assigned_region: row.assigned_region,
             responder_status: row.responder_status,
-            last_known_location: {
+            last_known_location: lastLoc ? {
                 longitude: lastLoc.coordinates[0],
                 latitude: lastLoc.coordinates[1]
-            },
+            } : null,
             updated_at: row.responder_updated_at,
             user: User.fromEntity({
                 ...row,
@@ -171,22 +171,22 @@ export class ResponderRepository {
         if (rows.length === 0) return [];
 
         return rows.map(row => {
-            const unitLoc = JSON.parse(row.unit_location);
-            const lastLoc = JSON.parse(row.last_known_location);
+            const unitLoc = row.unit_location ? JSON.parse(row.unit_location) : null;
+            const lastLoc = row.last_known_location ? JSON.parse(row.last_known_location) : null;
 
             return Responder.fromEntity({
                 responder_id: row.responder_id,
                 unit_nb: row.unit_nb,
-                unit_location: {
+                unit_location: unitLoc ? {
                     longitude: unitLoc.coordinates[0],
                     latitude: unitLoc.coordinates[1]
-                },
+                } : null,
                 assigned_region: row.assigned_region,
                 responder_status: row.responder_status,
-                last_known_location: {
+                last_known_location: lastLoc ? {
                     longitude: lastLoc.coordinates[0],
                     latitude: lastLoc.coordinates[1]
-                },
+                } : null,
                 updated_at: row.responder_updated_at,
                 user: User.fromEntity({
                     ...row,
@@ -218,22 +218,22 @@ export class ResponderRepository {
         if (rows.length === 0) return [];
 
         return rows.map(row => {
-            const unitLoc = JSON.parse(row.unit_location);
-            const lastLoc = JSON.parse(row.last_known_location);
+            const unitLoc = row.unit_location ? JSON.parse(row.unit_location) : null;
+            const lastLoc = row.last_known_location ? JSON.parse(row.last_known_location) : null;
 
             return Responder.fromEntity({
                 responder_id: row.responder_id,
                 unit_nb: row.unit_nb,
-                unit_location: {
+                unit_location: unitLoc ? {
                     longitude: unitLoc.coordinates[0],
                     latitude: unitLoc.coordinates[1]
-                },
+                } : null,
                 assigned_region: row.assigned_region,
                 responder_status: row.responder_status,
-                last_known_location: {
+                last_known_location: lastLoc ? {
                     longitude: lastLoc.coordinates[0],
                     latitude: lastLoc.coordinates[1]
-                },
+                } : null,
                 updated_at: row.responder_updated_at,
                 user: User.fromEntity({
                     ...row,
@@ -263,22 +263,22 @@ export class ResponderRepository {
         if (rows.length === 0) return [];
 
         return rows.map(row => {
-            const unitLoc = JSON.parse(row.unit_location);
-            const lastLoc = JSON.parse(row.last_known_location);
+            const unitLoc = row.unit_location ? JSON.parse(row.unit_location) : null;
+            const lastLoc = row.last_known_location ? JSON.parse(row.last_known_location) : null;
 
             return Responder.fromEntity({
                 responder_id: row.responder_id,
                 unit_nb: row.unit_nb,
-                unit_location: {
+                unit_location: unitLoc ? {
                     longitude: unitLoc.coordinates[0],
                     latitude: unitLoc.coordinates[1]
-                },
+                } : null,
                 assigned_region: row.assigned_region,
                 responder_status: row.responder_status,
-                last_known_location: {
+                last_known_location: lastLoc ? {
                     longitude: lastLoc.coordinates[0],
                     latitude: lastLoc.coordinates[1]
-                },
+                } : null,
                 updated_at: row.responder_updated_at,
                 user: User.fromEntity({
                     ...row,
@@ -308,22 +308,22 @@ export class ResponderRepository {
         if (rows.length === 0) return [];
 
         return rows.map(row => {
-            const unitLoc = JSON.parse(row.unit_location);
-            const lastLoc = JSON.parse(row.last_known_location);
+            const unitLoc = row.unit_location ? JSON.parse(row.unit_location) : null;
+            const lastLoc = row.last_known_location ? JSON.parse(row.last_known_location) : null;
 
             return Responder.fromEntity({
                 responder_id: row.responder_id,
                 unit_nb: row.unit_nb,
-                unit_location: {
+                unit_location: unitLoc ? {
                     longitude: unitLoc.coordinates[0],
                     latitude: unitLoc.coordinates[1]
-                },
+                } : null,
                 assigned_region: row.assigned_region,
                 responder_status: row.responder_status,
-                last_known_location: {
+                last_known_location: lastLoc ? {
                     longitude: lastLoc.coordinates[0],
                     latitude: lastLoc.coordinates[1]
-                },
+                } : null,
                 updated_at: row.responder_updated_at,
                 user: User.fromEntity({
                     ...row,
@@ -358,22 +358,22 @@ export class ResponderRepository {
         if (rows.length === 0) return [];
 
         return rows.map(row => {
-            const unitLoc = JSON.parse(row.unit_location);
-            const lastLoc = JSON.parse(row.last_known_location);
+            const unitLoc = row.unit_location ? JSON.parse(row.unit_location) : null;
+            const lastLoc = row.last_known_location ? JSON.parse(row.last_known_location) : null;
 
             return Responder.fromEntity({
                 responder_id: row.responder_id,
                 unit_nb: row.unit_nb,
-                unit_location: {
+                unit_location: unitLoc ? {
                     longitude: unitLoc.coordinates[0],
                     latitude: unitLoc.coordinates[1]
-                },
+                } : null,
                 assigned_region: row.assigned_region,
                 responder_status: row.responder_status,
-                last_known_location: {
+                last_known_location: lastLoc ? {
                     longitude: lastLoc.coordinates[0],
                     latitude: lastLoc.coordinates[1]
-                },
+                } : null,
                 updated_at: row.responder_updated_at,
                 user: User.fromEntity({
                     ...row,
@@ -403,22 +403,22 @@ export class ResponderRepository {
         if (rows.length === 0) return null;
 
         const row = rows[0];
-        const unitLoc = JSON.parse(row.unit_location);
-        const lastLoc = JSON.parse(row.last_known_location);
+        const unitLoc = row.unit_location ? JSON.parse(row.unit_location) : null;
+        const lastLoc = row.last_known_location ? JSON.parse(row.last_known_location) : null;
 
         return Responder.fromEntity({
             responder_id: row.responder_id,
             unit_nb: row.unit_nb,
-            unit_location: {
+            unit_location: unitLoc ? {
                 longitude: unitLoc.coordinates[0],
                 latitude: unitLoc.coordinates[1]
-            },
+            } : null,
             assigned_region: row.assigned_region,
             responder_status: row.responder_status,
-            last_known_location: {
+            last_known_location: lastLoc ? {
                 longitude: lastLoc.coordinates[0],
                 latitude: lastLoc.coordinates[1]
-            },
+            } : null,
             updated_at: row.responder_updated_at,
             user: User.fromEntity({
                 ...row,
@@ -447,22 +447,22 @@ export class ResponderRepository {
         if (rows.length === 0) return null;
 
         const row = rows[0];
-        const unitLoc = JSON.parse(row.unit_location);
-        const lastLoc = JSON.parse(row.last_known_location);
+        const unitLoc = row.unit_location ? JSON.parse(row.unit_location) : null;
+        const lastLoc = row.last_known_location ? JSON.parse(row.last_known_location) : null;
 
         return Responder.fromEntity({
             responder_id: row.responder_id,
             unit_nb: row.unit_nb,
-            unit_location: {
+            unit_location: unitLoc ? {
                 longitude: unitLoc.coordinates[0],
                 latitude: unitLoc.coordinates[1]
-            },
+            } : null,
             assigned_region: row.assigned_region,
             responder_status: row.responder_status,
-            last_known_location: {
+            last_known_location: lastLoc ? {
                 longitude: lastLoc.coordinates[0],
                 latitude: lastLoc.coordinates[1]
-            },
+            } : null,
             updated_at: row.responder_updated_at,
             user: User.fromEntity({
                 ...row,
@@ -514,22 +514,22 @@ export class ResponderRepository {
         if (rows.length === 0) return null;
 
         const row = rows[0];
-        const unitLoc = JSON.parse(row.unit_location);
-        const lastLoc = JSON.parse(row.last_known_location);
+        const unitLoc = row.unit_location ? JSON.parse(row.unit_location) : null;
+        const lastLoc = row.last_known_location ? JSON.parse(row.last_known_location) : null;
 
         return Responder.fromEntity({
             responder_id: row.responder_id,
             unit_nb: row.unit_nb,
-            unit_location: {
+            unit_location: unitLoc ? {
                 longitude: unitLoc.coordinates[0],
                 latitude: unitLoc.coordinates[1]
-            },
+            } : null,
             assigned_region: row.assigned_region,
             responder_status: row.responder_status,
-            last_known_location: {
+            last_known_location: lastLoc ? {
                 longitude: lastLoc.coordinates[0],
                 latitude: lastLoc.coordinates[1]
-            },
+            } : null,
             updated_at: row.responder_updated_at,
             distance_meters: parseFloat(row.distance_meters),
             user: User.fromEntity({
@@ -607,22 +607,22 @@ export class ResponderRepository {
         if (rows.length === 0) return null;
 
         const row = rows[0];
-        const unitLoc = JSON.parse(row.unit_location);
-        const lastLoc = JSON.parse(row.last_known_location);
+        const unitLoc = row.unit_location ? JSON.parse(row.unit_location) : null;
+        const lastLoc = row.last_known_location ? JSON.parse(row.last_known_location) : null;
 
         return Responder.fromEntity({
             responder_id: row.responder_id,
             unit_nb: row.unit_nb,
-            unit_location: {
+            unit_location: unitLoc ? {
                 longitude: unitLoc.coordinates[0],
                 latitude: unitLoc.coordinates[1]
-            },
+            } : null,
             assigned_region: row.assigned_region,
             responder_status: row.responder_status,
-            last_known_location: {
+            last_known_location: lastLoc ? {
                 longitude: lastLoc.coordinates[0],
                 latitude: lastLoc.coordinates[1]
-            },
+            } : null,
             updated_at: row.responder_updated_at,
             user: User.fromEntity({
                 ...row,
@@ -671,8 +671,8 @@ export class ResponderRepository {
         if (rows.length === 0) return null;
 
         const row = rows[0];
-        const unitLoc = JSON.parse(row.unit_location);
-        const lastLoc = JSON.parse(row.last_known_location);
+        const unitLoc = row.unit_location ? JSON.parse(row.unit_location) : null;
+        const lastLoc = row.last_known_location ? JSON.parse(row.last_known_location) : null;
 
         return {
             responder_id: row.responder_id,
@@ -683,10 +683,10 @@ export class ResponderRepository {
             },
             assigned_region: row.assigned_region,
             responder_status: row.responder_status,
-            last_known_location: {
+            last_known_location: lastLoc ? {
                 longitude: lastLoc.coordinates[0],
                 latitude: lastLoc.coordinates[1]
-            },
+            } : null,
             updated_at: row.responder_updated_at,
             user: User.fromEntity({
                 ...row,

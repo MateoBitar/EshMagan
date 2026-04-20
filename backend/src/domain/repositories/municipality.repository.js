@@ -58,16 +58,16 @@ export class MunicipalityRepository {
         if (rows.length === 0) return [];
 
         return rows.map(row => {
-            const location = JSON.parse(row.municipality_location);
+            const location = row.municipality_location ? JSON.parse(row.municipality_location) : null;
             return Municipality.fromEntity({
                 municipality_id: row.municipality_id,
                 municipality_name: row.municipality_name,
                 region_name: row.region_name,
                 municipality_code: row.municipality_code,
-                municipality_location: {
+                municipality_location: location ? {
                     longitude: location.coordinates[0],
                     latitude: location.coordinates[1]
-                },
+                } : null,
                 user: User.fromEntity({
                     ...row,
                     created_at: row.user_created_at,
@@ -92,17 +92,17 @@ export class MunicipalityRepository {
         if (rows.length === 0) return null;
 
         const row = rows[0];
-        const location = JSON.parse(row.municipality_location);
+        const location = row.municipality_location ? JSON.parse(row.municipality_location) : null;
 
         return Municipality.fromEntity({
             municipality_id: row.municipality_id,
             municipality_name: row.municipality_name,
             region_name: row.region_name,
             municipality_code: row.municipality_code,
-            municipality_location: {
+            municipality_location: location ? {
                 longitude: location.coordinates[0],
                 latitude: location.coordinates[1]
-            },
+            } : null,
             user: User.fromEntity({
                 ...row,
                 created_at: row.user_created_at,
@@ -126,16 +126,16 @@ export class MunicipalityRepository {
         if (rows.length === 0) return [];
 
         return rows.map(row => {
-            const location = JSON.parse(row.municipality_location);
+            const location = row.municipality_location ? JSON.parse(row.municipality_location) : null;
             return Municipality.fromEntity({
                 municipality_id: row.municipality_id,
                 municipality_name: row.municipality_name,
                 region_name: row.region_name,
                 municipality_code: row.municipality_code,
-                municipality_location: {
+                municipality_location: location ? {
                     longitude: location.coordinates[0],
                     latitude: location.coordinates[1]
-                },
+                } : null,
                 user: User.fromEntity({
                     ...row,
                     created_at: row.user_created_at,
@@ -160,16 +160,16 @@ export class MunicipalityRepository {
         if (rows.length === 0) return [];
 
         return rows.map(row => {
-            const location = JSON.parse(row.municipality_location);
+            const location = row.municipality_location ? JSON.parse(row.municipality_location) : null;
             return Municipality.fromEntity({
                 municipality_id: row.municipality_id,
                 municipality_name: row.municipality_name,
                 region_name: row.region_name,
                 municipality_code: row.municipality_code,
-                municipality_location: {
+                municipality_location: location ? {
                     longitude: location.coordinates[0],
                     latitude: location.coordinates[1]
-                },
+                } : null,
                 user: User.fromEntity({
                     ...row,
                     created_at: row.user_created_at,
@@ -194,17 +194,17 @@ export class MunicipalityRepository {
         if (rows.length === 0) return null;
 
         const row = rows[0];
-        const location = JSON.parse(row.municipality_location);
+        const location = row.municipality_location ? JSON.parse(row.municipality_location) : null;
 
         return Municipality.fromEntity({
             municipality_id: row.municipality_id,
             municipality_name: row.municipality_name,
             region_name: row.region_name,
             municipality_code: row.municipality_code,
-            municipality_location: {
+            municipality_location: location ? {
                 longitude: location.coordinates[0],
                 latitude: location.coordinates[1]
-            },
+            } : null,
             user: User.fromEntity({
                 ...row,
                 created_at: row.user_created_at,
@@ -238,17 +238,17 @@ export class MunicipalityRepository {
         if (rows.length === 0) return null;
 
         const row = rows[0];
-        const location = JSON.parse(row.municipality_location);
+        const location = row.municipality_location ? JSON.parse(row.municipality_location) : null;
 
         return Municipality.fromEntity({
             municipality_id: row.municipality_id,
             municipality_name: row.municipality_name,
             region_name: row.region_name,
             municipality_code: row.municipality_code,
-            municipality_location: {
+            municipality_location: location ? {
                 longitude: location.coordinates[0],
                 latitude: location.coordinates[1]
-            },
+            } : null,
             user: User.fromEntity({
                 ...row,
                 created_at: row.user_created_at,
@@ -272,17 +272,17 @@ export class MunicipalityRepository {
         if (rows.length === 0) return null;
 
         const row = rows[0];
-        const location = JSON.parse(row.municipality_location);
+        const location = row.municipality_location ? JSON.parse(row.municipality_location) : null;
 
         return Municipality.fromEntity({
             municipality_id: row.municipality_id,
             municipality_name: row.municipality_name,
             region_name: row.region_name,
             municipality_code: row.municipality_code,
-            municipality_location: {
+            municipality_location: location ? {
                 longitude: location.coordinates[0],
                 latitude: location.coordinates[1]
-            },
+            } : null,
             user: User.fromEntity({
                 ...row,
                 created_at: row.user_created_at,
@@ -306,17 +306,17 @@ export class MunicipalityRepository {
         if (rows.length === 0) return null;
 
         const row = rows[0];
-        const location = JSON.parse(row.municipality_location);
+        const location = row.municipality_location ? JSON.parse(row.municipality_location) : null;
 
         return Municipality.fromEntity({
             municipality_id: row.municipality_id,
             municipality_name: row.municipality_name,
             region_name: row.region_name,
             municipality_code: row.municipality_code,
-            municipality_location: {
+            municipality_location: location ? {
                 longitude: location.coordinates[0],
                 latitude: location.coordinates[1]
-            },
+            } : null,
             user: User.fromEntity({
                 ...row,
                 created_at: row.user_created_at,
@@ -385,17 +385,17 @@ export class MunicipalityRepository {
         if (rows.length === 0) return null;
 
         const row = rows[0];
-        const location = JSON.parse(row.municipality_location);
+        const location = row.municipality_location ? JSON.parse(row.municipality_location) : null;
 
         return Municipality.fromEntity({
             municipality_id: row.municipality_id,
             municipality_name: row.municipality_name,
             region_name: row.region_name,
             municipality_code: row.municipality_code,
-            municipality_location: {
+            municipality_location: location ? {
                 longitude: location.coordinates[0],
                 latitude: location.coordinates[1]
-            },
+            } : null,
             user: User.fromEntity({
                 ...row,
                 created_at: row.user_created_at,

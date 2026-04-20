@@ -434,6 +434,7 @@ export default StyleSheet.create({
 
   emptyWrap: {
     flex: 1,
+    minHeight: '70vh',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,

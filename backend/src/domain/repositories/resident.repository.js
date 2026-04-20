@@ -11,29 +11,35 @@ const encryption = new EncryptionService();
 // SHARED HELPER
 // Parses a DB row into a Resident entity, decrypting sensitive fields transparently.
 function toResident(row, userEntity) {
-    const homeLocation = JSON.parse(row.home_location);
-    const workLocation = JSON.parse(row.work_location);
-    const lastKnownLocation = JSON.parse(row.last_known_location);
+    const homeLocation = row.home_location ? JSON.parse(row.home_location) : null;
+    const workLocation = row.work_location ? JSON.parse(row.work_location) : null;
+    const lastKnownLocation = row.last_known_location ? JSON.parse(row.last_known_location) : null;
 
     return Resident.fromEntity({
         resident_id: row.resident_id,
         resident_fname: row.resident_fname,
         resident_lname: row.resident_lname,
         resident_dob: row.resident_dob,
-        resident_idnb: encryption.decrypt(row.resident_idnb),   // decrypt
-        resident_idpic: encryption.decrypt(row.resident_idpic),  // decrypt
-        home_location: {
-            longitude: homeLocation.coordinates[0],
-            latitude: homeLocation.coordinates[1]  
-        },
-        work_location: {
-            longitude: workLocation.coordinates[0],
-            latitude: workLocation.coordinates[1]
-        },
-        last_known_location: {
-            longitude: lastKnownLocation.coordinates[0],
-            latitude: lastKnownLocation.coordinates[1]
-        },
+        resident_idnb: encryption.decrypt(row.resident_idnb),
+        resident_idpic: encryption.decrypt(row.resident_idpic),
+        home_location: homeLocation
+            ? {
+                longitude: homeLocation.coordinates[0],
+                latitude: homeLocation.coordinates[1]
+              }
+            : null,
+        work_location: workLocation
+            ? {
+                longitude: workLocation.coordinates[0],
+                latitude: workLocation.coordinates[1]
+              }
+            : null,
+        last_known_location: lastKnownLocation
+            ? {
+                longitude: lastKnownLocation.coordinates[0],
+                latitude: lastKnownLocation.coordinates[1]
+              }
+            : null,
         updated_at: row.resident_updated_at,
         user: userEntity
     });
