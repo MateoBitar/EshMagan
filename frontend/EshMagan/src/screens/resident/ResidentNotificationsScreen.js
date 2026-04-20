@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { gqlFetch, GET_NOTIFICATIONS_BY_USER } from '../../services/api';
-import styles from '../../styles/screens/ResidentNotificationsScreen.styles';
+import styles, { C } from '../../styles/screens/ResidentNotificationsScreen.styles';
 
 function formatDate(value) {
   if (!value) return 'Unknown date';
@@ -98,101 +98,114 @@ export default function ResidentNotificationsScreen({ navigation }) {
           >
             <Text style={styles.backBtnText}>{'‹ Back'}</Text>
           </TouchableOpacity>
-
-          <View style={styles.headerTextWrap}>
-            <Text style={styles.headerTitle}>Notifications</Text>
-            <Text style={styles.headerSub}>
-              {unreadNotifs.length} unread • {notifications.length} total
-            </Text>
-          </View>
+          <Text style={styles.headerTitle}>Notifications</Text>
         </View>
       </View>
 
-      {loading ? (
-        <View style={styles.loaderWrap}>
-          <ActivityIndicator size="large" color="#EC7742" />
-          <Text style={styles.loaderText}>Loading notifications...</Text>
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => loadNotifications(true)}
-              tintColor="#EC7742"
-            />
-          }
-        >
-          {notifications.length === 0 ? (
-            <View style={styles.emptyWrap}>
-              <Text style={styles.emptyEmoji}>🔔</Text>
-              <Text style={styles.emptyTitle}>No notifications yet</Text>
-              <Text style={styles.emptyDesc}>
-                Notifications and important updates for residents will appear here.
-              </Text>
-            </View>
-          ) : (
-            notifications.map(n => {
-              const isUnread = n.notification_status !== 'Delivered';
+      <View style={styles.contentContainer}>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator color={styles.C ? styles.C.tangerine : '#EC7742'} />
+            <Text style={styles.loadingText}>Loading notifications...</Text>
+          </View>
+        ) : (
+          <>
+            <Text style={styles.sectionHeader}>
+              {unreadNotifs.length} unread • {notifications.length} total
+            </Text>
 
-              return (
-                <View
-                  key={n.notification_id}
-                  style={[
-                    styles.card,
-                    isUnread ? styles.cardUnread : styles.cardRead,
-                  ]}
+            <View style={styles.tabScrollContainer}>
+              <View style={styles.tabScrollViewport}>
+                <ScrollView
+                  style={{ flex: 1 }}
+                  contentContainerStyle={styles.tabScrollContent}
+                  showsVerticalScrollIndicator={false}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={refreshing}
+                      onRefresh={() => loadNotifications(true)}
+                      tintColor="#EC7742"
+                    />
+                  }
                 >
-                  <View style={styles.cardTopRow}>
-                    <View style={styles.cardTitleRow}>
-                      {isUnread && <View style={styles.unreadDot} />}
-                      <Text
-                        style={[
-                          styles.message,
-                          isUnread ? styles.messageUnread : styles.messageRead,
-                        ]}
-                      >
-                        {n.notification_message || 'No message'}
+                  {notifications.length === 0 ? (
+                    <View style={styles.emptyWrap}>
+                      <Text style={styles.emptyTitle}>No notifications</Text>
+                      <Text style={styles.emptyDesc}>
+                        Notifications and important updates for residents will appear here.
                       </Text>
                     </View>
-                  </View>
+                  ) : (
+                    notifications.map(n => {
+                      const isUnread = n.notification_status !== 'Delivered';
 
-                  <View style={styles.metaRow}>
-                    <View
-                      style={[
-                        styles.badge,
-                        isUnread ? styles.badgeUnread : styles.badgeRead,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.badgeText,
-                          isUnread ? styles.badgeTextUnread : styles.badgeTextRead,
-                        ]}
-                      >
-                        {getReadableStatus(n.notification_status)}
-                      </Text>
-                    </View>
+                      return (
+                        <TouchableOpacity
+                          key={n.notification_id}
+                          activeOpacity={1}
+                          style={[
+                            styles.notificationCard,
+                            isUnread ? styles.notificationCardUnread : styles.notificationCardRead,
+                          ]}
+                        >
+                          <View style={styles.notificationCardContent}>
+                            {isUnread ? <View style={styles.notificationUnreadDot} /> : null}
 
-                    {!!n.fire_id && (
-                      <Text style={styles.fireId}>
-                        Fire #{String(n.fire_id).slice(0, 8)}
-                      </Text>
-                    )}
-                  </View>
+                            <View style={styles.notificationInfo}>
+                              <Text
+                                style={[
+                                  styles.notificationMessage,
+                                  isUnread
+                                    ? styles.notificationMessageUnread
+                                    : styles.notificationMessageRead,
+                                ]}
+                              >
+                                {n.notification_message || 'No message'}
+                              </Text>
 
-                  <Text style={styles.dateText}>
-                    {formatDate(n.created_at || n.notification_created_at)}
-                  </Text>
-                </View>
-              );
-            })
-          )}
-        </ScrollView>
-      )}
+                              <View style={styles.notificationMetaRow}>
+                                <View
+                                  style={[
+                                    styles.notificationStatusBadge,
+                                    isUnread
+                                      ? styles.notificationStatusBadgeUnread
+                                      : styles.notificationStatusBadgeRead,
+                                  ]}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.notificationStatusText,
+                                      isUnread
+                                        ? styles.notificationStatusTextUnread
+                                        : styles.notificationStatusTextRead,
+                                    ]}
+                                  >
+                                    {getReadableStatus(n.notification_status)}
+                                  </Text>
+                                </View>
+
+                                {!!n.fire_id && (
+                                  <Text style={styles.notificationFireId}>
+                                    🔥#{String(n.fire_id).slice(0, 8)}
+                                  </Text>
+                                )}
+                              </View>
+
+                              <Text style={styles.notificationDateText}>
+                                {formatDate(n.created_at || n.notification_created_at)}
+                              </Text>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })
+                  )}
+                </ScrollView>
+              </View>
+            </View>
+          </>
+        )}
+      </View>
     </SafeAreaView>
   );
 }

@@ -1,9 +1,25 @@
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet } from 'react-native';
 
-export default StyleSheet.create({
+export const C = {
+  bg: '#FFF1D6',
+  card: '#ffffff',
+  cardBorder: 'rgba(236,119,66,0.18)',
+  scarlet: '#DC2626',
+  tangerine: '#EC7742',
+  gold: '#F9C04E',
+  snow: '#F8FAFC',
+  green: '#16a34a',
+  blue: '#2563eb',
+  slate: '#94a3b8',
+  text: '#000000',
+  textMuted: '#4b2e1a',
+  textDim: 'rgba(0,0,0,0.4)',
+};
+
+const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFF1D6',
+    backgroundColor: C.bg,
   },
 
   header: {
@@ -24,18 +40,13 @@ export default StyleSheet.create({
 
   backBtn: {
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 5,
   },
 
   backBtnText: {
     fontSize: 14,
     fontWeight: '700',
     color: '#EC7742',
-  },
-
-  headerTextWrap: {
-    flex: 1,
-    marginLeft: 2,
   },
 
   headerTitle: {
@@ -45,164 +56,170 @@ export default StyleSheet.create({
     letterSpacing: -0.3,
   },
 
-  headerSub: {
-    color: '#64748b',
-    fontSize: 12,
-    marginTop: 2,
+  contentContainer: {
+    flex: 1,
+    minHeight: '93.5vh',
+    maxHeight: '93.5vh',
+    overflow: 'hidden',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    backgroundColor: C.bg,
   },
 
-  loaderWrap: {
+  sectionHeader: {
+    color: C.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 10,
+  },
+
+  tabScrollContainer: {
     flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
+  },
+
+  tabScrollViewport: {
+    flex: 1,
+    minHeight: 0,
+  },
+
+  tabScrollContent: {
+    gap: 2,
+    paddingBottom: 20,
+  },
+
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: C.bg,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
   },
 
-  loaderText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#64748b',
-    fontWeight: '600',
-  },
-
-  scroll: {
-    flex: 1,
-  },
-
-  scrollContent: {
-    paddingHorizontal: 18,
-    paddingBottom: 28,
-    paddingTop: 6,
+  loadingText: {
+    marginTop: 10,
+    color: C.textMuted,
   },
 
   emptyWrap: {
-    marginTop: 70,
+    flex: 1,
+    minHeight: '70vh',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-
-  emptyEmoji: {
-    fontSize: 40,
-    marginBottom: 12,
+    padding: 24,
   },
 
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0f172a',
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.text,
   },
 
   emptyDesc: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#64748b',
+    fontSize: 12,
+    color: C.textMuted,
+    marginTop: 4,
     textAlign: 'center',
-    lineHeight: 22,
   },
 
-  card: {
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1.5,
-    backgroundColor: '#fff',
+  notificationCard: {
+    backgroundColor: C.card,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    marginBottom: 10,
   },
 
-  cardUnread: {
-    borderColor: '#EC7742',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
+  notificationCardUnread: {
+    borderColor: C.tangerine + '50',
+    backgroundColor: C.bg,
   },
 
-  cardRead: {
-    borderColor: '#e2e8f0',
+  notificationCardRead: {
+    borderColor: C.cardBorder,
+    backgroundColor: C.card,
   },
 
-  cardTopRow: {
+  notificationCardContent: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    gap: 10,
   },
 
-  cardTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  notificationUnreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: C.tangerine,
+    marginTop: 4,
+  },
+
+  notificationInfo: {
     flex: 1,
   },
 
-  unreadDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 999,
-    backgroundColor: '#EC7742',
-    marginRight: 10,
-    marginTop: 6,
+  notificationMessage: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 6,
   },
 
-  message: {
-    flex: 1,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-
-  messageUnread: {
-    color: '#0f172a',
-    fontWeight: '800',
-  },
-
-  messageRead: {
-    color: '#334155',
+  notificationMessageUnread: {
+    color: C.text,
     fontWeight: '600',
   },
 
-  metaRow: {
+  notificationMessageRead: {
+    color: C.textMuted,
+    fontWeight: '400',
+  },
+
+  notificationMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12,
+    gap: 10,
   },
 
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
+  notificationStatusBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
 
-  badgeUnread: {
-    backgroundColor: 'rgba(236,119,66,0.14)',
+  notificationStatusBadgeUnread: {
+    backgroundColor: C.tangerine + '20',
   },
 
-  badgeRead: {
-    backgroundColor: '#e2e8f0',
+  notificationStatusBadgeRead: {
+    backgroundColor: C.cardBorder,
   },
 
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-
-  badgeTextUnread: {
-    color: '#c2410c',
-  },
-
-  badgeTextRead: {
-    color: '#475569',
-  },
-
-  fireId: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#64748b',
-  },
-
-  dateText: {
-    marginTop: 10,
-    fontSize: 12,
-    color: '#94a3b8',
+  notificationStatusText: {
+    fontSize: 10,
     fontWeight: '600',
   },
+
+  notificationStatusTextUnread: {
+    color: C.tangerine,
+  },
+
+  notificationStatusTextRead: {
+    color: C.textDim,
+  },
+
+  notificationFireId: {
+    color: C.textDim,
+    fontSize: 11,
+  },
+
+  notificationDateText: {
+    color: C.textDim,
+    fontSize: 11,
+    marginTop: 8,
+  },
 });
+
+export default styles;

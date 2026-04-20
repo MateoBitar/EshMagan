@@ -98,13 +98,13 @@ export default StyleSheet.create({
   },
 
   alertsInfoBoxLocated: {
-    backgroundColor: 'rgba(22,163,74,0.08)',
-    borderColor: 'rgba(22,163,74,0.18)',
+    backgroundColor: 'rgba(238, 134, 85, 0.06)',
+    borderColor: 'rgba(236,119,66,0.16)',
   },
 
   alertsInfoBoxLocating: {
-    backgroundColor: 'rgba(236,119,66,0.08)',
-    borderColor: 'rgba(236,119,66,0.18)',
+    backgroundColor: 'rgba(238, 134, 85, 0.06)',
+    borderColor: 'rgba(236,119,66,0.16)',
   },
 
   alertsInfoEmoji: {
@@ -119,9 +119,10 @@ export default StyleSheet.create({
     lineHeight: 17,
   },
 
-  contentContainer: {
+    contentContainer: {
     flex: 1,
-    minHeight: 0,
+    minHeight: '88.5vh',
+    maxHeight: '88.5vh',
     overflow: 'hidden',
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -137,45 +138,46 @@ export default StyleSheet.create({
     marginBottom: 10,
   },
 
-  listWrap: {
+  tabFill: {
+    flex: 1,
+    minHeight: 0,
+  },
+
+  tabScrollContainer: {
     flex: 1,
     minHeight: 0,
     overflow: 'hidden',
   },
 
-  listScroll: {
+  tabScrollViewport: {
     flex: 1,
+    minHeight: 0,
   },
 
-  listContent: {
+  tabScrollContent: {
     gap: 2,
     paddingBottom: 20,
   },
 
-  emptyState: {
+  emptyWrap: {
+    flex: 1,
+    minHeight: '70vh',
     alignItems: 'center',
-    paddingVertical: 48,
-    backgroundColor: C.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(236,119,66,0.15)',
+    justifyContent: 'center',
+    padding: 24,
   },
 
-  emptyStateEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.text,
   },
 
-  emptyStateText: {
-    color: C.green,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
-  emptyStateSubtext: {
-    color: C.textDim,
-    fontSize: 11,
+  emptyDesc: {
+    fontSize: 12,
+    color: C.textMuted,
     marginTop: 4,
+    textAlign: 'center',
   },
 
   alertCard: {
@@ -187,19 +189,19 @@ export default StyleSheet.create({
   },
 
   alertCardExpired: {
-    opacity: 0.7,
+    opacity: 0.5,
   },
 
   alertCardContent: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
+    gap: 10,
   },
 
   alertCardIcon: {
     width: 50,
     height: 50,
-    borderRadius: 12,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -216,54 +218,48 @@ export default StyleSheet.create({
   alertCardBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 4,
   },
 
   alertCardTypeBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
 
   alertCardTypeText: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 10,
+    fontWeight: '700',
   },
 
   alertCardExpiredBadge: {
-    backgroundColor: 'rgba(148,163,184,0.18)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: C.slate + '20',
   },
 
   alertCardExpiredText: {
-    fontSize: 10,
-    fontWeight: '800',
     color: C.slate,
-    letterSpacing: 0.4,
+    fontSize: 10,
+    fontWeight: '700',
   },
 
-  alertCardMessage: {
+  alertMessage: {
     color: C.text,
     fontSize: 13,
-    lineHeight: 19,
-    fontWeight: '500',
-    marginBottom: 10,
+    lineHeight: 18,
+    marginBottom: 6,
   },
 
   alertCardMetaRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: 12,
-    flexWrap: 'wrap',
   },
 
   alertCardMeta: {
     color: C.textDim,
     fontSize: 11,
-    fontWeight: '500',
   },
 });

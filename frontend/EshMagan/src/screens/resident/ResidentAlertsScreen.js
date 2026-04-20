@@ -221,15 +221,6 @@ export default function ResidentAlertsScreen({ navigation }) {
               >
                 Your Alerts
               </Text>
-              <Text
-                style={{
-                  color: C.textMuted,
-                  fontSize: 12,
-                  marginTop: 2,
-                }}
-              >
-                {activeAlerts.length} nearby active alert{activeAlerts.length !== 1 ? 's' : ''}
-              </Text>
             </View>
           </View>
 
@@ -251,112 +242,105 @@ export default function ResidentAlertsScreen({ navigation }) {
         </View>
 
         <View style={styles.contentContainer}>
-          <Text style={styles.sectionHeader}>
-            {activeAlerts.length} nearby active alerts
-          </Text>
+          <View style={styles.tabFill}>
+            <Text style={styles.sectionHeader}>
+              {activeAlerts.length} nearby alert{activeAlerts.length !== 1 ? 's' : ''}
+            </Text>
 
-          <View style={{ flex: 1, minHeight: '81.8vh', overflow: 'hidden' }}>
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={{ gap: 2, paddingBottom: 20 }}
-              showsVerticalScrollIndicator={false}
-            >
-              {activeAlerts.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateEmoji}>✅</Text>
-                  <Text
-                    style={[
-                      styles.emptyStateText,
-                      { color: C.green, fontWeight: '600' },
-                    ]}
-                  >
-                    No active alerts nearby
-                  </Text>
-                  <Text style={styles.emptyStateSubtext}>
-                    All clear within {ALERT_RADIUS_METERS / 1000}km
-                  </Text>
-                </View>
-              ) : (
-                activeAlerts.map(alert => {
-                  const isExpired = new Date(alert.expires_at) < new Date();
-                  const isFireAlert = alert.alert_type === 'FireAlert';
-                  const accentColor = isExpired
-                    ? C.slate
-                    : isFireAlert
-                      ? C.scarlet
-                      : C.tangerine;
+            <View style={styles.tabScrollContainer}>
+              <View style={styles.tabScrollViewport}>
+                <ScrollView
+                  style={{ flex: 1 }}
+                  contentContainerStyle={styles.tabScrollContent}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {activeAlerts.length === 0 ? (
+                    <View style={styles.emptyWrap}>
+                      <Text style={styles.emptyTitle}>No alerts</Text>
+                      <Text style={styles.emptyDesc}>
+                        No active alerts within {ALERT_RADIUS_METERS / 1000} km of your location.
+                      </Text>
+                    </View>
+                  ) : (
+                    activeAlerts.map(alert => {
+                      const isExpired = new Date(alert.expires_at) < new Date();
+                      const isFireAlert = alert.alert_type === 'FireAlert';
+                      const accentColor = isExpired
+                        ? C.slate
+                        : isFireAlert
+                          ? C.scarlet
+                          : C.tangerine;
 
-                  return (
-                    <TouchableOpacity
-                      key={alert.alert_id}
-                      onPress={() => nav?.navigate?.('Alert', { alert })}
-                      style={[
-                        styles.alertCard,
-                        { borderColor: accentColor + (isExpired ? '30' : '50') },
-                        isExpired && styles.alertCardExpired,
-                      ]}
-                    >
-                      <View style={styles.alertCardContent}>
-                        <View
+                      return (
+                        <TouchableOpacity
+                          key={alert.alert_id}
+                          onPress={() => nav?.navigate?.('Alert', { alert })}
                           style={[
-                            styles.alertCardIcon,
+                            styles.alertCard,
+                            { borderColor: accentColor + (isExpired ? '30' : '50') },
+                            isExpired && styles.alertCardExpired,
                           ]}
                         >
-                          <Image
-                            source={Platform.OS === 'web'
-                              ? { uri: '/EshMagan_Logo-Badge.png' }
-                              : { uri: 'eshmagan_logo_badge' }}
-                            style={styles.logoImage}
-                            resizeMode="contain"
-                          />
-                        </View>
-
-                        <View style={styles.alertCardInfo}>
-                          <View style={styles.alertCardBadgeRow}>
-                            <View
-                              style={[
-                                styles.alertCardTypeBadge,
-                                { backgroundColor: accentColor + '20' },
-                              ]}
-                            >
-                              <Text
-                                style={[
-                                  styles.alertCardTypeText,
-                                  { color: accentColor },
-                                ]}
-                              >
-                                {alert.alert_type}
-                              </Text>
+                          <View style={styles.alertCardContent}>
+                            <View style={styles.alertCardIcon}>
+                              <Image
+                                source={Platform.OS === 'web'
+                                  ? { uri: '/EshMagan_Logo-Badge.png' }
+                                  : { uri: 'eshmagan_logo_badge' }}
+                                style={styles.logoImage}
+                                resizeMode="contain"
+                              />
                             </View>
 
-                            {isExpired && (
-                              <View style={styles.alertCardExpiredBadge}>
-                                <Text style={styles.alertCardExpiredText}>EXPIRED</Text>
+                            <View style={styles.alertCardInfo}>
+                              <View style={styles.alertCardBadgeRow}>
+                                <View
+                                  style={[
+                                    styles.alertCardTypeBadge,
+                                    { backgroundColor: accentColor + '20' },
+                                  ]}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.alertCardTypeText,
+                                      { color: accentColor },
+                                    ]}
+                                  >
+                                    {alert.alert_title || alert.alert_type || 'Resident Alert'}
+                                  </Text>
+                                </View>
+
+                                {isExpired ? (
+                                  <View style={styles.alertCardExpiredBadge}>
+                                    <Text style={styles.alertCardExpiredText}>EXPIRED</Text>
+                                  </View>
+                                ) : null}
                               </View>
-                            )}
-                          </View>
 
-                          <Text style={styles.alertCardMessage}>
-                            {alert.alert_message}
-                          </Text>
-
-                          <View style={styles.alertCardMetaRow}>
-                            <Text style={styles.alertCardMeta}>
-                              🕐 {fmtDate(alert.created_at)}
-                            </Text>
-                            {alert.fire_id && (
-                              <Text style={styles.alertCardMeta}>
-                                🔥#{alert.fire_id?.slice(0, 8)}
+                              <Text style={styles.alertMessage}>
+                                {alert.alert_message || 'No alert message provided.'}
                               </Text>
-                            )}
+
+                              <View style={styles.alertCardMetaRow}>
+                                <Text style={styles.alertCardMeta}>
+                                  🕐 {fmtDate(alert.created_at)}
+                                </Text>
+
+                                {alert.fire_id ? (
+                                  <Text style={styles.alertCardMeta}>
+                                    🔥#{String(alert.fire_id).slice(0, 8)}
+                                  </Text>
+                                ) : null}
+                              </View>
+                            </View>
                           </View>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })
-              )}
-            </ScrollView>
+                        </TouchableOpacity>
+                      );
+                    })
+                  )}
+                </ScrollView>
+              </View>
+            </View>
           </View>
         </View>
       </View>

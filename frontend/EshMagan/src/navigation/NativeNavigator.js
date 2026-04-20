@@ -10,7 +10,7 @@ import ResidentNavigator from './ResidentNavigator';
 import AdminDashboard from '../screens/admin/AdminDashboard';
 import MunicipalityDashboard from '../screens/municipality/MunicipalityDashboard';
 import ResponderCommandView from '../screens/responder/ResponderCommandView';
-import AlertScreen from '../screens/resident/AlertScreen';
+import NotificationScreen from '../screens/resident/ResidentNotificationsScreen';
 import EvacuationScreen from '../screens/resident/EvacuationScreen';
 import ARModeScreen from '../screens/resident/ARModeScreen';
 import SafetyTipsScreen from '../screens/resident/SafetyTipsScreen';
@@ -63,7 +63,7 @@ export default function NativeNavigator({ user, loading }) {
               <Stack.Screen name="ResponderCommand" component={ResponderCommandView} />
             )}
 
-            <Stack.Screen name="Alert" component={AlertScreen} options={{ animation: 'fade' }} />
+            <Stack.Screen name="Notification" component={NotificationScreen} options={{ animation: 'fade' }} />
             <Stack.Screen name="Evacuation" component={EvacuationScreen} />
             <Stack.Screen name="ARMode" component={ARModeScreen} options={{ animation: 'fade' }} />
             <Stack.Screen name="SafetyTips" component={SafetyTipsScreen} />
