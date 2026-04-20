@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ScrollView, Text, ActivityIndicator, Image } from 'react-native';
+import { View, ScrollView, Text, Platform, ActivityIndicator, Image } from 'react-native';
 import styles, { C } from '../../../styles/screens/ResponderCommandView.styles';
 
 
@@ -37,7 +37,7 @@ export default function AlertsTab({
         {sorted.length} nearby alert{sorted.length !== 1 ? 's' : ''} • {alertRadiusMeters / 1000} km radius
       </Text>
 
-      <View style={{ flex: 1, minHeight: '76vh', maxHeight: '76vh', overflow: 'hidden' }}>
+      <View style={{ flex: 1, minHeight: '75.1vh', maxHeight: '75.1vh', overflow: 'hidden' }}>
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ gap: 2, paddingBottom: 20 }}

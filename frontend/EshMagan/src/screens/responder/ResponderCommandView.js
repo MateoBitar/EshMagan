@@ -26,7 +26,6 @@ import {
   UPDATE_NOTIFICATION_STATUS,
   EXTINGUISH_FIRE,
 } from '../../services/api';
-import { getCurrentLocation } from '../../services/location.service';
 import { notifyAlert, notifyInfo } from '../../services/notifications';
 import styles, { C } from '../../styles/screens/ResponderCommandView.styles';
 
@@ -105,26 +104,10 @@ export default function ResponderCommandView({ navigation }) {
 
   useEffect(() => {
     if (!responderId) return;
-
-    let mounted = true;
-
-    const initResponderLocation = async () => {
-      try {
-        const loc = await getCurrentLocation();
-        if (mounted && loc) {
-          setMyLocation({ lat: loc.latitude, lng: loc.longitude });
-        }
-      } catch (e) {
-        console.warn('[Responder initial location]', e.message);
-      }
-    };
-
-    initResponderLocation();
-
-    return () => {
-      mounted = false;
-    };
-  }, [responderId]);
+    fetchAll();
+    const interval = setInterval(fetchAll, 10000);
+    return () => clearInterval(interval);
+  }, [responderId, userId]);
 
   useEffect(() => {
     Animated.loop(
@@ -209,7 +192,7 @@ export default function ResponderCommandView({ navigation }) {
             notifyAlert('New Assignment', `You were assigned to fire ${assignment.fire_id || 'incident'}.`);
           }
         }
-        
+
         seenAssignmentIdsRef.current = nextAssignmentIds;
         seenAlertIdsRef.current = nextAlertIds;
         seenNotificationIdsRef.current = nextNotificationIds;
@@ -222,12 +205,6 @@ export default function ResponderCommandView({ navigation }) {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchAll();
-    const interval = setInterval(fetchAll, 10000);
-    return () => clearInterval(interval);
-  }, [responderId, userId]);
 
   const handleUpdateMyStatus = async nextStatus => {
     try {

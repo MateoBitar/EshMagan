@@ -3,7 +3,7 @@ import { StyleSheet, Dimensions, Platform } from 'react-native';
 const { width, height } = Dimensions.get('window');
 const isDesktop = Platform.OS === 'web' && width >= 1100;
 
-const C = {
+export const C = {
   bg: '#FFF1D6',
   card: '#ffffff',
   cardBorder: 'rgba(236,119,66,0.18)',
@@ -24,7 +24,16 @@ const accordionOpenMaxHeight = isDesktop
   : 220;
 
 export default StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: C.bg, minHeight: '100vh' },
+  safeArea: {
+    flex: 1,
+    backgroundColor: C.bg,
+  },
+
+  container: {
+    flex: 1,
+    backgroundColor: C.bg,
+    flexDirection: 'column',
+  },
 
   topBar: {
     backgroundColor: C.bg,
@@ -50,8 +59,17 @@ export default StyleSheet.create({
     height: 50,
   },
 
-  appName: { color: C.text, fontSize: 20, fontWeight: '800' },
-  portalLabel: { color: C.textMuted, fontSize: 12, marginTop: 2 },
+  appName: {
+    color: C.text,
+    fontSize: 20,
+    fontWeight: '800',
+  },
+
+  portalLabel: {
+    color: C.textMuted,
+    fontSize: 12,
+    marginTop: 2,
+  },
 
   logoutBtn: {
     paddingHorizontal: 14,
@@ -62,7 +80,11 @@ export default StyleSheet.create({
     backgroundColor: 'transparent',
   },
 
-  logoutBtnText: { color: C.scarlet, fontSize: 12, fontWeight: '700' },
+  logoutBtnText: {
+    color: C.scarlet,
+    fontSize: 12,
+    fontWeight: '700',
+  },
 
   tabBar: {
     flexDirection: 'row',
@@ -81,11 +103,26 @@ export default StyleSheet.create({
     flexDirection: 'row',
   },
 
-  tabActive: { borderBottomColor: C.tangerine },
-  tabInactive: { borderBottomColor: 'transparent' },
-  tabText: { fontSize: 12, fontWeight: '600' },
-  tabTextActive: { color: C.tangerine },
-  tabTextInactive: { color: C.textDim },
+  tabActive: {
+    borderBottomColor: C.tangerine,
+  },
+
+  tabInactive: {
+    borderBottomColor: 'transparent',
+  },
+
+  tabText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  tabTextActive: {
+    color: C.tangerine,
+  },
+
+  tabTextInactive: {
+    color: C.textDim,
+  },
 
   tabBadge: {
     minWidth: 18,
@@ -97,18 +134,81 @@ export default StyleSheet.create({
     marginLeft: 6,
   },
 
-  tabBadgeActive: { backgroundColor: C.tangerine },
-  tabBadgeInactive: { backgroundColor: 'rgba(236,119,66,0.15)' },
-  tabBadgeText: { fontSize: 9, fontWeight: '700' },
-  tabBadgeTextActive: { color: '#fff' },
-  tabBadgeTextInactive: { color: C.textMuted },
+  tabBadgeActive: {
+    backgroundColor: C.tangerine,
+  },
+
+  tabBadgeInactive: {
+    backgroundColor: 'rgba(236,119,66,0.15)',
+  },
+
+  tabBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+  },
+
+  tabBadgeTextActive: {
+    color: '#fff',
+  },
+
+  tabBadgeTextInactive: {
+    color: C.textMuted,
+  },
+
+  contentContainer: {
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
+
+  scrollContent: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 28,
+  },
+
+  sectionHeader: {
+    color: C.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 10,
+  },
+
+  tabFill: {
+    flex: 1,
+    minHeight: 0,
+  },
+
+  tabScrollContainer: {
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
+  },
+
+  tabScrollViewport: {
+    flex: 1,
+    minHeight: 0,
+  },
+
+  tabScrollContent: {
+    gap: 10,
+    paddingBottom: 10,
+  },
 
   mapTabContainer: {
     flex: 1,
     backgroundColor: C.bg,
-    padding: 16,
-    minHeight: '87.5vh',
-    maxHeight: '87.5vh',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    minHeight: '86.5vh',
+    maxHeight: '86.5vh',
   },
 
   mapLayout: {
@@ -153,8 +253,17 @@ export default StyleSheet.create({
     borderBottomColor: C.cardBorder,
   },
 
-  sidePanelTitle: { color: C.text, fontSize: 15, fontWeight: '800' },
-  sidePanelSubtitle: { color: C.textMuted, fontSize: 12, marginTop: 4 },
+  sidePanelTitle: {
+    color: C.text,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+
+  sidePanelSubtitle: {
+    color: C.textMuted,
+    fontSize: 12,
+    marginTop: 4,
+  },
 
   statsRow: {
     flexDirection: 'row',
@@ -171,8 +280,17 @@ export default StyleSheet.create({
     padding: 12,
   },
 
-  statCardValue: { color: C.text, fontSize: 18, fontWeight: '800' },
-  statCardLabel: { color: C.textMuted, fontSize: 11, marginTop: 2 },
+  statCardValue: {
+    color: C.text,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+
+  statCardLabel: {
+    color: C.textMuted,
+    fontSize: 11,
+    marginTop: 2,
+  },
 
   accordionScroll: {
     flex: 1,
@@ -218,7 +336,11 @@ export default StyleSheet.create({
     marginRight: 10,
   },
 
-  accordionTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  accordionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.text,
+  },
 
   accordionMeta: {
     flexDirection: 'row',
@@ -237,8 +359,19 @@ export default StyleSheet.create({
     borderColor: C.cardBorder,
   },
 
-  accordionCountText: { fontSize: 11, fontWeight: '800', color: C.textMuted },
-  accordionChevron: { fontSize: 14, fontWeight: '800', color: C.textMuted, marginLeft: 10, bottom: 4 },
+  accordionCountText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: C.textMuted,
+  },
+
+  accordionChevron: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: C.textMuted,
+    marginLeft: 10,
+    bottom: 4,
+  },
 
   accordionBodyWrapper: {
     maxHeight: accordionOpenMaxHeight,
@@ -306,8 +439,18 @@ export default StyleSheet.create({
     padding: 24,
   },
 
-  emptyTitle: { fontSize: 14, fontWeight: '700', color: C.text },
-  emptyDesc: { fontSize: 12, color: C.textMuted, marginTop: 4, textAlign: 'center' },
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.text,
+  },
+
+  emptyDesc: {
+    fontSize: 12,
+    color: C.textMuted,
+    marginTop: 4,
+    textAlign: 'center',
+  },
 
   mapLoadingBadge: {
     position: 'absolute',
@@ -356,133 +499,237 @@ export default StyleSheet.create({
     marginRight: 8,
   },
 
-  legendText: { fontSize: 11, color: C.text },
-  legendNote: { fontSize: 10, color: C.textMuted, marginTop: 2 },
+  legendText: {
+    fontSize: 11,
+    color: C.text,
+  },
 
-  tabContent: { flex: 1, backgroundColor: C.bg },
+  legendNote: {
+    fontSize: 10,
+    color: C.textMuted,
+    marginTop: 2,
+  },
 
-  alertScrollContent: { padding: 16 },
+  tabContent: {
+    flex: 1,
+    backgroundColor: C.bg,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
+
+  alertScrollContent: {
+    padding: 16,
+  },
 
   alertCard: {
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
     backgroundColor: C.card,
-    borderColor: C.cardBorder,
-  },
-
-  alertCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-
-  alertIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-
-  alertTypeName: { fontSize: 13, fontWeight: '700', color: C.text },
-  alertTime: { fontSize: 11, color: C.textMuted },
-
-  alertRoleBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    marginLeft: 10,
-  },
-
-  alertRoleBadgeText: { fontSize: 10, fontWeight: '800' },
-  alertMessage: { fontSize: 13, lineHeight: 19, color: C.text },
-  alertFireId: { fontSize: 11, color: C.textMuted, marginTop: 6 },
-  alertExpires: { fontSize: 10, color: C.textMuted, marginTop: 3 },
-
-  unreadBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: C.bg,
-    borderBottomWidth: 1,
-    borderBottomColor: C.cardBorder,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-
-  unreadBannerText: { fontSize: 12, fontWeight: '700', color: C.textMuted },
-
-  markAllReadBtn: {
-    backgroundColor: C.tangerine,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-
-  markAllReadBtnText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-
-  notifScrollContent: { padding: 16 },
-
-  notifCard: {
-    borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 14,
+    borderWidth: 1,
     marginBottom: 10,
   },
 
-  notifCardUnread: {
-    borderColor: C.tangerine,
+  alertCardExpired: {
+    opacity: 0.5,
+  },
+
+  alertCardContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+
+  alertCardIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  alertCardInfo: {
+    flex: 1,
+  },
+
+  alertCardBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+
+  alertCardTypeBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+
+  alertCardTypeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+
+  alertCardExpiredBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: C.slate + '20',
+  },
+
+  alertCardExpiredText: {
+    color: C.slate,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+
+  alertMessage: {
+    color: C.text,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 6,
+  },
+
+  alertCardMetaRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+
+  alertCardMeta: {
+    color: C.textDim,
+    fontSize: 11,
+  },
+
+  notificationCard: {
+    backgroundColor: C.card,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    marginBottom: 10,
+  },
+
+  notificationCardUnread: {
+    borderColor: C.tangerine + '50',
     backgroundColor: C.bg,
   },
 
-  notifCardRead: {
+  notificationCardRead: {
     borderColor: C.cardBorder,
     backgroundColor: C.card,
   },
 
-  notifRow: {
+  notificationCardContent: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    gap: 10,
   },
 
-  notifDot: {
+  notificationUnreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginTop: 6,
-    marginRight: 10,
+    backgroundColor: C.tangerine,
+    marginTop: 4,
   },
 
-  notifDotUnread: { backgroundColor: C.tangerine },
-  notifDotRead: { backgroundColor: C.slate },
+  notificationInfo: {
+    flex: 1,
+  },
 
-  notifMessage: { fontSize: 13, lineHeight: 18, color: C.text },
+  notificationMessage: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 6,
+  },
 
-  notifFooter: {
+  notificationMessageUnread: {
+    color: C.text,
+    fontWeight: '600',
+  },
+
+  notificationMessageRead: {
+    color: C.textMuted,
+    fontWeight: '400',
+  },
+
+  notificationMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 8,
+    gap: 10,
   },
 
-  notifStatusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  notificationStatusBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+
+  notificationStatusBadgeUnread: {
+    backgroundColor: C.tangerine + '20',
+  },
+
+  notificationStatusBadgeRead: {
+    backgroundColor: C.cardBorder,
+  },
+
+  notificationStatusText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+
+  notificationStatusTextUnread: {
+    color: C.tangerine,
+  },
+
+  notificationStatusTextRead: {
+    color: C.textDim,
+  },
+
+  notificationFireId: {
+    color: C.textDim,
+    fontSize: 11,
+  },
+
+  notificationTapHint: {
+    color: C.tangerine,
+    fontSize: 10,
+    fontWeight: '600',
+    marginLeft: 'auto',
+  },
+
+  mapPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#ddd',
+    position: 'relative',
+  },
+
+  recenterButton: {
+    position: 'absolute',
+    left: 12,
+    bottom: 12,
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 999,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
   },
 
-  notifStatusBadgeUnread: { backgroundColor: C.tangerine + '20' },
-  notifStatusBadgeRead: { backgroundColor: C.cardBorder },
+  recenterButtonText: {
+    fontWeight: '700',
+    color: '#0f172a',
+  },
 
-  notifStatusText: { fontSize: 10, fontWeight: '800' },
-  notifStatusTextUnread: { color: C.tangerine },
-  notifStatusTextRead: { color: C.textMuted },
-
-  notifTimeText: { fontSize: 11, color: C.textMuted },
-  notifFireId: { fontSize: 10, color: C.textMuted, marginTop: 4 },
+  mapLoadingOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ddd',
+  },
 
   mapFallbackContainer: {
     flex: 1,
@@ -495,5 +742,17 @@ export default StyleSheet.create({
     color: '#64748b',
     fontSize: 12,
     marginTop: 8,
+  },
+
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: C.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  loadingText: {
+    marginTop: 10,
+    color: C.textMuted,
   },
 });

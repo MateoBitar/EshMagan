@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, ScrollView } from 'react-native';
 import styles from '../../../styles/screens/ResponderCommandView.styles';
 
 export default function NotificationsTab({
@@ -12,7 +12,7 @@ export default function NotificationsTab({
             <Text style={styles.sectionHeader}>
                 {unreadNotifs.length} unread • {notifications.length} total
             </Text>
-            <View style={{ flex: 1, minHeight: '76vh', maxHeight: '76vh', overflow: 'hidden' }}>
+            <View style={{ flex: 1, minHeight: '75.1vh', maxHeight: '75.1vh', overflow: 'hidden' }}>
                 <ScrollView
                     style={{ flex: 1 }}
                     contentContainerStyle={{ gap: 2, paddingBottom: 20 }}

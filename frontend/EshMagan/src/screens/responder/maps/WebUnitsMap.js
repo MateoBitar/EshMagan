@@ -319,7 +319,6 @@ export default function WebUnitsMap({
       map.flyTo(latlng, zoom, { animate: true, duration: 0.8 });
 
       if (typeof target.openPopup === 'function') target.openPopup();
-      if (typeof target.openTooltip === 'function' && fireTarget) target.openTooltip();
 
       setShowRecenter(false);
     } catch { }
@@ -403,7 +402,7 @@ export default function WebUnitsMap({
       <View ref={divRef} style={{ width: '100%', height: '100%' }} />
       {showRecenter ? (
         <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}>
-          <Text style={styles.recenterButtonText}>📍 Recenter</Text>
+          <Text style={styles.recenterButtonText}>📍Recenter</Text>
         </TouchableOpacity>
       ) : null}
     </View>

@@ -13,8 +13,6 @@ export function preloadAlertSound() {
   alertSoundInstance = new Sound('alert_sound.mp3', Sound.MAIN_BUNDLE, error => {
     if (error) {
       console.warn('Failed to load alert sound', error);
-    } else {
-      console.log('Alert sound loaded');
     }
   });
 }
