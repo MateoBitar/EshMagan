@@ -262,7 +262,7 @@ export default function ResidentHomeScreen({ navigation }) {
               </View>
             </View>
             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-              <TouchableOpacity style={styles.bellBtn} onPress={() => navigate('Alert')}>
+              <TouchableOpacity style={styles.bellBtn} onPress={() => navigate('ResidentNotifications')}>
                 <Text style={styles.bellEmoji}>🔔</Text>
               </TouchableOpacity>
               {Platform.OS === 'web' && (

@@ -110,11 +110,20 @@ export default function IncidentDetailsScreen({ navigation, route }) {
     <SafeAreaView style={styles.safeArea}>
       {/* Top Bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => nav?.goBack()} style={{ marginBottom: 10 }}>
-          <Text style={styles.backText}>‹ Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.topBarTitle}>Incident Details</Text>
-        {fire && <Text style={styles.topBarId}>{fire.fire_id}</Text>}
+        <View style={styles.topBarRow}>
+          <TouchableOpacity onPress={() => nav?.goBack?.()} style={styles.backButton}>
+            <Text style={styles.backButtonText}>{'‹ Back'}</Text>
+          </TouchableOpacity>
+
+          <View style={styles.headerTextWrap}>
+            <Text style={styles.title}>Incident Details</Text>
+            {fire && (
+              <Text style={styles.subtitle}>
+                🔥{fire.fire_id}
+              </Text>
+            )}
+          </View>
+        </View>
       </View>
 
       {loading ? (

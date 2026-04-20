@@ -62,9 +62,6 @@ export default StyleSheet.create({
   backButton: {
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: C.tangerine,
   },
 
   backButtonText: {

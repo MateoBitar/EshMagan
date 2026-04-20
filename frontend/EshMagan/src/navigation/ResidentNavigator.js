@@ -7,6 +7,7 @@ import ResidentHomeScreen from '../screens/resident/ResidentHomeScreen';
 import ResidentMapScreen from '../screens/resident/ResidentMapScreen';
 import ResidentAlertsScreen from '../screens/resident/ResidentAlertsScreen';
 import ResidentProfileScreen from '../screens/resident/ResidentProfileScreen';
+import ResidentNotificationsScreen from '../screens/resident/ResidentNotificationsScreen';
 
 const ICONS = {
   ResidentHome: '🏠',
@@ -50,6 +51,7 @@ export default function ResidentNavigator() {
       <Tab.Screen name="ResidentMap" component={ResidentMapScreen} />
       <Tab.Screen name="ResidentAlerts" component={ResidentAlertsScreen} />
       <Tab.Screen name="ResidentProfile" component={ResidentProfileScreen} />
+      <Tab.Screen name="ResidentNotifications" component={ResidentNotificationsScreen}/>
     </Tab.Navigator>
   );
 }

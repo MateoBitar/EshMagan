@@ -14,6 +14,7 @@ import SafetyTipsScreen from '../screens/resident/SafetyTipsScreen';
 import ResidentAlertsScreen from '../screens/resident/ResidentAlertsScreen';
 import ResidentMapScreen from '../screens/resident/ResidentMapScreen';
 import ResidentProfileScreen from '../screens/resident/ResidentProfileScreen';
+import ResidentNotificationsScreen from '../screens/resident/ResidentNotificationsScreen';
 import MunicipalityDashboard from '../screens/municipality/MunicipalityDashboard';
 import IncidentDetailsScreen from '../screens/municipality/IncidentDetailsScreen';
 import ResponderCommandView from '../screens/responder/ResponderCommandView';
@@ -88,6 +89,7 @@ export default function WebNavigator({ user, loading }) {
     ResidentMap: <ResidentMapScreen navigation={nav} />,
     ResidentAlerts: <ResidentAlertsScreen navigation={nav} />,
     ResidentProfile: <ResidentProfileScreen navigation={nav} />,
+    ResidentNotifications: <ResidentNotificationsScreen navigation={nav} />,
     Alert: <AlertScreen navigation={nav} route={{ params }} />,
     Evacuation: <EvacuationScreen navigation={nav} route={{ params }} />,
     ARMode: <ARModeScreen navigation={nav} route={{ params }} />,
