@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, SafeAreaView, TouchableOpacity, ActivityIndicator, Platform, Alert, Image } from 'react-native';
 import styles from '../../styles/screens/IncidentDetailsScreen.styles';
 import { gqlFetch, GET_FIRE, GET_ASSIGNMENTS_BY_FIRE, GET_ALERTS_BY_FIRE, VERIFY_FIRE, EXTINGUISH_FIRE, DISPATCH_CLOSEST_RESPONDER, UPDATE_ASSIGNMENT_STATUS } from '../../services/api';
+import logoSource from '../../images/logoSource';
 
 function getSeverityColor(level) {
   if (!level) return '#94a3b8';
@@ -142,9 +143,7 @@ export default function IncidentDetailsScreen({ navigation, route }) {
             <View style={styles.mainCardHeader}>
               <View style={styles.mainCardIcon}>
                 <Image
-                  source={Platform.OS === 'web'
-                    ? { uri: '/EshMagan_Logo-Badge.png' }
-                    : { uri: 'eshmagan_logo_badge' }}
+                  source={logoSource}
                   style={styles.mainLogoImage}
                   resizeMode="contain"
                 />

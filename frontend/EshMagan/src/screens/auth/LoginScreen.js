@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import styles from '../../styles/screens/LoginScreen.styles';
+import logoSource from '../../images/logoSource';
 
 const TRUST_BADGES = [
   { emoji: '🔒', title: 'AES-256', sub: 'Encrypted' },
@@ -85,9 +86,7 @@ export default function LoginScreen({ navigation }) {
             <View style={styles.header}>
               <View style={styles.logoContainer}>
                 <Image
-                  source={Platform.OS === 'web'
-                    ? { uri: '/EshMagan_Logo-Badge.png' }
-                    : { uri: 'eshmagan_logo_badge' }}
+                  source={logoSource}
                   style={styles.logoImage}
                   resizeMode="contain"
                 />

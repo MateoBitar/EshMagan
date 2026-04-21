@@ -39,6 +39,7 @@ export default function stylesFactory(width, height) {
       gap: 12,
       flexWrap: "wrap",
       marginBottom: 10,
+      marginTop: isWeb ? 0 : Platform.OS === "android" ? 0 : 35,
     },
 
     topBarLogoWrap: {

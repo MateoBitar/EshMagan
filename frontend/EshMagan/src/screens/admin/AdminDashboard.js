@@ -29,6 +29,7 @@ import {
 } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import stylesFactory from "../../styles/screens/AdminDashboard.styles";
+import logoSource from '../../images/logoSource';
 
 const TABS = ["Admins", "Responders", "Municipalities"];
 
@@ -1078,9 +1079,7 @@ export default function AdminDashboard({ navigation }) {
         <View style={styles.topBarLogoWrap}>
           <View style={styles.topBarLogoIcon}>
             <Image
-              source={Platform.OS === 'web'
-                ? { uri: '/EshMagan_Logo-Badge.png' }
-                : { uri: 'eshmagan_logo_badge' }}
+              source={logoSource}
               style={styles.topBarLogoImage}
               resizeMode="contain"
             />

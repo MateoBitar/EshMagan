@@ -1,0 +1,1 @@
+export default { uri: 'eshmagan_logo_badge' };

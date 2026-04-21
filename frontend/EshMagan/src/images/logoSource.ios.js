@@ -1,0 +1,1 @@
+export default require('../../ios/EshMagan/Images.xcassets/eshmagan_logo_badge.png');

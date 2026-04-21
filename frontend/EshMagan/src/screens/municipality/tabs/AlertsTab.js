@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, ScrollView, Text, Platform, ActivityIndicator, Image } from 'react-native';
 import styles, { C } from '../../../styles/screens/MunicipalityDashboard.styles';
+import logoSource from '../../../images/logoSource';
 
 export default function AlertsTab({
   alerts = [],
@@ -65,9 +66,7 @@ export default function AlertsTab({
                   <View style={styles.alertCardContent}>
                     <View style={styles.alertCardIcon}>
                       <Image
-                        source={Platform.OS === 'web'
-                          ? { uri: '/EshMagan_Logo-Badge.png' }
-                          : { uri: 'eshmagan_logo_badge' }}
+                        source={logoSource}
                         style={styles.logoImage}
                         resizeMode="contain"
                       />

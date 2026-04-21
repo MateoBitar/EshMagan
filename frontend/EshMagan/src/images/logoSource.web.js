@@ -1,0 +1,1 @@
+export default { uri: '/EshMagan_Logo-Badge.png' };

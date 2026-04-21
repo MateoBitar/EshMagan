@@ -11,6 +11,7 @@ import { gqlFetch, UPDATE_RESIDENT, GET_ACTIVE_FIRES } from '../../services/api'
 import ResidentSidebar from './ResidentSidebar';
 import styles from '../../styles/screens/ResidentHomeScreen.styles';
 import { useAuth } from '../../context/AuthContext';
+import logoSource from '../../images/logoSource';
 
 const QUICK_ACTIONS = [
   { emoji: '🧭', label: 'Evacuation Routes', screen: 'Evacuation', color: '#FF6A3D' },
@@ -249,9 +250,7 @@ export default function ResidentHomeScreen({ navigation }) {
             <View style={styles.headerLogoWrap}>
               <View style={styles.headerLogoIcon}>
                 <Image
-                  source={Platform.OS === 'web'
-                    ? { uri: '/EshMagan_Logo-Badge.png' }
-                    : { uri: 'eshmagan_logo_badge' }}
+                  source={logoSource}
                   style={styles.headerLogoImage}
                   resizeMode="contain"
                 />

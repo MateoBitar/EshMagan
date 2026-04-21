@@ -14,6 +14,7 @@ import { getCurrentLocation } from '../../services/location.service';
 import styles from '../../styles/screens/ResidentMapScreen.styles';
 import WebResidentMap from './maps/WebResidentMap';
 import NativeResidentMap from './maps/NativeResidentMap';
+import logoSource from '../../images/logoSource';
 
 function isValidCoordPair(lat, lng) {
   return Number.isFinite(lat) && Number.isFinite(lng);
@@ -221,9 +222,7 @@ export default function ResidentMapScreen({ navigation }) {
       <View style={styles.topBar}>
         <View style={styles.logoIcon}>
           <Image
-            source={Platform.OS === 'web'
-              ? { uri: '/EshMagan_Logo-Badge.png' }
-              : { uri: 'eshmagan_logo_badge' }}
+            source={logoSource}
             style={styles.logoImage}
             resizeMode="contain"
           />

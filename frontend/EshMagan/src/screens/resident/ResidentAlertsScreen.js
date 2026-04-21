@@ -17,6 +17,7 @@ import {
 } from '../../services/api';
 import { getCurrentLocation } from '../../services/location.service';
 import styles, { C } from '../../styles/screens/ResidentAlertsScreen.styles';
+import logoSource from '../../images/logoSource';
 
 const ALERT_RADIUS_METERS = 10000;
 
@@ -284,9 +285,7 @@ export default function ResidentAlertsScreen({ navigation }) {
                           <View style={styles.alertCardContent}>
                             <View style={styles.alertCardIcon}>
                               <Image
-                                source={Platform.OS === 'web'
-                                  ? { uri: '/EshMagan_Logo-Badge.png' }
-                                  : { uri: 'eshmagan_logo_badge' }}
+                                source={logoSource}
                                 style={styles.logoImage}
                                 resizeMode="contain"
                               />
