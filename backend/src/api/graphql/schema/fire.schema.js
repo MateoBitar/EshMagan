@@ -53,6 +53,7 @@ export const fireTypeDefs = gql`
     getFiresByLocationAndTime(lat: Float!, lng: Float!, startDate: String!, endDate: String!, radiusMeters: Int): [Fire!]!
     countFires(filters: FireFilterInput): Int!
     findResidentsNearFire(fire_id: ID!, radiusMeters: Int): [Resident!]!
+    getNearbyFires(latitude: Float!, longitude: Float!): [Fire!]!
   }
 
   # -----------------------------

@@ -81,6 +81,14 @@ export const residentResolvers = {
         throw new Error(`GraphQL Error - getResidentByPhone: ${err.message}`);
       }
     },
+
+    getNearbyFires: async (_, { latitude, longitude }, { dataSources }) => {
+      try {
+        return await dataSources.fireService.getNearbyFires(latitude, longitude);
+      } catch (err) {
+        throw new Error(`GraphQL Error - getNearbyFires: ${err.message}`);
+      }
+    },
   },
 
   Mutation: {

@@ -29,7 +29,7 @@ export class FireService {
 
     // CORE ORCHESTRATION METHOD
     //
-    // Full fire lifecycle trigger — called when a new fire is detected.
+    // Full fire lifecycle trigger - called when a new fire is detected.
     // Steps:
     //   1. Save fire to DB
     //   2. Run infrared analysis to validate authenticity
@@ -449,6 +449,33 @@ export class FireService {
         }
     }
 
+    async getNearbyFires(latitude, longitude) {
+        try {
+            if (latitude === undefined || longitude === undefined) {
+                throw new Error("Missing required fields: latitude and longitude");
+            }
+
+            const userLocation = { latitude, longitude };
+            const fires = await this.fireRepository.getActiveFires();
+
+            if (!fires || fires.length === 0) return [];
+
+            const nearbyFires = fires.filter(fire => {
+                const fireCoords = this._parseFireLocation(fire.fire_location);
+                if (!fireCoords) return false;
+
+                const dist = this._distanceInMeters(userLocation, fireCoords);
+                const radius = this._getFireZoneRadiusMeters(fire.fire_severitylevel);
+
+                return dist <= radius;
+            });
+
+            return nearbyFires.map(fire => fire.toDTO());
+        } catch (err) {
+            throw new Error(`Failed to fetch nearby fires: ${err.message}`);
+        }
+    }
+
     // Find all residents located near a specific fire.
     // radiusMeters defaults to 1km around the fire's location.
     async findResidentsNearFire(fire_id, radiusMeters = 1000) {
@@ -476,6 +503,51 @@ export class FireService {
         } catch (err) {
             throw new Error(`Failed to find residents near fire: ${err.message}`);
         }
+    }
+
+    _getFireZoneRadiusMeters(level) {
+        if (level >= 8) return 1000;
+        if (level >= 6) return 800;
+        if (level >= 3) return 500;
+        return 400;
+    }
+
+    _distanceInMeters(a, b) {
+        if (!a || !b) return Infinity;
+
+        const toRad = deg => (deg * Math.PI) / 180;
+        const R = 6371000;
+
+        const dLat = toRad(b.latitude - a.latitude);
+        const dLng = toRad(b.longitude - a.longitude);
+        const lat1 = toRad(a.latitude);
+        const lat2 = toRad(b.latitude);
+
+        const x =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1) * Math.cos(lat2) *
+            Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+        const y = 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+        return R * y;
+    }
+
+    _parseFireLocation(raw) {
+        if (!raw) return null;
+
+        if (typeof raw === 'string' && raw.startsWith('{')) {
+            try {
+                const g = JSON.parse(raw);
+                if (g.type === 'Point' && Array.isArray(g.coordinates)) {
+                    return {
+                        longitude: g.coordinates[0],
+                        latitude: g.coordinates[1]
+                    };
+                }
+            } catch {}
+        }
+
+        return this._parseWKTPoint(raw);
     }
 
     _parseWKTPoint(wkt) {

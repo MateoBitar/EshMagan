@@ -4,7 +4,7 @@ import {
   View, Text, TouchableOpacity, ScrollView,
   SafeAreaView, Animated, Platform, ActivityIndicator,
 } from 'react-native';
-import { gqlFetch, GET_EVACUATION_ROUTES, GET_EVACUATIONS_BY_FIRE } from '../../services/api';
+import { gqlFetch, GET_EVACUATIONS_BY_FIRE } from '../../services/api';
 import { global } from '../../styles/global';
 import styles from '../../styles/screens/EvacuationScreen.styles';
 import { getCurrentLocation } from '../../services/location.service';
@@ -222,7 +222,6 @@ function WebMap({ safeCoords, safePolygonCoords, userCoords, polyline }) {
       const focusZoom = 16;
       map.setView([userCoords.lat, userCoords.lng], focusZoom);
     }
-
   }, [userCoords?.lat, userCoords?.lng, followUser]);
 
   useEffect(() => {
@@ -517,9 +516,9 @@ function NativeMap({ safeCoords, safePolygonCoords, userCoords, polylineCoords, 
 
     const coordsString = JSON.stringify(safePolygonCoords || []);
     webViewRef.current.injectJavaScript(`
-    window.updateSafePolygon(${coordsString});
-    true;
-  `);
+      window.updateSafePolygon(${coordsString});
+      true;
+    `);
   }, [safePolygonCoords, mapReady]);
 
   useEffect(() => {
@@ -616,7 +615,7 @@ export default function EvacuationScreen({ navigation, route }) {
     } catch { }
   }
 
-  const { fireId, isUnsafe = false } = routeParams;
+  const { fireId, isUnsafe = false, nearbyFireIds = [] } = routeParams;
 
   const [routes, setRoutes] = useState([]);
   const [routesLoading, setRoutesLoading] = useState(true);
@@ -635,26 +634,34 @@ export default function EvacuationScreen({ navigation, route }) {
 
   useEffect(() => {
     setSelectedIdx(isUnsafe ? 0 : null);
-  }, [isUnsafe, fireId]);
+  }, [isUnsafe, fireId, nearbyFireIds.join(',')]);
 
   useEffect(() => {
     let cancelled = false;
 
     const load = async () => {
       try {
-        const data = fireId
-          ? await gqlFetch(GET_EVACUATIONS_BY_FIRE, { fire_id: fireId })
-          : await gqlFetch(GET_EVACUATION_ROUTES);
+        let list = [];
 
-        if (!cancelled) {
-          const list = fireId
-            ? data?.getEvacuationsByFireId
-            : data?.getAllEvacuations;
+        if (fireId) {
+          const data = await gqlFetch(GET_EVACUATIONS_BY_FIRE, { fire_id: fireId });
+          list = data?.getEvacuationsByFireId || [];
+        } else if (nearbyFireIds.length > 0) {
+          const results = await Promise.all(
+            nearbyFireIds.map(id => gqlFetch(GET_EVACUATIONS_BY_FIRE, { fire_id: id }))
+          );
 
-          setRoutes(list || []);
+          list = results
+            .flatMap(data => data?.getEvacuationsByFireId || [])
+            .sort((a, b) => (a.route_priority ?? 1) - (b.route_priority ?? 1));
+        } else {
+          list = [];
         }
+
+        if (!cancelled) setRoutes(list);
       } catch (e) {
         console.error('[Evacuation] fetch error:', e);
+        if (!cancelled) setRoutes([]);
       } finally {
         if (!cancelled) setRoutesLoading(false);
       }
@@ -662,9 +669,8 @@ export default function EvacuationScreen({ navigation, route }) {
 
     load();
     return () => { cancelled = true; };
-  }, [fireId]);
+  }, [fireId, nearbyFireIds.join(',')]);
 
-  // ── User location (web + native, no extra permission prompt here) ──────────
   useEffect(() => {
     let watchId = null;
     let Geolocation = null;
@@ -826,7 +832,7 @@ export default function EvacuationScreen({ navigation, route }) {
         rerouteTimeoutRef.current = null;
       }
     };
-  }, [selectedIdx, userCoords?.lat, userCoords?.lng, safeCoords?.lat, safeCoords?.lng]);
+  }, [selectedIdx, userCoords?.lat, userCoords?.lng, safeCoords?.lat, safeCoords?.lng, isUnsafe]);
 
   useEffect(() => {
     return () => {
@@ -849,7 +855,6 @@ export default function EvacuationScreen({ navigation, route }) {
       ? { view: styles.routeStatusClear, text: styles.routeStatusClearText }
       : { view: styles.routeStatusCaution, text: styles.routeStatusCautionText };
 
-  // INITIAL LOAD: Block screen while fetching evacuation routes
   if (routesLoading && routes.length === 0) {
     return (
       <SafeAreaView style={global.loaderScreen}>

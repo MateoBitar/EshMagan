@@ -221,6 +221,18 @@ export const FIND_RESIDENTS_NEAR_FIRE = `query FindResidentsNearFire($fire_id: I
   }
 }`;
 
+export const GET_NEARBY_FIRES = `query GetNearbyFires($latitude: Float!, $longitude: Float!) {
+  getNearbyFires(latitude: $latitude, longitude: $longitude) {
+    fire_id
+    fire_source
+    fire_location
+    fire_severitylevel
+    is_extinguished
+    is_verified
+    created_at
+  }
+}`;
+
 // ─── FIRE MUTATIONS ───────────────────────────────────────────────────────────
 export const CREATE_FIRE = `mutation CreateFire($input: CreateFireInput!) {
   createFire(input: $input) {

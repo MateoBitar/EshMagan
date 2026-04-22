@@ -7,7 +7,7 @@ import {
   startResidentLocationTracking,
   stopLocationTracking,
 } from '../../services/location.service';
-import { gqlFetch, UPDATE_RESIDENT, GET_ACTIVE_FIRES } from '../../services/api';
+import { gqlFetch, UPDATE_RESIDENT, GET_NEARBY_FIRES } from '../../services/api';
 import ResidentSidebar from './ResidentSidebar';
 import styles from '../../styles/screens/ResidentHomeScreen.styles';
 import { useAuth } from '../../context/AuthContext';
@@ -58,33 +58,6 @@ function parsePoint(raw) {
   return null;
 }
 
-function distanceInMeters(a, b) {
-  if (!a || !b) return Infinity;
-
-  const toRad = deg => (deg * Math.PI) / 180;
-  const R = 6371000;
-
-  const dLat = toRad(b.latitude - a.latitude);
-  const dLng = toRad(b.longitude - a.longitude);
-  const lat1 = toRad(a.latitude);
-  const lat2 = toRad(b.latitude);
-
-  const x =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1) * Math.cos(lat2) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2);
-
-  const y = 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
-  return R * y;
-}
-
-function getFireZoneRadiusMeters(level) {
-  if (level >= 8) return 1000;
-  if (level >= 6) return 800;
-  if (level >= 3) return 500;
-  return 400;
-}
-
 // Small delay helper to respect Nominatim's 1 req/sec rate limit
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -99,15 +72,31 @@ async function getPlaceNameCached(latitude, longitude) {
   return name;
 }
 
-function useActiveFires() {
+function useNearbyFires(currentLocation) {
   const [fires, setFires] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchFires = async () => {
+      if (!currentLocation?.latitude || !currentLocation?.longitude) {
+        if (!cancelled) {
+          setFires([]);
+          setLoading(false);
+        }
+        return;
+      }
+
       try {
-        const data = await gqlFetch(GET_ACTIVE_FIRES);
-        const rawFires = data?.getActiveFires || [];
+        if (!cancelled) setLoading(true);
+
+        const data = await gqlFetch(GET_NEARBY_FIRES, {
+          latitude: currentLocation.latitude,
+          longitude: currentLocation.longitude,
+        });
+
+        const rawFires = data?.getNearbyFires || [];
 
         // Sequential calls with 1.1s gap to respect Nominatim rate limit
         const enriched = [];
@@ -121,18 +110,24 @@ function useActiveFires() {
           }
           enriched.push({ ...fire, place_name });
         }
-        setFires(enriched);
+
+        if (!cancelled) setFires(enriched);
       } catch (e) {
-        console.error('Failed to fetch fires:', e);
+        console.error('Failed to fetch nearby fires:', e);
+        if (!cancelled) setFires([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchFires();
     const interval = setInterval(fetchFires, 30000);
-    return () => clearInterval(interval);
-  }, []);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [currentLocation?.latitude, currentLocation?.longitude]);
 
   return { fires, loading };
 }
@@ -213,22 +208,11 @@ export default function ResidentHomeScreen({ navigation }) {
     };
   }, [user?.id]);
 
-  const firesData = useActiveFires();
+  const firesData = useNearbyFires(currentLocation);
   const fires = firesData.fires;
   const loading = firesData.loading;
 
-  const activeFires = fires.filter(f => f.is_extinguished === false);
-
-  const dangerousFires = activeFires.filter(fire => {
-    const fireCoords = parsePoint(fire.fire_location);
-    if (!fireCoords || !currentLocation) return false;
-
-    const dist = distanceInMeters(currentLocation, fireCoords);
-    const radius = getFireZoneRadiusMeters(fire.fire_severitylevel);
-
-    return dist <= radius;
-  });
-
+  const dangerousFires = fires;
   const hasActiveThreat = dangerousFires.length > 0;
 
   const navigate = (screen, params) => { if (!screen) return; nav?.navigate(screen, params); };
@@ -282,7 +266,7 @@ export default function ResidentHomeScreen({ navigation }) {
                 <Text style={styles.statusMsg}>{hasActiveThreat ? 'Active Fire Threat' : 'You Are Safe'}</Text>
                 <Text style={styles.statusDesc}>
                   {loading ? 'Checking status...' : hasActiveThreat
-                    ? `${activeFires.length} active fire(s) detected nearby`
+                    ? `${dangerousFires.length} active fire(s) detected nearby`
                     : 'No active fire threats in your area'}
                 </Text>
               </View>
@@ -302,7 +286,12 @@ export default function ResidentHomeScreen({ navigation }) {
             {QUICK_ACTIONS.map(action => (
               <TouchableOpacity
                 key={action.label}
-                onPress={() => navigate(action.screen, { isUnsafe: hasActiveThreat })}
+                onPress={() =>
+                  navigate(action.screen, {
+                    isUnsafe: hasActiveThreat,
+                    nearbyFireIds: dangerousFires.map(f => f.fire_id),
+                  })
+                }
                 style={[styles.actionBtn, { backgroundColor: action.color }]}
               >
                 <Text style={styles.actionEmoji}>{action.emoji}</Text>
@@ -325,7 +314,6 @@ export default function ResidentHomeScreen({ navigation }) {
             <ActivityIndicator color="#dc2626" style={{ marginTop: 20 }} />
           ) : fires.length === 0 ? (
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyEmoji}>✅</Text>
               <Text style={styles.emptyText}>No active fires in your area</Text>
             </View>
           ) : (
