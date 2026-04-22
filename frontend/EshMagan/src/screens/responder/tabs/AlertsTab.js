@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, ScrollView, Text, Platform, ActivityIndicator, Image } from 'react-native';
 import styles, { C } from '../../../styles/screens/ResponderCommandView.styles';
-
+import logoSource from '../../../images/logoSource';
 
 export default function AlertsTab({
   alerts,
@@ -72,9 +72,7 @@ export default function AlertsTab({
                       ]}
                     >
                       <Image
-                        source={Platform.OS === 'web'
-                          ? { uri: '/EshMagan_Logo-Badge.png' }
-                          : { uri: 'eshmagan_logo_badge' }}
+                        source={logoSource}
                         style={styles.logoImage}
                         resizeMode="contain"
                       />

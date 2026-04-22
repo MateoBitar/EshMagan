@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, ScrollView, Text, Platform, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import styles, { C, ASSIGNMENT_COLORS } from '../../../styles/screens/ResponderCommandView.styles';
+import logoSource from '../../../images/logoSource';
 
 export default function AssignmentsTab({
   myAssignments,
@@ -46,9 +47,7 @@ export default function AssignmentsTab({
                     <View style={styles.assignmentCardInfo}>
                       <View style={styles.assignmentFireRow}>
                         <Image
-                          source={Platform.OS === 'web'
-                            ? { uri: '/EshMagan_Logo-Badge.png' }
-                            : { uri: 'eshmagan_logo_badge' }}
+                          source={logoSource}
                           style={styles.logoImage}
                           resizeMode="contain"
                         />

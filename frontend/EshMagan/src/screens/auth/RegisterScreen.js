@@ -8,6 +8,7 @@ import {
 import { API_BASE } from '../../services/api';
 import { requestLocationPermission, stopLocationTracking, getPlaceName } from '../../services/location.service';
 import styles from '../../styles/screens/LoginScreen.styles';
+import logoSource from '../../images/logoSource';
 
 const PRIVACY_ITEMS = [
   'Location tracking for emergency alerts and evacuation guidance',
@@ -456,9 +457,7 @@ export default function RegisterScreen({ navigation }) {
             <View style={styles.header}>
               <View style={styles.logoContainer}>
                 <Image
-                  source={Platform.OS === 'web'
-                    ? { uri: '/EshMagan_Logo-Badge.png' }
-                    : { uri: 'eshmagan_logo_badge' }}
+                  source={logoSource}
                   style={styles.logoImage}
                   resizeMode="contain"
                 />

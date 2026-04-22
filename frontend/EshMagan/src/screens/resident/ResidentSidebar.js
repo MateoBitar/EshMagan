@@ -2,6 +2,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Modal, Platform, StyleSheet, Image, } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
+import logoSource from '../../images/logoSource';
 
 const NAV_ITEMS = [
   { screen: 'ResidentHome', emoji: '🏠', label: 'Home', desc: 'Dashboard & fire status' },
@@ -49,9 +50,7 @@ export default function ResidentSidebar({ visible, onClose, navigation, currentS
           <View style={styles.brandWrap}>
             <View style={styles.brandLogoIcon}>
               <Image
-                source={Platform.OS === 'web'
-                    ? { uri: '/EshMagan_Logo-Badge.png' }
-                    : { uri: 'eshmagan_logo_badge' }}
+                source={logoSource}
                 style={styles.brandLogoImage}
                 resizeMode="contain"
               />

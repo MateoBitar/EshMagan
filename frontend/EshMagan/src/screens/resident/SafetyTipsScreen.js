@@ -2,6 +2,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, Platform, Image, } from 'react-native';
 import styles from '../../styles/screens/SafetyTipsScreen.styles';
+import logoSource from '../../images/logoSource';
 
 const PREPARATION = [
   { title: 'Create an Emergency Kit', emoji: '🎒', borderColor: '#bfdbfe', checkColor: '#2563eb', items: ['Water (1 gallon per person per day for 3 days)', 'Non-perishable food for 3 days', 'Flashlight and extra batteries', 'First aid kit and essential medications', 'Important documents in waterproof container', 'Cash and credit cards', 'Mobile phone with chargers'] },
@@ -30,9 +31,7 @@ export default function SafetyTipsScreen({ navigation }) {
         <View style={styles.headerRow}>
           <View style={styles.headerIcon}>
             <Image
-              source={Platform.OS === 'web'
-                ? { uri: '/EshMagan_Logo-Badge.png' }
-                : { uri: 'eshmagan_logo_badge' }}
+              source={logoSource}
               style={styles.headerLogoImage}
               resizeMode="contain"
             />

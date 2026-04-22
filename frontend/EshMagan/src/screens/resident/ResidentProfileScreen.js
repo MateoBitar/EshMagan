@@ -16,6 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import { global } from '../../styles/global';
 import { gqlFetch } from '../../services/api';
 import styles from '../../styles/screens/ResidentProfileScreen.styles';
+import logoSource from '../../images/logoSource';
 
 const GET_RESIDENT_BY_ID = `
   query GetResidentById($resident_id: ID!) {
@@ -354,9 +355,7 @@ export default function ResidentProfileScreen({ navigation }) {
         <View style={styles.avatarCard}>
           <View style={styles.logoIcon}>
             <Image
-              source={Platform.OS === 'web'
-                ? { uri: '/EshMagan_Logo-Badge.png' }
-                : { uri: 'eshmagan_logo_badge' }}
+              source={logoSource}
               style={styles.logoImage}
               resizeMode="contain"
             />

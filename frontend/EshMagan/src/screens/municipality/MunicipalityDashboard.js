@@ -25,6 +25,7 @@ import NativeMunicipalityMap from './maps/NativeMunicipalityMap';
 import AlertsTab from './tabs/AlertsTab';
 import NotificationsTab from './tabs/NotificationsTab';
 import { getDistanceMeters, fmtDate } from '../responder/utils/helpers';
+import logoSource from '../../images/logoSource';
 
 const ALERT_RADIUS_METERS = 10000;
 
@@ -289,9 +290,7 @@ export default function MunicipalityDashboard() {
       <View style={styles.topBar}>
         <View style={styles.logoIcon}>
           <Image
-            source={Platform.OS === 'web'
-              ? { uri: '/EshMagan_Logo-Badge.png' }
-              : { uri: 'eshmagan_logo_badge' }}
+            source={logoSource}
             style={styles.logoImage}
             resizeMode="contain"
           />
