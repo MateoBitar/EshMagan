@@ -20,7 +20,6 @@ module.exports = {
             '@react-navigation/native': path.resolve(appDirectory, 'src/stubs/navigation.js'),
             '@react-navigation/native-stack': path.resolve(appDirectory, 'src/stubs/navigation.js'),
             '@react-navigation/bottom-tabs': path.resolve(appDirectory, 'src/stubs/navigation.js'),
-            '@apollo/client': path.resolve(appDirectory, 'src/stubs/apollo.js'),
             './NativeNavigator': path.resolve(appDirectory, 'src/stubs/navigation.js'),
             'react-native-image-picker': path.resolve(appDirectory, 'src/stubs/image-picker.js'),
             '@react-native-community/geolocation': path.resolve(appDirectory, 'src/stubs/geolocation.js'),

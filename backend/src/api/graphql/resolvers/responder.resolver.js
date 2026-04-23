@@ -1,4 +1,5 @@
 // src/api/graphql/resolvers/responder.resolver.js
+import { updateLocationViaGrpc } from '../../../grpc/clients/location.grpc.client.js';
 
 export const responderResolvers = {
   Query: {
@@ -136,9 +137,23 @@ export const responderResolvers = {
     // Update responder location
     updateResponderLocation: async (_, { responder_id, latitude, longitude }, { dataSources }) => {
       try {
-        const updated = await dataSources.responderService.updateResponderLocation(responder_id, latitude, longitude);
-        if (!updated) throw new Error(`Responder with ID ${responder_id} not found`);
-        return updated;
+        const grpcResult = await updateLocationViaGrpc({
+          entity_id: responder_id,
+          latitude,
+          longitude,
+          entity_type: 'Responder',
+        });
+
+        if (!grpcResult) {
+          throw new Error(`Responder with ID ${responder_id} not found`);
+        }
+
+        const responder = await dataSources.responderService.getResponderById(responder_id);
+        if (!responder) {
+          throw new Error(`Responder with ID ${responder_id} not found`);
+        }
+
+        return responder;
       } catch (err) {
         throw new Error(`GraphQL Error - updateResponderLocation: ${err.message}`);
       }

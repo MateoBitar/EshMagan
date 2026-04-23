@@ -4,10 +4,8 @@ import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicat
 import {
   getCurrentLocation,
   getPlaceName,
-  startResidentLocationTracking,
-  stopLocationTracking,
 } from '../../services/location.service';
-import { gqlFetch, UPDATE_RESIDENT, GET_NEARBY_FIRES } from '../../services/api';
+import { gqlFetch, GET_NEARBY_FIRES } from '../../services/api';
 import ResidentSidebar from './ResidentSidebar';
 import styles from '../../styles/screens/ResidentHomeScreen.styles';
 import { useAuth } from '../../context/AuthContext';
@@ -59,9 +57,6 @@ function parsePoint(raw) {
   return null;
 }
 
-// Small delay helper to respect Nominatim's 1 req/sec rate limit
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
 // Cache so repeated renders / 30s refresh don't re-query the same coords
 const _placeCache = new Map();
 
@@ -98,21 +93,8 @@ function useNearbyFires(currentLocation) {
         });
 
         const rawFires = data?.getNearbyFires || [];
+        if (!cancelled) setFires(rawFires);
 
-        // Sequential calls with 1.1s gap to respect Nominatim rate limit
-        const enriched = [];
-        for (const fire of rawFires) {
-          const coords = parsePoint(fire.fire_location);
-          let place_name = null;
-          if (coords && Platform.OS === 'web') {
-            // Web: use Nominatim reverse geocoding
-            place_name = await getPlaceNameCached(coords.latitude, coords.longitude);
-            await sleep(1100); // 1 request per second max
-          }
-          enriched.push({ ...fire, place_name });
-        }
-
-        if (!cancelled) setFires(enriched);
       } catch (e) {
         console.error('Failed to fetch nearby fires:', e);
         if (!cancelled) setFires([]);
@@ -142,62 +124,21 @@ export default function ResidentHomeScreen({ navigation }) {
   const nav = navigation;
 
   useEffect(() => {
-    if (Platform.OS === 'web') {
-      if (!navigator.geolocation) { setUserPlaceName('Location unavailable'); return; }
-      navigator.geolocation.getCurrentPosition(
-        async pos => {
-          const name = await getPlaceNameCached(pos.coords.latitude, pos.coords.longitude);
-          setUserPlaceName(name);
-        },
-        () => setUserPlaceName('Location unavailable'),
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    } else {
-      try {
-        const Geolocation = require('@react-native-community/geolocation').default;
-        Geolocation.getCurrentPosition(
-          async pos => {
-            const name = await getPlaceNameCached(pos.coords.latitude, pos.coords.longitude);
-            setUserPlaceName(name);
-          },
-          () => setUserPlaceName('Location unavailable'),
-          { enableHighAccuracy: true, timeout: 10000 }
-        );
-      } catch {
-        setUserPlaceName('Location unavailable');
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!user?.id) return;
-
     let mounted = true;
 
     const initLocation = async () => {
       try {
         const loc = await getCurrentLocation();
-        if (mounted) setCurrentLocation(loc);
         if (!mounted || !loc) return;
+
+        setCurrentLocation(loc);
 
         try {
           const place = await getPlaceName(loc.latitude, loc.longitude);
           if (mounted) setUserPlaceName(place);
         } catch { }
-
-        await gqlFetch(UPDATE_RESIDENT, {
-          resident_id: user.id,
-          input: {
-            last_known_location: {
-              latitude: loc.latitude,
-              longitude: loc.longitude,
-            },
-          },
-        });
-
-        startResidentLocationTracking(user.id);
       } catch (e) {
-        console.warn('[ResidentHomeScreen location]', e.message);
+        console.warn('[ResidentHomeScreen location]', e?.message || e);
       }
     };
 
@@ -205,9 +146,8 @@ export default function ResidentHomeScreen({ navigation }) {
 
     return () => {
       mounted = false;
-      stopLocationTracking();
     };
-  }, [user?.id]);
+  }, []);
 
   const firesData = useNearbyFires(currentLocation);
   const fires = firesData.fires;

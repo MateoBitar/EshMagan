@@ -1,18 +1,18 @@
 // grpc/services/location.grpc.service.js
 import { ResponderRepository } from '../../domain/repositories/responder.repository.js';
-import { ResidentRepository }  from '../../domain/repositories/resident.repository.js';
-import { FireRepository }      from '../../domain/repositories/fire.repository.js';
-import { UserRepository }      from '../../domain/repositories/user.repository.js';
-import { UserService }         from '../../services/user.service.js';
-import { ResponderService }    from '../../services/responder.service.js';
-import { ResidentService }     from '../../services/resident.service.js';
+import { ResidentRepository } from '../../domain/repositories/resident.repository.js';
+import { FireRepository } from '../../domain/repositories/fire.repository.js';
+import { UserRepository } from '../../domain/repositories/user.repository.js';
+import { UserService } from '../../services/user.service.js';
+import { ResponderService } from '../../services/responder.service.js';
+import { ResidentService } from '../../services/resident.service.js';
 import { getNATSConnection, sc } from '../../config/nats.js';
 
-const userRepository   = new UserRepository();
-const userService      = new UserService(userRepository);
+const userRepository = new UserRepository();
+const userService = new UserService(userRepository);
 const responderService = new ResponderService(new ResponderRepository(), userService);
-const residentService  = new ResidentService(new ResidentRepository(), userService);
-const fireRepository   = new FireRepository();
+const residentService = new ResidentService(new ResidentRepository(), userService);
+const fireRepository = new FireRepository();
 
 // Subscribe to NATS location updates for a specific entity.
 // Publishers push to location.<EntityType>.<entity_id> subjects.
@@ -28,7 +28,7 @@ function subscribeToLocationUpdates(entity_id, entity_type, onUpdate) {
                 const data = JSON.parse(sc.decode(msg.data));
                 onUpdate({
                     entity_id: data.entity_id,
-                    latitude:  data.latitude,
+                    latitude: data.latitude,
                     longitude: data.longitude,
                     timestamp: data.timestamp ?? new Date().toISOString()
                 });
@@ -57,12 +57,27 @@ function publishLocationUpdate(entity_id, entity_type, latitude, longitude, time
     }
 }
 
+// Validate latitude and longitude values
+function isValidCoordinate(latitude, longitude) {
+    return Number.isFinite(latitude)
+        && Number.isFinite(longitude)
+        && latitude >= -90
+        && latitude <= 90
+        && longitude >= -180
+        && longitude <= 180;
+}
+
 export const locationGrpcService = {
 
     // Unary RPC — update location once and return result
     UpdateLocation: async (call, callback) => {
         try {
             const { entity_id, latitude, longitude, entity_type } = call.request;
+
+            if (!isValidCoordinate(latitude, longitude)) {
+                return callback(new Error(`Invalid coordinates received for ${entity_type}:${entity_id}`), null);
+            }
+
             let entity_result_id;
             let last_known_location;
             let updated_at;
@@ -71,24 +86,24 @@ export const locationGrpcService = {
                 const result = await responderService.updateResponderLocation(
                     entity_id, latitude, longitude
                 );
-                entity_result_id    = result.responder_id;
+                entity_result_id = result.responder_id;
                 last_known_location = JSON.stringify(result.last_known_location);
-                updated_at          = result.updated_at ?? new Date().toISOString();
+                updated_at = result.updated_at ?? new Date().toISOString();
 
             } else if (entity_type === 'Resident') {
                 const result = await residentService.updateResident(entity_id, {
                     last_known_location: { latitude, longitude }
                 });
-                entity_result_id    = result.resident_id;
+                entity_result_id = result.resident_id;
                 last_known_location = JSON.stringify(result.last_known_location);
-                updated_at          = result.updated_at ?? new Date().toISOString();
+                updated_at = result.updated_at ?? new Date().toISOString();
 
             } else if (entity_type === 'Fire') {
                 const wkt = `POINT(${longitude} ${latitude})`;
                 const result = await fireRepository.updateFireSpreadPrediction(entity_id, wkt);
-                entity_result_id    = result.fire_id;
+                entity_result_id = result.fire_id;
                 last_known_location = result.fire_location ?? wkt;
-                updated_at          = result.updated_at ?? new Date().toISOString();
+                updated_at = result.updated_at ?? new Date().toISOString();
 
             } else {
                 return callback(new Error(`Unknown entity_type: ${entity_type}`), null);
@@ -98,9 +113,9 @@ export const locationGrpcService = {
             publishLocationUpdate(entity_id, entity_type, latitude, longitude, updated_at);
 
             callback(null, {
-                entity_id:           entity_result_id ?? entity_id,
+                entity_id: entity_result_id ?? entity_id,
                 last_known_location: last_known_location,
-                updated_at:          updated_at
+                updated_at: updated_at
             });
 
         } catch (err) {

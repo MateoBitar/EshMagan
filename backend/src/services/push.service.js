@@ -53,7 +53,7 @@ export async function sendPushToTokens(tokens = [], { title, body, data = {}, an
       const token = cleanTokens[index];
 
       if (result.success) {
-        console.log(`✔️ Token success: ${token}`);
+        console.log(`Token success: ${token}`);
       } else {
         const errorCode = result.error?.code;
 

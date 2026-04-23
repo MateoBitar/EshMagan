@@ -18,6 +18,7 @@ import {
   startResponderLocationTracking,
   stopLocationTracking,
   getCurrentLocation,
+  getTrackingState,
 } from '../services/location.service';
 import {
   requestAppNotificationPermission,
@@ -199,10 +200,16 @@ export function AuthProvider({ children }) {
               console.warn('Restored-session push setup failed', e);
             }
 
+            const tracking = getTrackingState();
+
             if (role === 'Resident') {
-              startResidentLocationTracking(userId);
+              if (!(tracking.active && tracking.type === 'resident' && tracking.entityId === userId)) {
+                startResidentLocationTracking(userId);
+              }
             } else if (role === 'Responder') {
-              startResponderLocationTracking(userId);
+              if (!(tracking.active && tracking.type === 'responder' && tracking.entityId === userId)) {
+                startResponderLocationTracking(userId);
+              }
             }
 
             (async () => {
@@ -230,7 +237,7 @@ export function AuthProvider({ children }) {
                   }
                 }
               } catch (e) {
-                console.warn('Location skipped at startup');
+                console.warn('[Auth startup location]', e?.message || e);
               }
             })();
           }
@@ -421,10 +428,16 @@ export function AuthProvider({ children }) {
         console.warn('Login push setup failed', e);
       }
 
+      const tracking = getTrackingState();
+
       if (userRole === 'Resident') {
-        startResidentLocationTracking(userId);
+        if (!(tracking.active && tracking.type === 'resident' && tracking.entityId === userId)) {
+          startResidentLocationTracking(userId);
+        }
       } else if (userRole === 'Responder') {
-        startResponderLocationTracking(userId);
+        if (!(tracking.active && tracking.type === 'responder' && tracking.entityId === userId)) {
+          startResponderLocationTracking(userId);
+        }
       }
 
       (async () => {
@@ -452,7 +465,7 @@ export function AuthProvider({ children }) {
             }
           }
         } catch (e) {
-          console.warn('Location skipped after login');
+          console.warn('[Auth login location]', e?.message || e);
         }
       })();
     }

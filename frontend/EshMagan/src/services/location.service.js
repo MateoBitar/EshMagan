@@ -11,6 +11,14 @@ let _watchId = null;
 let _trackingType = null;
 let _entityId = null;
 
+export function getTrackingState() {
+  return {
+    active: _watchId !== null,
+    type: _trackingType,
+    entityId: _entityId,
+  };
+}
+
 export async function getPlaceName(latitude, longitude) {
   try {
     const res = await fetch(`${API_BASE}/api/geo/reverse?lat=${latitude}&lon=${longitude}`);
@@ -60,24 +68,47 @@ export async function getPlaceName(latitude, longitude) {
     const parts = [resolvedPlace, district, country].filter(Boolean);
 
     if (parts.length > 0) return parts.join(', ');
-  } catch {}
+  } catch { }
 
   return `${Math.abs(latitude).toFixed(4)}°${latitude >= 0 ? 'N' : 'S'}, ${Math.abs(longitude).toFixed(4)}°${longitude >= 0 ? 'E' : 'W'}`;
 }
 
 export async function requestLocationPermission() {
-  if (Platform.OS === 'web') {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) return reject(new Error('Geolocation not supported'));
-      navigator.geolocation.getCurrentPosition(
-        pos => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-        err => reject(err),
-        { enableHighAccuracy: true, timeout: 10000 }
+  const getPosition = (options) =>
+    new Promise((resolve, reject) => {
+      if (Platform.OS === 'web') {
+        if (!navigator.geolocation) {
+          reject(new Error('Geolocation not supported'));
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+            timestamp: pos.timestamp,
+          }),
+          err => reject(new Error(err.message || 'Failed to get web location')),
+          options
+        );
+
+        return;
+      }
+
+      const Geolocation = require('@react-native-community/geolocation').default;
+
+      Geolocation.getCurrentPosition(
+        pos => resolve({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          timestamp: pos.timestamp,
+        }),
+        err => reject(new Error(err.message || 'Failed to get native location')),
+        options
       );
     });
-  }
-
-  const Geolocation = require('@react-native-community/geolocation').default;
 
   if (Platform.OS === 'android') {
     const { PermissionsAndroid } = require('react-native');
@@ -97,12 +128,10 @@ export async function requestLocationPermission() {
     }
   }
 
-  return new Promise((resolve, reject) => {
-    Geolocation.getCurrentPosition(
-      pos => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-      err => reject(new Error(err.message || 'Failed to get location')),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
+  return getPosition({
+    enableHighAccuracy: true,
+    timeout: 20000,
+    maximumAge: 5000,
   });
 }
 
@@ -132,6 +161,12 @@ async function pushResponderLocationToBackend(responderId, latitude, longitude) 
 }
 
 export function startResidentLocationTracking(residentId) {
+  if (!residentId) return;
+
+  if (_watchId !== null && _trackingType === 'resident' && _entityId === residentId) {
+    return;
+  }
+
   if (_watchId !== null) stopLocationTracking();
 
   _trackingType = 'resident';
@@ -141,9 +176,16 @@ export function startResidentLocationTracking(residentId) {
     if (!navigator.geolocation) return;
 
     _watchId = navigator.geolocation.watchPosition(
-      pos => pushResidentLocationToBackend(residentId, pos.coords.latitude, pos.coords.longitude),
-      err => console.warn('[Resident Location] Web watch error:', err),
-      { enableHighAccuracy: true, maximumAge: 0 }
+      pos => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        pushResidentLocationToBackend(residentId, latitude, longitude);
+      },
+      err => console.warn('[Resident Location] Web watch error:', err?.message || err),
+      {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 20000,
+      }
     );
 
     return;
@@ -153,20 +195,27 @@ export function startResidentLocationTracking(residentId) {
 
   _watchId = Geolocation.watchPosition(
     pos => {
-      const { latitude, longitude } = pos.coords;
+      const { latitude, longitude, accuracy } = pos.coords;
       pushResidentLocationToBackend(residentId, latitude, longitude);
     },
-    err => console.warn('[Resident Location] Watch error:', err.message),
+    err => console.warn('[Resident Location] Watch error:', err?.message || err),
     {
       enableHighAccuracy: true,
-      distanceFilter: 10,
+      distanceFilter: 5,
       interval: 30000,
-      fastestInterval: 15000,
+      fastestInterval: 10000,
+      maximumAge: 5000,
     }
   );
 }
 
 export function startResponderLocationTracking(responderId) {
+  if (!responderId) return;
+
+  if (_watchId !== null && _trackingType === 'responder' && _entityId === responderId) {
+    return;
+  }
+
   if (_watchId !== null) stopLocationTracking();
 
   _trackingType = 'responder';
@@ -176,9 +225,16 @@ export function startResponderLocationTracking(responderId) {
     if (!navigator.geolocation) return;
 
     _watchId = navigator.geolocation.watchPosition(
-      pos => pushResponderLocationToBackend(responderId, pos.coords.latitude, pos.coords.longitude),
-      err => console.warn('[Responder Location] Web watch error:', err),
-      { enableHighAccuracy: true, maximumAge: 0 }
+      pos => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        pushResponderLocationToBackend(responderId, latitude, longitude);
+      },
+      err => console.warn('[Responder Location] Web watch error:', err?.message || err),
+      {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 20000,
+      }
     );
 
     return;
@@ -188,15 +244,16 @@ export function startResponderLocationTracking(responderId) {
 
   _watchId = Geolocation.watchPosition(
     pos => {
-      const { latitude, longitude } = pos.coords;
+      const { latitude, longitude, accuracy } = pos.coords;
       pushResponderLocationToBackend(responderId, latitude, longitude);
     },
-    err => console.warn('[Responder Location] Watch error:', err.message),
+    err => console.warn('[Responder Location] Watch error:', err?.message || err),
     {
       enableHighAccuracy: true,
-      distanceFilter: 10,
-      interval: 30000,
-      fastestInterval: 15000,
+      distanceFilter: 5,
+      interval: 8000,
+      fastestInterval: 4000,
+      maximumAge: 5000,
     }
   );
 }

@@ -1,4 +1,5 @@
 // src/api/graphql/resolvers/resident.resolver.js
+import { updateLocationViaGrpc } from '../../../grpc/clients/location.grpc.client.js';
 
 export const residentResolvers = {
   Query: {
@@ -104,6 +105,28 @@ export const residentResolvers = {
     // Update resident details
     updateResident: async (_, { resident_id, input }, { dataSources }) => {
       try {
+        const keys = Object.keys(input || {}).filter(k => input[k] !== undefined);
+
+        const isLocationOnlyUpdate =
+          keys.length === 1 &&
+          keys[0] === 'last_known_location' &&
+          input.last_known_location &&
+          input.last_known_location.latitude != null &&
+          input.last_known_location.longitude != null;
+
+        if (isLocationOnlyUpdate) {
+          await updateLocationViaGrpc({
+            entity_id: resident_id,
+            latitude: input.last_known_location.latitude,
+            longitude: input.last_known_location.longitude,
+            entity_type: 'Resident',
+          });
+
+          const resident = await dataSources.residentService.getResidentById(resident_id);
+          if (!resident) throw new Error(`Resident with ID ${resident_id} not found`);
+          return resident;
+        }
+
         const updated = await dataSources.residentService.updateResident(resident_id, input);
         if (!updated) throw new Error(`Resident with ID ${resident_id} not found`);
         return updated;
