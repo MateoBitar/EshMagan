@@ -56,6 +56,7 @@ export default function RootNavigator() {
             {isMunicipality && <Stack.Screen name="MunicipalityDashboard" component={MunicipalityDashboard} />}
             {isResponder && <Stack.Screen name="ResponderCommand" component={ResponderCommandView} />}
             {isAdmin && <Stack.Screen name="AdminDashboard" component={AdminDashboard} />}
+            <Stack.Screen name="ResidentNotifications" component={ResidentNotificationsScreen} options={{ animation: 'fade' }}/>
             <Stack.Screen name="Evacuation" component={EvacuationScreen} />
             <Stack.Screen name="ARMode" component={ARModeScreen} options={{ animation: 'fade' }} />
             <Stack.Screen name="SafetyTips" component={SafetyTipsScreen} />
