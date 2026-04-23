@@ -61,8 +61,8 @@ function titleCase(value) {
     .replace(/\b\w/g, m => m.toUpperCase());
 }
 
-function useIncidentData(fireId) {
-  const [fire, setFire] = useState(null);
+function useIncidentData(fireId, initialFire = null) {
+  const [fire, setFire] = useState(initialFire);
   const [assignments, setAssignments] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -80,7 +80,7 @@ function useIncidentData(fireId) {
         gqlFetch(GET_ALERTS_BY_FIRE, { fire_id: fireId }),
       ]);
 
-      setFire(fireData?.getFireById || null);
+      setFire(fireData?.getFireById || initialFire || null);
       setAssignments(assignData?.getAssignmentsByFireId || []);
       setAlerts(alertData?.getAlertsByFireId || []);
     } catch (e) {
@@ -89,6 +89,10 @@ function useIncidentData(fireId) {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    setFire(initialFire || null);
+  }, [initialFire]);
 
   useEffect(() => {
     refresh();
@@ -124,7 +128,7 @@ function parsePoint(value) {
       const lng = Number(parsed.coordinates[0]);
       if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
     }
-  } catch { }
+  } catch {}
 
   const match = String(value).match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
   if (match) {
@@ -286,7 +290,6 @@ function PredictionMap({ bundle, severityColor }) {
       </View>
 
       <View style={styles.mapViewport}>
-
         <View style={styles.mapCanvas}>
           <View style={styles.fireGlowOuter} />
           <View style={styles.fireGlowMiddle} />
@@ -388,14 +391,21 @@ export default function IncidentDetailsScreen({ navigation, route }) {
       const { useNavigation, useRoute } = require('@react-navigation/native');
       nav = useNavigation();
       routeParams = useRoute().params || {};
-    } catch { }
+    } catch {}
   }
 
-  const { fireId } = routeParams;
+  const fireId =
+    routeParams?.fireId ??
+    routeParams?.fire_id ??
+    routeParams?.alert?.fire_id ??
+    routeParams?.fire?.fire_id ??
+    null;
+
+  const initialFire = routeParams?.fire || null;
   const [actionLoading, setActionLoading] = useState(false);
   const [respondersOpen, setRespondersOpen] = useState(true);
 
-  const incidentData = useIncidentData(fireId);
+  const incidentData = useIncidentData(fireId, initialFire);
   const fire = incidentData.fire;
   const assignments = incidentData.assignments;
   const alerts = incidentData.alerts;
@@ -410,14 +420,16 @@ export default function IncidentDetailsScreen({ navigation, route }) {
   const behaviorCards = useMemo(() => buildBehaviorCards(predictionBundle), [predictionBundle]);
 
   const handleAction = async (action, label) => {
+    if (!fireId) return;
+
     const confirm = Platform.OS === 'web'
       ? window.confirm(`${label} this fire?`)
       : await new Promise(resolve =>
-        Alert.alert(label, `Are you sure you want to ${label.toLowerCase()} this fire?`, [
-          { text: 'Cancel', onPress: () => resolve(false), style: 'cancel' },
-          { text: label, onPress: () => resolve(true) },
-        ])
-      );
+          Alert.alert(label, `Are you sure you want to ${label.toLowerCase()} this fire?`, [
+            { text: 'Cancel', onPress: () => resolve(false), style: 'cancel' },
+            { text: label, onPress: () => resolve(true) },
+          ])
+        );
 
     if (!confirm) return;
 
@@ -434,6 +446,8 @@ export default function IncidentDetailsScreen({ navigation, route }) {
   };
 
   const handleDispatch = async () => {
+    if (!fireId) return;
+
     setActionLoading(true);
     try {
       await gqlFetch(DISPATCH_CLOSEST_RESPONDER, { fire_id: fireId });

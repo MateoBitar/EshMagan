@@ -7,7 +7,6 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import ResidentHomeScreen from '../screens/resident/ResidentHomeScreen';
 import AdminDashboard from '../screens/admin/AdminDashboard';
-import AlertScreen from '../screens/resident/AlertScreen';
 import EvacuationScreen from '../screens/resident/EvacuationScreen';
 import ARModeScreen from '../screens/resident/ARModeScreen';
 import SafetyTipsScreen from '../screens/resident/SafetyTipsScreen';
@@ -90,7 +89,6 @@ export default function WebNavigator({ user, loading }) {
     ResidentAlerts: <ResidentAlertsScreen navigation={nav} />,
     ResidentProfile: <ResidentProfileScreen navigation={nav} />,
     ResidentNotifications: <ResidentNotificationsScreen navigation={nav} />,
-    Alert: <AlertScreen navigation={nav} route={{ params }} />,
     Evacuation: <EvacuationScreen navigation={nav} route={{ params }} />,
     ARMode: <ARModeScreen navigation={nav} route={{ params }} />,
     SafetyTips: <SafetyTipsScreen navigation={nav} route={{ params }} />,

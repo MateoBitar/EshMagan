@@ -43,7 +43,7 @@ function parsePoint(str) {
     if (geo?.type === 'Point' && geo.coordinates?.length === 2) {
       return { lng: geo.coordinates[0], lat: geo.coordinates[1] };
     }
-  } catch { }
+  } catch {}
 
   const match = String(str).match(/POINT\s*\(\s*([\d.-]+)\s+([\d.-]+)\s*\)/i);
   if (match) return { lng: parseFloat(match[1]), lat: parseFloat(match[2]) };
@@ -65,9 +65,9 @@ function getDistanceMeters(lat1, lng1, lat2, lng2) {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRad(lat1)) *
-    Math.cos(toRad(lat2)) *
-    Math.sin(dLng / 2) *
-    Math.sin(dLng / 2);
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
@@ -79,7 +79,7 @@ export default function ResidentAlertsScreen({ navigation }) {
     try {
       const { useNavigation } = require('@react-navigation/native');
       nav = useNavigation();
-    } catch { }
+    } catch {}
   }
 
   const [alerts, setAlerts] = useState([]);
@@ -162,6 +162,19 @@ export default function ResidentAlertsScreen({ navigation }) {
       return distance <= ALERT_RADIUS_METERS;
     });
   }, [alerts, allFires, myLocation]);
+
+  const handleOpenIncident = alert => {
+    if (!alert?.fire_id) return;
+
+    const relatedFire = allFires.find(f => f.fire_id === alert.fire_id) || null;
+
+    nav?.navigate?.('IncidentDetails', {
+      fireId: alert.fire_id,
+      alert,
+      fire: relatedFire,
+      source: 'ResidentAlerts',
+    });
+  };
 
   if (loading) {
     return (
@@ -275,7 +288,8 @@ export default function ResidentAlertsScreen({ navigation }) {
                       return (
                         <TouchableOpacity
                           key={alert.alert_id}
-                          onPress={() => nav?.navigate?.('Alert', { alert })}
+                          onPress={() => handleOpenIncident(alert)}
+                          activeOpacity={0.88}
                           style={[
                             styles.alertCard,
                             { borderColor: accentColor + (isExpired ? '30' : '50') },

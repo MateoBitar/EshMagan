@@ -1,5 +1,13 @@
 import React from 'react';
-import { View, ScrollView, Text, Platform, ActivityIndicator, Image } from 'react-native';
+import {
+  View,
+  ScrollView,
+  Text,
+  Platform,
+  ActivityIndicator,
+  Image,
+  TouchableOpacity,
+} from 'react-native';
 import styles, { C } from '../../../styles/screens/MunicipalityDashboard.styles';
 import logoSource from '../../../images/logoSource';
 
@@ -8,9 +16,26 @@ export default function AlertsTab({
   loading,
   fmtDate,
 }) {
+  let nav = null;
+
+  try {
+    const { useNavigation } = require('@react-navigation/native');
+    nav = useNavigation();
+  } catch {}
+
   const sorted = [...alerts].sort(
     (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
   );
+
+  const handleOpenIncident = alert => {
+    if (!alert?.fire_id) return;
+
+    nav?.navigate?.('IncidentDetails', {
+      fireId: alert.fire_id,
+      alert,
+      source: 'MunicipalityAlerts',
+    });
+  };
 
   if (loading) {
     return (
@@ -55,8 +80,11 @@ export default function AlertsTab({
               const accentColor = isExpired ? C.slate : isFireAlert ? C.scarlet : C.tangerine;
 
               return (
-                <View
+                <TouchableOpacity
                   key={alert.alert_id}
+                  activeOpacity={0.88}
+                  onPress={() => handleOpenIncident(alert)}
+                  disabled={!alert?.fire_id}
                   style={[
                     styles.alertCard,
                     { borderColor: accentColor + (isExpired ? '30' : '50') },
@@ -114,7 +142,7 @@ export default function AlertsTab({
                       </View>
                     </View>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })
           )}

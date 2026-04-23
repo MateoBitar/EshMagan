@@ -1,5 +1,7 @@
 // src/styles/screens/ResidentHomeScreen.styles.js
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
+
+const ACTION_WIDTH = Platform.OS === 'web' ? '49.6%' : '48.2%';
 
 export default StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff1d6', minHeight: '100vh' },
@@ -25,7 +27,7 @@ export default StyleSheet.create({
   section: { padding: 20 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 14, top: 10, left: 3 },
   actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  actionBtn: { width: '49.6%', padding: 18, borderRadius: 18, boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.35)' },
+  actionBtn: { width: ACTION_WIDTH, padding: 18, borderRadius: 18, boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.35)' },
   actionEmoji: { fontSize: 28, marginBottom: 10 },
   actionLabel: { color: '#fff', fontWeight: '600', fontSize: 13 },
   firesSection: { paddingHorizontal: 20, marginBottom: 20 },
