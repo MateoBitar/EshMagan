@@ -34,7 +34,7 @@ export default function NativeNavigator({ user, loading }) {
     if (normalizedRole === 'admin') return 'AdminDashboard';
     if (normalizedRole === 'municipality') return 'MunicipalityDashboard';
     if (normalizedRole === 'responder') return 'ResponderCommand';
-    return 'ResidentHome';
+    return 'ResidentTabs';
   };
 
   return (
@@ -52,7 +52,7 @@ export default function NativeNavigator({ user, loading }) {
             )}
 
             {(normalizedRole === 'resident') && (
-              <Stack.Screen name="ResidentHome" component={ResidentNavigator} />
+              <Stack.Screen name="ResidentTabs" component={ResidentNavigator} />
             )}
 
             {normalizedRole === 'municipality' && (
@@ -63,7 +63,7 @@ export default function NativeNavigator({ user, loading }) {
               <Stack.Screen name="ResponderCommand" component={ResponderCommandView} />
             )}
 
-            <Stack.Screen name="Notification" component={NotificationScreen} options={{ animation: 'fade' }} />
+            <Stack.Screen name="ResidentNotifications" component={NotificationScreen} options={{ animation: 'fade' }} />
             <Stack.Screen name="Evacuation" component={EvacuationScreen} />
             <Stack.Screen name="ARMode" component={ARModeScreen} options={{ animation: 'fade' }} />
             <Stack.Screen name="SafetyTips" component={SafetyTipsScreen} />
