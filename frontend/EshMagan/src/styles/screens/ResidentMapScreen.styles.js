@@ -1,7 +1,10 @@
 import { StyleSheet, Dimensions, Platform } from 'react-native';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const isDesktop = Platform.OS === 'web' && width >= 1100;
+const accordionOpenMaxHeight = isDesktop
+  ? Math.max(220, height - 370)
+  : 220;
 
 const C = {
   bg: '#FFF1D6',
@@ -12,10 +15,14 @@ const C = {
   snow: '#F8FAFC',
   text: '#000000',
   textMuted: '#4b2e1a',
+  textDim: 'rgba(0,0,0,0.4)',
 };
 
 export default StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: C.bg, minHeight: '100vh' },
+  safeArea: {
+    flex: 1,
+    backgroundColor: C.bg,
+  },
 
   topBar: {
     backgroundColor: C.bg,
@@ -41,8 +48,17 @@ export default StyleSheet.create({
     height: 50,
   },
 
-  appName: { color: C.text, fontSize: 20, fontWeight: '800' },
-  portalLabel: { color: C.textMuted, fontSize: 12, marginTop: 2 },
+  appName: {
+    color: C.text,
+    fontSize: 20,
+    fontWeight: '800',
+  },
+
+  portalLabel: {
+    color: C.textMuted,
+    fontSize: 12,
+    marginTop: 2,
+  },
 
   logoutBtn: {
     paddingHorizontal: 14,
@@ -53,27 +69,30 @@ export default StyleSheet.create({
     backgroundColor: 'transparent',
   },
 
-  logoutBtnText: { color: C.scarlet, fontSize: 12, fontWeight: '700' },
+  logoutBtnText: {
+    color: C.scarlet,
+    fontSize: 12,
+    fontWeight: '700',
+  },
 
   mapTabContainer: {
     flex: 1,
-    backgroundColor: C.bg,
-    padding: 16,
-    minHeight: 0,
+    backgroundColor: C.bg, 
+    minHeight: '91.5vh',
+    maxHeight: '91.5vh',
   },
 
   mapLayout: {
     flex: 1,
-    flexDirection: isDesktop ? 'row' : 'column',
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
     gap: 12,
-    minHeight: 0,
   },
 
   mapPane: {
-    flex: isDesktop ? 7 : 0,
+    flex: Platform.OS === 'web' ? 7 : 0,
     width: '100%',
-    height: isDesktop ? undefined : 300,
-    minHeight: isDesktop ? 680 : 300,
+    height: Platform.OS === 'web' ? undefined : 300,
+    minHeight: Platform.OS === 'web' ? 680 : 300,
     backgroundColor: C.card,
     borderRadius: 18,
     borderWidth: 1,
@@ -82,9 +101,8 @@ export default StyleSheet.create({
     position: 'relative',
   },
 
-  // 🔥 FIXED: make side panel column layout
   sidePanel: {
-    flex: isDesktop ? 3 : 1,
+    flex: Platform.OS === 'web' ? 3 : 1,
     width: '100%',
     minWidth: 0,
     minHeight: 0,
@@ -93,7 +111,6 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: C.cardBorder,
     overflow: 'hidden',
-
     display: 'flex',
     flexDirection: 'column',
   },
@@ -106,8 +123,17 @@ export default StyleSheet.create({
     borderBottomColor: C.cardBorder,
   },
 
-  sidePanelTitle: { color: C.text, fontSize: 15, fontWeight: '800' },
-  sidePanelSubtitle: { color: C.textMuted, fontSize: 12, marginTop: 4 },
+  sidePanelTitle: {
+    color: C.text,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+
+  sidePanelSubtitle: {
+    color: C.textMuted,
+    fontSize: 12,
+    marginTop: 4,
+  },
 
   statsRow: {
     flexDirection: 'row',
@@ -124,10 +150,18 @@ export default StyleSheet.create({
     padding: 12,
   },
 
-  statCardValue: { color: C.text, fontSize: 18, fontWeight: '800' },
-  statCardLabel: { color: C.textMuted, fontSize: 11, marginTop: 2 },
+  statCardValue: {
+    color: C.text,
+    fontSize: 18,
+    fontWeight: '800',
+  },
 
-  // 🔥 MAIN SCROLL (whole accordion list)
+  statCardLabel: {
+    color: C.textMuted,
+    fontSize: 11,
+    marginTop: 2,
+  },
+
   accordionScroll: {
     flex: 1,
     minHeight: 0,
@@ -138,14 +172,14 @@ export default StyleSheet.create({
     paddingBottom: 20,
   },
 
-  // spacing between accordions (you already fixed 👍)
   accordionSection: {
-    marginBottom: 12,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: C.cardBorder,
     borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: C.snow,
+    flexShrink: 0,
   },
 
   accordionHeader: {
@@ -156,6 +190,7 @@ export default StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: C.bg,
+    flexShrink: 0,
   },
 
   accordionHeaderLeft: {
@@ -171,7 +206,11 @@ export default StyleSheet.create({
     marginRight: 10,
   },
 
-  accordionTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  accordionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.text,
+  },
 
   accordionMeta: {
     flexDirection: 'row',
@@ -190,16 +229,25 @@ export default StyleSheet.create({
     borderColor: C.cardBorder,
   },
 
-  accordionCountText: { fontSize: 11, fontWeight: '800', color: C.textMuted },
-  accordionChevron: { fontSize: 14, fontWeight: '800', color: C.textMuted, marginLeft: 10, bottom: 4 },
+  accordionCountText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: C.textMuted,
+  },
 
-  // 🔥 NEW: wrapper limits height
+  accordionChevron: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: C.textMuted,
+    marginLeft: 10,
+    bottom: 4,
+  },
+
   accordionBodyWrapper: {
-    maxHeight: isDesktop ? 320 : 260,
+    maxHeight: accordionOpenMaxHeight,
     overflow: 'hidden',
   },
 
-  // 🔥 NEW: inner scroll
   accordionBodyScroll: {
     flexGrow: 0,
   },
@@ -215,6 +263,7 @@ export default StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     backgroundColor: C.card,
+    marginBottom: 8,
   },
 
   entityItemActive: {
@@ -255,14 +304,23 @@ export default StyleSheet.create({
   },
 
   emptyWrap: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
   },
 
-  emptyTitle: { fontSize: 14, fontWeight: '700', color: C.text },
-  emptyDesc: { fontSize: 12, color: C.textMuted, marginTop: 4, textAlign: 'center' },
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.text,
+  },
+
+  emptyDesc: {
+    fontSize: 12,
+    color: C.textMuted,
+    marginTop: 4,
+    textAlign: 'center',
+  },
 
   mapLoadingBadge: {
     position: 'absolute',
