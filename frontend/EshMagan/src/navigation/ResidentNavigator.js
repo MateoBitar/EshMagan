@@ -7,7 +7,6 @@ import ResidentHomeScreen from '../screens/resident/ResidentHomeScreen';
 import ResidentMapScreen from '../screens/resident/ResidentMapScreen';
 import ResidentAlertsScreen from '../screens/resident/ResidentAlertsScreen';
 import ResidentProfileScreen from '../screens/resident/ResidentProfileScreen';
-import ResidentNotificationsScreen from '../screens/resident/ResidentNotificationsScreen';
 
 const ICONS = {
   ResidentHome: '🏠',
@@ -31,16 +30,16 @@ export default function ResidentNavigator() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#ffffff',
+          backgroundColor: '#FFF1D6',
           borderTopWidth: 2,
-          borderTopColor: '#e2e8f0',
-          paddingBottom: 8,
-          paddingTop: 8,
+          borderTopColor: '#FFF1D6',
+          paddingBottom: 10,
+          paddingTop: 5,
           height: 65,
         },
-        tabBarActiveTintColor: '#10b981',
+        tabBarActiveTintColor: '#DC2626',
         tabBarInactiveTintColor: '#94a3b8',
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '800' },
         tabBarLabel: LABELS[route.name] || route.name,
         tabBarIcon: () => (
           <Text style={{ fontSize: 20 }}>{ICONS[route.name] || '•'}</Text>
@@ -51,7 +50,6 @@ export default function ResidentNavigator() {
       <Tab.Screen name="ResidentMap" component={ResidentMapScreen} />
       <Tab.Screen name="ResidentAlerts" component={ResidentAlertsScreen} />
       <Tab.Screen name="ResidentProfile" component={ResidentProfileScreen} />
-      <Tab.Screen name="ResidentNotifications" component={ResidentNotificationsScreen}/>
     </Tab.Navigator>
   );
 }

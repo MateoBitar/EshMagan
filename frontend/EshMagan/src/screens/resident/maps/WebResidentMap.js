@@ -125,16 +125,12 @@ export default function WebResidentMap({
     if (!map || !L) return;
 
     markerLayerRef.current.forEach(m => {
-      try {
-        m.remove();
-      } catch {}
+      try { m.remove(); } catch {}
     });
     markerLayerRef.current = [];
 
     fireLayerRef.current.forEach(f => {
-      try {
-        f.remove();
-      } catch {}
+      try { f.remove(); } catch {}
     });
     fireLayerRef.current = [];
 
@@ -236,6 +232,16 @@ export default function WebResidentMap({
         sticky: true,
       });
 
+      circle.bindPopup(`
+        <div style="min-width:160px">
+          <div style="font-weight:700">${fire.displayName || `Fire ${String(fire.fire_id).slice(0, 8)}`}</div>
+          <div style="font-size:12px;color:#475569;margin-top:4px">${getSeverityLabel(severityLevel)}</div>
+          <div style="font-size:11px;color:#64748b;margin-top:4px">
+            ${fire.coords.lat.toFixed(5)}, ${fire.coords.lng.toFixed(5)}
+          </div>
+        </div>
+      `);
+
       if (circle._path) {
         const stopEverything = e => {
           L.DomEvent.stopPropagation(e);
@@ -248,23 +254,15 @@ export default function WebResidentMap({
         L.DomEvent.on(circle._path, 'click', stopEverything);
         L.DomEvent.on(circle._path, 'dblclick', stopEverything);
         L.DomEvent.on(circle._path, 'contextmenu', stopEverything);
+
+        circle.on('mouseover', function () {
+          this.openTooltip();
+        });
+
+        circle.on('mouseout', function () {
+          this.closeTooltip();
+        });
       }
-
-      circle.on('mouseover', function () {
-        this.openTooltip();
-      });
-
-      circle.on('mouseout', function () {
-        this.closeTooltip();
-      });
-
-      circle.bindPopup(`
-        <div style="min-width:140px">
-          <div style="font-weight:700">${fire.displayName || 'Fire'}</div>
-          <div style="font-size:12px;color:#475569;margin-top:4px">${getSeverityLabel(severityLevel)} · ${severityLevel || 'N/A'}</div>
-          <div style="font-size:11px;color:#64748b;margin-top:4px">${fire.fire_source || 'Unknown source'}</div>
-        </div>
-      `);
 
       markerMapRef.current.fires[fire.fire_id] = circle;
       fireLayerRef.current.push(circle);
@@ -297,18 +295,19 @@ export default function WebResidentMap({
 
     try {
       let latlng = null;
+      let zoom = 15;
 
       if (typeof target.getLatLng === 'function') {
         latlng = target.getLatLng();
       } else if (typeof target.getBounds === 'function') {
         latlng = target.getBounds().getCenter();
+        zoom = Math.max(map.getZoom(), 14);
       }
 
       if (!latlng || !isValidCoordPair(latlng.lat, latlng.lng)) return;
 
-      map.flyTo(latlng, 15, { animate: true, duration: 0.8 });
+      map.flyTo(latlng, zoom, { animate: true, duration: 0.8 });
       if (typeof target.openPopup === 'function') target.openPopup();
-      if (typeof target.openTooltip === 'function' && fireTarget) target.openTooltip();
       setShowRecenter(false);
     } catch {}
   }, [selectedFireId, selectedResponderId]);
@@ -332,13 +331,13 @@ export default function WebResidentMap({
   };
 
   return (
-    <View style={{ width: '100%', height: '100%', backgroundColor: '#ddd', position: 'relative' }}>
+    <View style={styles.mapPlaceholder}>
       <View ref={divRef} style={{ width: '100%', height: '100%' }} />
-      {showRecenter && (
+      {showRecenter ? (
         <TouchableOpacity onPress={handleRecenter} style={styles.recenterButton}>
           <Text style={styles.recenterButtonText}>📍 Recenter</Text>
         </TouchableOpacity>
-      )}
+      ) : null}
     </View>
   );
 }

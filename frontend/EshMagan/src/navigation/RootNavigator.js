@@ -12,6 +12,7 @@ import ResidentNavigator from './ResidentNavigator';
 import MunicipalityDashboard from '../screens/municipality/MunicipalityDashboard';
 import AdminDashboard from '../screens/admin/AdminDashboard';
 import ResponderCommandView from '../screens/responder/ResponderCommandView';
+import ResidentNotificationsScreen from '../screens/resident/ResidentNotificationsScreen';
 import EvacuationScreen from '../screens/resident/EvacuationScreen';
 import ARModeScreen from '../screens/resident/ARModeScreen';
 import SafetyTipsScreen from '../screens/resident/SafetyTipsScreen';
@@ -51,10 +52,11 @@ export default function RootNavigator() {
           </>
         ) : (
           <>
-            {isResident && <Stack.Screen name="ResidentHome" component={ResidentNavigator} />}
+            {isResident && <Stack.Screen name="ResidentTabs" component={ResidentNavigator} />}
             {isMunicipality && <Stack.Screen name="MunicipalityDashboard" component={MunicipalityDashboard} />}
             {isResponder && <Stack.Screen name="ResponderCommand" component={ResponderCommandView} />}
             {isAdmin && <Stack.Screen name="AdminDashboard" component={AdminDashboard} />}
+            <Stack.Screen name="Alert" component={AlertScreen} options={{ animation: 'fade' }} />
             <Stack.Screen name="Evacuation" component={EvacuationScreen} />
             <Stack.Screen name="ARMode" component={ARModeScreen} options={{ animation: 'fade' }} />
             <Stack.Screen name="SafetyTips" component={SafetyTipsScreen} />

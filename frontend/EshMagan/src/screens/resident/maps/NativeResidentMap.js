@@ -43,9 +43,10 @@ export default function NativeResidentMap({
         const style = getFireZoneStyle(severityLevel);
         return {
           ...fire,
+          severityLevel,
           radius: getFireZoneRadiusMeters(severityLevel),
-          stroke: style.stroke,
-          fill: style.fill,
+          fillColor: style.fill,
+          strokeColor: style.stroke,
           fillOpacity: style.fillOpacity,
           severityLabel: getSeverityLabel(severityLevel),
         };
@@ -61,21 +62,24 @@ export default function NativeResidentMap({
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
       <style>
-        html, body { margin:0; padding:0; height:100%; width:100%; overflow:hidden; background:#ddd; }
+        html, body { margin:0; padding:0; height:100%; width:100%; overflow:hidden; }
         #map { height:100%; width:100%; }
 
         .fire-hover-tooltip {
-          background: rgba(0,0,0,0.8);
-          border: none;
-          box-shadow: none;
-          color: #fff;
-          font-size: 11px;
-          font-weight: 700;
-          padding: 3px 7px;
-          border-radius: 6px;
+          background: #000 !important;
+          color: #fff !important;
+          border: none !important;
+          border-radius: 6px !important;
+          padding: 4px 8px !important;
+          font-size: 11px !important;
+          font-weight: 700 !important;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.25) !important;
         }
 
-        .fire-hover-tooltip::before { display: none; }
+        .fire-hover-tooltip:before,
+        .fire-hover-tooltip::before {
+          display: none !important;
+        }
 
         .leaflet-interactive {
           outline: none !important;
@@ -83,16 +87,19 @@ export default function NativeResidentMap({
           tap-highlight-color: transparent !important;
         }
 
+        .leaflet-interactive:focus,
+        .leaflet-interactive:active,
         svg path:focus,
         svg path:active {
           outline: none !important;
+          box-shadow: none !important;
         }
       </style>
     </head>
     <body>
       <div id="map"></div>
       <script>
-        const map = L.map('map').setView([33.8938, 35.5018], 9);
+        const map = L.map('map', { zoomControl: true }).setView([33.8938, 35.5018], 9);
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
           attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
@@ -106,16 +113,73 @@ export default function NativeResidentMap({
         let userMarker = null;
         let focusMarkers = { fires: {}, responders: {}, user: null };
         let hasCenteredInitially = false;
+        let latestUser = null;
+        let activeFireSidePopup = null;
+        let activeFireTapTooltip = null;
+        let suppressNextMapClick = false;
 
         function validPair(lat, lng) {
           return Number.isFinite(Number(lat)) && Number.isFinite(Number(lng));
+        }
+
+        function hideRecenter() {
+          window.ReactNativeWebView.postMessage('HIDE_RECENTER');
+        }
+
+        function closeFireSidePopup() {
+          if (activeFireSidePopup) {
+            try { map.closePopup(activeFireSidePopup); } catch {}
+            activeFireSidePopup = null;
+          }
+        }
+
+        function closeFireTapTooltip() {
+          if (activeFireTapTooltip) {
+            try { map.removeLayer(activeFireTapTooltip); } catch {}
+            activeFireTapTooltip = null;
+          }
+        }
+
+        function closeAllLayerPopups() {
+          markers.forEach(layer => {
+            try { layer.closePopup(); } catch {}
+          });
+          if (userMarker) {
+            try { userMarker.closePopup(); } catch {}
+          }
+        }
+
+        function closeAllFireTooltips() {
+          closeFireTapTooltip();
+        }
+
+        function buildFirePopupHtml(fire) {
+          return (
+            '<div style="min-width:160px">' +
+              '<div style="font-weight:700">' + (fire.displayName || ('Fire ' + String(fire.fire_id).slice(0, 8))) + '</div>' +
+              '<div style="font-size:12px;color:#475569;margin-top:4px">' + (fire.severityLabel || 'Unknown') + '</div>' +
+              '<div style="font-size:11px;color:#64748b;margin-top:4px">' +
+                Number(fire.coords.lat).toFixed(5) + ', ' + Number(fire.coords.lng).toFixed(5) +
+              '</div>' +
+            '</div>'
+          );
         }
 
         map.on('dragstart zoomstart', function() {
           window.ReactNativeWebView.postMessage('SHOW_RECENTER');
         });
 
+        map.on('click', function() {
+          if (suppressNextMapClick) {
+            suppressNextMapClick = false;
+            return;
+          }
+          closeAllFireTooltips();
+        });
+
         window.setUser = function(user) {
+          latestUser = user || null;
+
           if (userMarker) {
             try { userMarker.remove(); } catch {}
             userMarker = null;
@@ -180,7 +244,7 @@ export default function NativeResidentMap({
                   '<div style="font-weight:700">' + (responder.displayName || responder.unit_nb || 'Responder') + '</div>' +
                   '<div style="font-size:12px;color:#475569;margin-top:4px">' + (responder.responder_status || 'Unknown') + '</div>' +
                   '<div style="font-size:11px;color:#64748b;margin-top:4px">' +
-                    responder.coords.lat.toFixed(5) + ', ' + responder.coords.lng.toFixed(5) +
+                    Number(responder.coords.lat).toFixed(5) + ', ' + Number(responder.coords.lng).toFixed(5) +
                   '</div>' +
                 '</div>'
               )
@@ -192,118 +256,111 @@ export default function NativeResidentMap({
         };
 
         window.updateFires = function(fires) {
+          closeFireSidePopup();
+          closeAllFireTooltips();
+
           fireZones.forEach(f => {
             try { f.remove(); } catch {}
           });
           fireZones = [];
           focusMarkers.fires = {};
 
-          (fires || []).forEach(fire => {
-            if (!fire.coords || !validPair(fire.coords.lat, fire.coords.lng)) return;
+          const validFires = (fires || []).filter(f => f.coords && validPair(f.coords.lat, f.coords.lng));
 
-            const severityLevel = Number(fire.fire_severitylevel ?? fire.severity ?? 0);
-
-            const zone = L.circle([fire.coords.lat, fire.coords.lng], {
-              radius: fire.radius,
-              color: fire.stroke,
+          validFires.forEach(fire => {
+            const circle = L.circle([fire.coords.lat, fire.coords.lng], {
+              radius: Number(fire.radius || 0),
+              color: fire.strokeColor,
               weight: 2.5,
-              fillColor: fire.fill,
-              fillOpacity: fire.fillOpacity
+              fillColor: fire.fillColor,
+              fillOpacity: Number(fire.fillOpacity ?? 0.28),
             }).addTo(map);
 
-            zone.bindPopup(
-              '<div style="min-width:140px">' +
-                '<div style="font-weight:700">' + (fire.displayName || 'Fire') + '</div>' +
-                '<div style="font-size:12px;color:#475569;margin-top:4px">' + (fire.severityLabel || 'Unknown') + ' · ' + (severityLevel || 'N/A') + '</div>' +
-                '<div style="font-size:11px;color:#64748b;margin-top:4px">' + (fire.fire_source || 'Unknown source') + '</div>' +
-              '</div>'
-            );
+            circle.fireData = fire;
 
-            focusMarkers.fires[fire.fire_id] = zone;
+            circle.on('click', function(e) {
+              suppressNextMapClick = true;
+              closeFireSidePopup();
+              closeAllLayerPopups();
+              closeAllFireTooltips();
 
-            const tooltip = L.tooltip({
-              permanent: false,
-              direction: 'top',
-              opacity: 1,
-              className: 'fire-hover-tooltip',
-              offset: [0, -2],
-              sticky: true
-            }).setContent(fire.displayName || ('Fire ' + String(fire.fire_id).slice(0, 8)));
+              activeFireTapTooltip = L.tooltip({
+                permanent: false,
+                direction: 'top',
+                opacity: 1,
+                className: 'fire-hover-tooltip',
+                offset: [0, -2],
+              })
+                .setLatLng(e.latlng)
+                .setContent(fire.displayName || ('Fire ' + String(fire.fire_id).slice(0, 8)))
+                .addTo(map);
 
-            zone.bindTooltip(tooltip);
-
-            let holdTimeout = null;
-            let tooltipOpenedByHold = false;
-
-            zone.on('touchstart', function(e) {
-              L.DomEvent.stopPropagation(e);
-              tooltipOpenedByHold = false;
-
-              holdTimeout = setTimeout(function() {
-                tooltipOpenedByHold = true;
-                zone.openTooltip();
-              }, 300);
-            });
-
-            zone.on('touchend touchcancel', function() {
-              if (holdTimeout) {
-                clearTimeout(holdTimeout);
-                holdTimeout = null;
-              }
-
-              if (tooltipOpenedByHold) {
-                zone.closeTooltip();
-                tooltipOpenedByHold = false;
+              if (e && e.originalEvent) {
+                if (typeof e.originalEvent.preventDefault === 'function') e.originalEvent.preventDefault();
+                if (typeof e.originalEvent.stopPropagation === 'function') e.originalEvent.stopPropagation();
               }
             });
 
-            zone.on('mouseover', function() {
-              zone.openTooltip();
-            });
-
-            zone.on('mouseout', function() {
-              zone.closeTooltip();
-            });
-
-            fireZones.push(zone);
+            fireZones.push(circle);
+            focusMarkers.fires[fire.fire_id] = circle;
           });
         };
 
-        window.focusEntity = function(fireId, responderId) {
-          const fireTarget = fireId ? focusMarkers.fires[fireId] : null;
-          const responderTarget = responderId ? focusMarkers.responders[responderId] : null;
-          const target = fireTarget || responderTarget;
-          if (!target) return;
+        window.focusResponder = function(responderId) {
+          closeFireSidePopup();
+          closeAllFireTooltips();
 
-          let center = null;
+          const marker = focusMarkers.responders[responderId];
+          if (!marker) return;
 
-          try {
-            if (typeof target.getLatLng === 'function') {
-              center = target.getLatLng();
-            } else if (typeof target.getBounds === 'function') {
-              center = target.getBounds().getCenter();
-            }
-          } catch {}
+          const ll = marker.getLatLng();
+          try { marker.openPopup(); } catch {}
 
-          if (!center || !validPair(center.lat, center.lng)) return;
-
-          map.flyTo([center.lat, center.lng], 15, { animate: true, duration: 0.8 });
-
-          try {
-            if (typeof target.openPopup === 'function') target.openPopup();
-          } catch {}
-
-          try {
-            if (fireTarget && typeof target.openTooltip === 'function') target.openTooltip();
-          } catch {}
-
-          window.ReactNativeWebView.postMessage('HIDE_RECENTER');
+          map.flyTo([ll.lat, ll.lng], 15, { animate: true, duration: 0.8 });
+          map.once('moveend', function() { hideRecenter(); });
         };
 
-        window.recenterToUser = function(user) {
-          if (!user || !validPair(user.lat, user.lng)) return;
-          map.flyTo([Number(user.lat), Number(user.lng)], 15, { animate: true, duration: 0.8 });
-          window.ReactNativeWebView.postMessage('HIDE_RECENTER');
+        window.focusFire = function(fireId) {
+          closeFireSidePopup();
+          closeAllFireTooltips();
+          closeAllLayerPopups();
+
+          const circle = focusMarkers.fires[fireId];
+          if (!circle || !circle.fireData) return;
+
+          const fire = circle.fireData;
+          const center = circle.getBounds().getCenter();
+
+          activeFireSidePopup = L.popup({
+            closeButton: true,
+            autoClose: false,
+            closeOnClick: true,
+            offset: [0, -8],
+          })
+            .setLatLng(center)
+            .setContent(buildFirePopupHtml(fire))
+            .openOn(map);
+
+          map.flyTo([center.lat, center.lng], Math.max(map.getZoom(), 14), { animate: true, duration: 0.8 });
+          map.once('moveend', function() { hideRecenter(); });
+        };
+
+        window.resetMap = function() {
+          closeFireSidePopup();
+          closeAllFireTooltips();
+          closeAllLayerPopups();
+
+          if (latestUser && validPair(latestUser.lat, latestUser.lng)) {
+            map.flyTo(
+              [Number(latestUser.lat), Number(latestUser.lng)],
+              15,
+              { animate: true, duration: 0.8 }
+            );
+            map.once('moveend', function() { hideRecenter(); });
+            return;
+          }
+
+          hideRecenter();
         };
 
         window.ReactNativeWebView.postMessage('MAP_READY');
@@ -326,9 +383,6 @@ export default function NativeResidentMap({
         if (window.updateFires) {
           window.updateFires(${JSON.stringify(safeFires)});
         }
-        if (window.focusEntity) {
-          window.focusEntity(${JSON.stringify(selectedFireId || null)}, ${JSON.stringify(selectedResponderId || null)});
-        }
       })();
       true;
     `;
@@ -338,65 +392,65 @@ export default function NativeResidentMap({
 
   useEffect(() => {
     injectAll();
-  }, [mapReady, safeResponders, safeFires, userCoords, selectedFireId, selectedResponderId]);
+  }, [mapReady, userCoords, safeResponders, safeFires]);
+
+  useEffect(() => {
+    if (!mapReady || !webViewRef.current || !selectedFireId) return;
+    webViewRef.current.injectJavaScript(`
+      window.focusFire(${JSON.stringify(selectedFireId)});
+      true;
+    `);
+    setShowRecenter(false);
+  }, [mapReady, selectedFireId]);
+
+  useEffect(() => {
+    if (!mapReady || !webViewRef.current || !selectedResponderId) return;
+    webViewRef.current.injectJavaScript(`
+      window.focusResponder(${JSON.stringify(selectedResponderId)});
+      true;
+    `);
+    setShowRecenter(false);
+  }, [mapReady, selectedResponderId]);
 
   const handleRecenter = () => {
-    if (!webViewRef.current || !userCoords || !isValidCoordPair(userCoords.lat, userCoords.lng)) return;
-
-    const script = `
-      (function() {
-        if (window.recenterToUser) {
-          window.recenterToUser(${JSON.stringify(userCoords)});
-        }
-      })();
+    if (!webViewRef.current) return;
+    webViewRef.current.injectJavaScript(`
+      window.resetMap();
       true;
-    `;
-
-    webViewRef.current.injectJavaScript(script);
+    `);
     setShowRecenter(false);
   };
 
-  const handleMessage = event => {
-    const msg = event?.nativeEvent?.data;
-
-    if (msg === 'MAP_READY') {
-      setMapReady(true);
-      return;
-    }
-
-    if (msg === 'SHOW_RECENTER') {
-      setShowRecenter(true);
-      return;
-    }
-
-    if (msg === 'HIDE_RECENTER') {
-      setShowRecenter(false);
-    }
-  };
-
   return (
-    <View style={{ width: '100%', height: '100%', position: 'relative', backgroundColor: '#ddd' }}>
+    <View style={styles.mapPlaceholder}>
       <WebView
         ref={webViewRef}
         originWhitelist={['*']}
         source={{ html: mapHTML }}
-        onMessage={handleMessage}
+        style={{ flex: 1, backgroundColor: 'transparent' }}
+        onMessage={event => {
+          const msg = event.nativeEvent.data;
+          if (msg === 'MAP_READY') setMapReady(true);
+          else if (msg === 'SHOW_RECENTER') setShowRecenter(true);
+          else if (msg === 'HIDE_RECENTER') setShowRecenter(false);
+        }}
         javaScriptEnabled
         domStorageEnabled
         mixedContentMode="always"
-        style={{ flex: 1, backgroundColor: 'transparent' }}
+        allowFileAccess
+        allowUniversalAccessFromFileURLs
       />
 
       {!mapReady ? (
-        <View style={styles.mapLoadingBadge}>
-          <ActivityIndicator size="small" color="#EC7742" />
-          <Text style={styles.mapLoadingText}>Loading.</Text>
+        <View style={styles.mapLoadingOverlay}>
+          <ActivityIndicator color={C.tangerine} />
+          <Text style={styles.mapLoadingText}>Loading map...</Text>
         </View>
       ) : null}
 
       {showRecenter ? (
         <TouchableOpacity onPress={handleRecenter} style={styles.recenterButton}>
-          <Text style={styles.recenterButtonText}>📍 Recenter</Text>
+          <Text style={styles.recenterButtonText}>📍Recenter</Text>
         </TouchableOpacity>
       ) : null}
     </View>

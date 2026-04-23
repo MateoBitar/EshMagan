@@ -238,7 +238,7 @@ export default function ResidentMapScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.mapTabContainer}>
+      <View style={[styles.mapTabContainer, { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 }]}>
         <View style={styles.mapLayout}>
           <View style={styles.mapPane}>
             {Platform.OS === 'web' ? (
