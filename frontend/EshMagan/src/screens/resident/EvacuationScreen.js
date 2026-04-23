@@ -7,7 +7,7 @@ import {
 import { gqlFetch, GET_EVACUATIONS_BY_FIRE } from '../../services/api';
 import { global } from '../../styles/global';
 import styles from '../../styles/screens/EvacuationScreen.styles';
-import { getCurrentLocation } from '../../services/location.service';
+import { useAuth } from '../../context/AuthContext';
 
 // ─── Coordinate helpers ───────────────────────────────────────────────────────
 
@@ -604,6 +604,7 @@ function NativeMap({ safeCoords, safePolygonCoords, userCoords, polylineCoords, 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function EvacuationScreen({ navigation, route }) {
+  const { userLocation } = useAuth();
   let nav = navigation;
   let routeParams = route?.params || {};
 
@@ -637,119 +638,50 @@ export default function EvacuationScreen({ navigation, route }) {
   }, [isUnsafe, fireId, nearbyFireIds.join(',')]);
 
   useEffect(() => {
-    let cancelled = false;
+    let mounted = true;
 
-    const load = async () => {
+    const fetchRoutes = async () => {
       try {
-        let list = [];
+        setRoutesLoading(true);
 
-        if (fireId) {
-          const data = await gqlFetch(GET_EVACUATIONS_BY_FIRE, { fire_id: fireId });
-          list = data?.getEvacuationsByFireId || [];
-        } else if (nearbyFireIds.length > 0) {
-          const results = await Promise.all(
-            nearbyFireIds.map(id => gqlFetch(GET_EVACUATIONS_BY_FIRE, { fire_id: id }))
-          );
-
-          list = results
-            .flatMap(data => data?.getEvacuationsByFireId || [])
-            .sort((a, b) => (a.route_priority ?? 1) - (b.route_priority ?? 1));
-        } else {
-          list = [];
+        if (!fireId) {
+          if (mounted) setRoutes([]);
+          return;
         }
 
-        if (!cancelled) setRoutes(list);
-      } catch (e) {
-        console.error('[Evacuation] fetch error:', e);
-        if (!cancelled) setRoutes([]);
-      } finally {
-        if (!cancelled) setRoutesLoading(false);
-      }
-    };
+        const data = await gqlFetch(GET_EVACUATIONS_BY_FIRE, { fire_id: fireId });
 
-    load();
-    return () => { cancelled = true; };
-  }, [fireId, nearbyFireIds.join(',')]);
+        if (!mounted) return;
 
-  useEffect(() => {
-    let watchId = null;
-    let Geolocation = null;
-    let cancelled = false;
-
-    const applyCoords = pos => {
-      if (cancelled || !pos?.coords) return;
-      setUserCoords({
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-      });
-    };
-
-    const init = async () => {
-      try {
-        const loc = await getCurrentLocation();
-        if (!cancelled && loc) {
-          setUserCoords({
-            lat: loc.latitude,
-            lng: loc.longitude,
-          });
-        }
-      } catch (e) {
-        console.warn('[Evacuation initial location]', e.message);
-      }
-
-      if (Platform.OS === 'web') {
-        if (!navigator.geolocation) return;
-
-        watchId = navigator.geolocation.watchPosition(
-          applyCoords,
-          err => console.warn('[Web Geolocation]', err.message),
-          {
-            enableHighAccuracy: true,
-            maximumAge: 5000,
-            timeout: 10000,
-          }
+        const list = data?.getEvacuationsByFire || [];
+        const sorted = [...list].sort(
+          (a, b) => (a.route_priority ?? 999) - (b.route_priority ?? 999)
         );
-        return;
-      }
 
-      try {
-        Geolocation = require('@react-native-community/geolocation').default;
+        setRoutes(sorted);
       } catch (e) {
-        console.warn('[Native Geolocation] Package not installed');
-        return;
+        console.warn('[Evacuation routes]', e?.message || e);
+        if (mounted) setRoutes([]);
+      } finally {
+        if (mounted) setRoutesLoading(false);
       }
-
-      watchId = Geolocation.watchPosition(
-        applyCoords,
-        err => console.warn('[Native Geolocation]', err.message),
-        {
-          enableHighAccuracy: true,
-          distanceFilter: 3,
-          interval: 2000,
-          fastestInterval: 1500,
-          timeout: 10000,
-          maximumAge: 5000,
-        }
-      );
     };
 
-    init();
+    fetchRoutes();
 
     return () => {
-      cancelled = true;
-
-      if (Platform.OS === 'web') {
-        if (watchId != null && navigator.geolocation) {
-          navigator.geolocation.clearWatch(watchId);
-        }
-        return;
-      }
-
-      if (Geolocation && watchId != null) {
-        Geolocation.clearWatch(watchId);
-      }
+      mounted = false;
     };
-  }, []);
+  }, [fireId]);
+  
+  useEffect(() => {
+    if (userLocation?.lat != null && userLocation?.lng != null) {
+      setUserCoords({
+        lat: userLocation.lat,
+        lng: userLocation.lng,
+      });
+    }
+  }, [userLocation?.lat, userLocation?.lng]);
 
   const selectedRoute = selectedIdx !== null ? (routes[selectedIdx] || null) : null;
   const safeCoords = selectedRoute ? parseGeoJSON(selectedRoute.safe_zone) : null;

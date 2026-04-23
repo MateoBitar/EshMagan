@@ -10,11 +10,11 @@ import {
   Image,
 } from 'react-native';
 import { gqlFetch, GET_ALL_FIRES } from '../../services/api';
-import { getCurrentLocation } from '../../services/location.service';
 import styles from '../../styles/screens/ResidentMapScreen.styles';
 import WebResidentMap from './maps/WebResidentMap';
 import NativeResidentMap from './maps/NativeResidentMap';
 import logoSource from '../../images/logoSource';
+import { useAuth } from '../../context/AuthContext';
 
 function isValidCoordPair(lat, lng) {
   return Number.isFinite(lat) && Number.isFinite(lng);
@@ -83,6 +83,7 @@ function getSeverityLabel(level) {
 }
 
 export default function ResidentMapScreen({ navigation }) {
+  const { userLocation } = useAuth();
   const [fires, setFires] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedFireId, setSelectedFireId] = useState(null);
@@ -116,89 +117,13 @@ export default function ResidentMapScreen({ navigation }) {
   }, []);
 
   useEffect(() => {
-    let watchId = null;
-    let Geolocation = null;
-    let cancelled = false;
-
-    const applyCoords = pos => {
-      if (cancelled || !pos?.coords) return;
-
-      const lat = Number(pos.coords.latitude);
-      const lng = Number(pos.coords.longitude);
-
-      if (!isValidCoordPair(lat, lng)) return;
-
-      setUserCoords({ lat, lng });
-    };
-
-    const init = async () => {
-      try {
-        const loc = await getCurrentLocation();
-        if (!cancelled && loc) {
-          const lat = Number(loc.latitude);
-          const lng = Number(loc.longitude);
-
-          if (isValidCoordPair(lat, lng)) {
-            setUserCoords({ lat, lng });
-          }
-        }
-      } catch (e) {
-        console.warn('[ResidentMap initial location]', e.message);
-      }
-
-      if (Platform.OS === 'web') {
-        if (!navigator.geolocation) return;
-
-        watchId = navigator.geolocation.watchPosition(
-          applyCoords,
-          err => console.warn('[ResidentMap Web Geolocation]', err.message),
-          {
-            enableHighAccuracy: true,
-            maximumAge: 5000,
-            timeout: 10000,
-          }
-        );
-        return;
-      }
-
-      try {
-        Geolocation = require('@react-native-community/geolocation').default;
-      } catch (e) {
-        console.warn('[ResidentMap Native Geolocation] Package not installed');
-        return;
-      }
-
-      watchId = Geolocation.watchPosition(
-        applyCoords,
-        err => console.warn('[ResidentMap Native Geolocation]', err.message),
-        {
-          enableHighAccuracy: true,
-          distanceFilter: 3,
-          interval: 2000,
-          fastestInterval: 1500,
-          timeout: 10000,
-          maximumAge: 5000,
-        }
-      );
-    };
-
-    init();
-
-    return () => {
-      cancelled = true;
-
-      if (Platform.OS === 'web') {
-        if (watchId != null && navigator.geolocation) {
-          navigator.geolocation.clearWatch(watchId);
-        }
-        return;
-      }
-
-      if (Geolocation && watchId != null) {
-        Geolocation.clearWatch(watchId);
-      }
-    };
-  }, []);
+    if (userLocation?.lat != null && userLocation?.lng != null) {
+      setUserCoords({
+        lat: userLocation.lat,
+        lng: userLocation.lng,
+      });
+    }
+  }, [userLocation?.lat, userLocation?.lng]);
 
   const firesForMap = useMemo(
     () =>

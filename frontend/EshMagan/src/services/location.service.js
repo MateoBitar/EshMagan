@@ -160,7 +160,7 @@ async function pushResponderLocationToBackend(responderId, latitude, longitude) 
   }
 }
 
-export function startResidentLocationTracking(residentId) {
+export function startResidentLocationTracking(residentId, onLocationUpdate) {
   if (!residentId) return;
 
   if (_watchId !== null && _trackingType === 'resident' && _entityId === residentId) {
@@ -178,13 +178,19 @@ export function startResidentLocationTracking(residentId) {
     _watchId = navigator.geolocation.watchPosition(
       pos => {
         const { latitude, longitude, accuracy } = pos.coords;
+        onLocationUpdate?.({ lat: latitude, lng: longitude, accuracy });
         pushResidentLocationToBackend(residentId, latitude, longitude);
       },
-      err => console.warn('[Resident Location] Web watch error:', err?.message || err),
+      err => {
+        console.warn('[Resident Location]', err?.message || err);
+
+        if (err.code === 3) {
+          console.warn('[Resident Location] Timeout — keeping last known position');
+        }
+      },
       {
         enableHighAccuracy: true,
-        maximumAge: 5000,
-        timeout: 20000,
+        maximumAge: 10000,
       }
     );
 
@@ -196,20 +202,27 @@ export function startResidentLocationTracking(residentId) {
   _watchId = Geolocation.watchPosition(
     pos => {
       const { latitude, longitude, accuracy } = pos.coords;
+      onLocationUpdate?.({ lat: latitude, lng: longitude, accuracy });
       pushResidentLocationToBackend(residentId, latitude, longitude);
     },
-    err => console.warn('[Resident Location] Watch error:', err?.message || err),
+    err => {
+      console.warn('[Resident Location]', err?.message || err);
+
+      if (err.code === 3) {
+        console.warn('[Resident Location] Timeout — keeping last known position');
+      }
+    },
     {
-      enableHighAccuracy: true,
-      distanceFilter: 5,
-      interval: 30000,
-      fastestInterval: 10000,
-      maximumAge: 5000,
-    }
+    enableHighAccuracy: true,
+    distanceFilter: 5,
+    interval: 5000,
+    fastestInterval: 2000,
+    maximumAge: 10000,
+  }
   );
 }
 
-export function startResponderLocationTracking(responderId) {
+export function startResponderLocationTracking(responderId, onLocationUpdate) {
   if (!responderId) return;
 
   if (_watchId !== null && _trackingType === 'responder' && _entityId === responderId) {
@@ -227,13 +240,19 @@ export function startResponderLocationTracking(responderId) {
     _watchId = navigator.geolocation.watchPosition(
       pos => {
         const { latitude, longitude, accuracy } = pos.coords;
+        onLocationUpdate?.({ lat: latitude, lng: longitude, accuracy });
         pushResponderLocationToBackend(responderId, latitude, longitude);
       },
-      err => console.warn('[Responder Location] Web watch error:', err?.message || err),
+      err => {
+        console.warn('[Responder Location]', err?.message || err);
+
+        if (err.code === 3) {
+          console.warn('[Responder Location] Timeout — keeping last known position');
+        }
+      },
       {
         enableHighAccuracy: true,
-        maximumAge: 5000,
-        timeout: 20000,
+        maximumAge: 10000,
       }
     );
 
@@ -245,15 +264,22 @@ export function startResponderLocationTracking(responderId) {
   _watchId = Geolocation.watchPosition(
     pos => {
       const { latitude, longitude, accuracy } = pos.coords;
+      onLocationUpdate?.({ lat: latitude, lng: longitude, accuracy });
       pushResponderLocationToBackend(responderId, latitude, longitude);
     },
-    err => console.warn('[Responder Location] Watch error:', err?.message || err),
+    err => {
+      console.warn('[Responder Location]', err?.message || err);
+
+      if (err.code === 3) {
+        console.warn('[Responder Location] Timeout — keeping last known position');
+      }
+    },
     {
       enableHighAccuracy: true,
       distanceFilter: 5,
       interval: 8000,
       fastestInterval: 4000,
-      maximumAge: 5000,
+      maximumAge: 10000,
     }
   );
 }

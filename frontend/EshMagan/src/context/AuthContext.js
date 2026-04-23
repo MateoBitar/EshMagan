@@ -17,7 +17,6 @@ import {
   startResidentLocationTracking,
   startResponderLocationTracking,
   stopLocationTracking,
-  getCurrentLocation,
   getTrackingState,
 } from '../services/location.service';
 import {
@@ -117,10 +116,7 @@ export function AuthProvider({ children }) {
       return currentUserLocation;
     }
 
-    const loc = await getCurrentLocation();
-    if (!loc) return null;
-
-    return { lat: loc.latitude, lng: loc.longitude };
+    return null;
   };
 
   const setupPushNotifications = async (userId) => {
@@ -204,42 +200,13 @@ export function AuthProvider({ children }) {
 
             if (role === 'Resident') {
               if (!(tracking.active && tracking.type === 'resident' && tracking.entityId === userId)) {
-                startResidentLocationTracking(userId);
+                startResidentLocationTracking(userId, setUserLocation);
               }
             } else if (role === 'Responder') {
               if (!(tracking.active && tracking.type === 'responder' && tracking.entityId === userId)) {
-                startResponderLocationTracking(userId);
+                startResponderLocationTracking(userId, setUserLocation);
               }
             }
-
-            (async () => {
-              try {
-                const loc = await getCurrentLocation();
-                if (loc) {
-                  setUserLocation({ lat: loc.latitude, lng: loc.longitude });
-
-                  if (role === 'Resident') {
-                    await gqlFetch(UPDATE_RESIDENT, {
-                      resident_id: userId,
-                      input: {
-                        last_known_location: {
-                          latitude: loc.latitude,
-                          longitude: loc.longitude,
-                        },
-                      },
-                    });
-                  } else if (role === 'Responder') {
-                    await gqlFetch(UPDATE_RESPONDER_LOCATION, {
-                      responder_id: userId,
-                      latitude: loc.latitude,
-                      longitude: loc.longitude,
-                    });
-                  }
-                }
-              } catch (e) {
-                console.warn('[Auth startup location]', e?.message || e);
-              }
-            })();
           }
         }
       } catch (e) {
@@ -432,42 +399,13 @@ export function AuthProvider({ children }) {
 
       if (userRole === 'Resident') {
         if (!(tracking.active && tracking.type === 'resident' && tracking.entityId === userId)) {
-          startResidentLocationTracking(userId);
+          startResidentLocationTracking(userId, setUserLocation);
         }
       } else if (userRole === 'Responder') {
         if (!(tracking.active && tracking.type === 'responder' && tracking.entityId === userId)) {
-          startResponderLocationTracking(userId);
+          startResponderLocationTracking(userId, setUserLocation);
         }
       }
-
-      (async () => {
-        try {
-          const loc = await getCurrentLocation();
-          if (loc) {
-            setUserLocation({ lat: loc.latitude, lng: loc.longitude });
-
-            if (userRole === 'Resident') {
-              await gqlFetch(UPDATE_RESIDENT, {
-                resident_id: userId,
-                input: {
-                  last_known_location: {
-                    latitude: loc.latitude,
-                    longitude: loc.longitude,
-                  },
-                },
-              });
-            } else if (userRole === 'Responder') {
-              await gqlFetch(UPDATE_RESPONDER_LOCATION, {
-                responder_id: userId,
-                latitude: loc.latitude,
-                longitude: loc.longitude,
-              });
-            }
-          }
-        } catch (e) {
-          console.warn('[Auth login location]', e?.message || e);
-        }
-      })();
     }
 
     return data;
@@ -498,7 +436,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, userLocation, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

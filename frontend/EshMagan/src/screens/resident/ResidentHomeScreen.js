@@ -1,10 +1,7 @@
 // src/screens/resident/ResidentHomeScreen.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Linking, Platform, Image } from 'react-native';
-import {
-  getCurrentLocation,
-  getPlaceName,
-} from '../../services/location.service';
+import { getPlaceName } from '../../services/location.service';
 import { gqlFetch, GET_NEARBY_FIRES } from '../../services/api';
 import ResidentSidebar from './ResidentSidebar';
 import styles from '../../styles/screens/ResidentHomeScreen.styles';
@@ -150,7 +147,25 @@ function useNearbyFires(currentLocation) {
         });
 
         const rawFires = data?.getNearbyFires || [];
-        if (!cancelled) setFires(rawFires);
+
+        const enrichedFires = await Promise.all(
+          rawFires.map(async fire => {
+            const coords = parsePoint(fire.fire_location);
+
+            if (!coords) {
+              return { ...fire, place_name: 'Unknown Location' };
+            }
+
+            try {
+              const place_name = await getPlaceNameCached(coords.latitude, coords.longitude);
+              return { ...fire, place_name };
+            } catch {
+              return { ...fire, place_name: 'Unknown Location' };
+            }
+          })
+        );
+
+        if (!cancelled) setFires(enrichedFires);
 
       } catch (e) {
         console.error('Failed to fetch nearby fires:', e);
@@ -173,7 +188,7 @@ function useNearbyFires(currentLocation) {
 }
 
 export default function ResidentHomeScreen({ navigation }) {
-  const { user } = useAuth();
+  const { user, userLocation } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userPlaceName, setUserPlaceName] = useState('Locating…');
   const [currentLocation, setCurrentLocation] = useState(null);
@@ -216,40 +231,34 @@ export default function ResidentHomeScreen({ navigation }) {
 
     let mounted = true;
 
-    const initLocation = async () => {
+    const updateLocationLabel = async () => {
+      if (userLocation?.lat == null || userLocation?.lng == null) return;
+
+      const loc = {
+        latitude: userLocation.lat,
+        longitude: userLocation.lng,
+      };
+
+      setCurrentLocation(loc);
+
       try {
-        const loc = await getCurrentLocation();
-        if (!mounted || !loc) return;
-
-        setCurrentLocation(loc);
-
-        try {
-          const place = await getPlaceName(loc.latitude, loc.longitude);
-          if (mounted) setUserPlaceName(place);
-        } catch {}
-
-        await gqlFetch(UPDATE_RESIDENT, {
-          resident_id: user.id,
-          input: {
-            last_known_location: {
-              latitude: loc.latitude,
-              longitude: loc.longitude,
-            },
-          },
-        });
-
-        startResidentLocationTracking(user.id);
-      } catch (e) {
-        console.warn('[ResidentHomeScreen location]', e?.message || e);
+        const place = await getPlaceNameCached(loc.latitude, loc.longitude);
+        if (mounted) setUserPlaceName(place);
+      } catch {
+        if (mounted) {
+          setUserPlaceName(
+            `${Math.abs(loc.latitude).toFixed(4)}°${loc.latitude >= 0 ? 'N' : 'S'}, ${Math.abs(loc.longitude).toFixed(4)}°${loc.longitude >= 0 ? 'E' : 'W'}`
+          );
+        }
       }
     };
 
-    initLocation();
+    updateLocationLabel();
 
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [userLocation?.lat, userLocation?.lng]);
 
   const firesData = useNearbyFires(currentLocation);
   const fires = firesData.fires;

@@ -15,9 +15,9 @@ import {
   GET_ALERTS_BY_ROLE,
   GET_ALL_FIRES,
 } from '../../services/api';
-import { getCurrentLocation } from '../../services/location.service';
 import styles, { C } from '../../styles/screens/ResidentAlertsScreen.styles';
 import logoSource from '../../images/logoSource';
+import { useAuth } from '../../context/AuthContext';
 
 const ALERT_RADIUS_METERS = 10000;
 
@@ -43,7 +43,7 @@ function parsePoint(str) {
     if (geo?.type === 'Point' && geo.coordinates?.length === 2) {
       return { lng: geo.coordinates[0], lat: geo.coordinates[1] };
     }
-  } catch {}
+  } catch { }
 
   const match = String(str).match(/POINT\s*\(\s*([\d.-]+)\s+([\d.-]+)\s*\)/i);
   if (match) return { lng: parseFloat(match[1]), lat: parseFloat(match[2]) };
@@ -65,21 +65,22 @@ function getDistanceMeters(lat1, lng1, lat2, lng2) {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
+    Math.cos(toRad(lat2)) *
+    Math.sin(dLng / 2) *
+    Math.sin(dLng / 2);
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
 export default function ResidentAlertsScreen({ navigation }) {
+  const { userLocation } = useAuth();
   let nav = navigation;
   if (Platform.OS !== 'web') {
     try {
       const { useNavigation } = require('@react-navigation/native');
       nav = useNavigation();
-    } catch {}
+    } catch { }
   }
 
   const [alerts, setAlerts] = useState([]);
@@ -89,25 +90,13 @@ export default function ResidentAlertsScreen({ navigation }) {
   const hasFetchedResidentAlertsRef = useRef(false);
 
   useEffect(() => {
-    let mounted = true;
-
-    const initLocation = async () => {
-      try {
-        const loc = await getCurrentLocation();
-        if (mounted && loc) {
-          setMyLocation({ lat: loc.latitude, lng: loc.longitude });
-        }
-      } catch (e) {
-        console.warn('[ResidentAlertsScreen location]', e.message);
-      }
-    };
-
-    initLocation();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    if (userLocation?.lat != null && userLocation?.lng != null) {
+      setMyLocation({
+        lat: userLocation.lat,
+        lng: userLocation.lng,
+      });
+    }
+  }, [userLocation?.lat, userLocation?.lng]);
 
   useEffect(() => {
     let mounted = true;
@@ -144,7 +133,7 @@ export default function ResidentAlertsScreen({ navigation }) {
     return alerts.filter(alert => {
       if (new Date(alert.expires_at) <= new Date()) return false;
       if (!alert.fire_id) return false;
-      if (!myLocation) return false;
+      if (!myLocation) return true;
 
       const fire = allFires.find(f => f.fire_id === alert.fire_id);
       if (!fire) return false;
