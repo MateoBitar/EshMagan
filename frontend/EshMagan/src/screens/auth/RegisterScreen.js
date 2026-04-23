@@ -10,6 +10,63 @@ import { requestLocationPermission, stopLocationTracking, getPlaceName } from '.
 import styles from '../../styles/screens/LoginScreen.styles';
 import logoSource from '../../images/logoSource';
 
+const ASSETS = {
+  person: Platform.select({
+    web: { uri: '/person.png' },
+    android: { uri: 'person' },
+    ios: { uri: 'person' },
+    default: { uri: 'person' },
+  }),
+  lightBulb: Platform.select({
+    web: { uri: '/light_bulb.png' },
+    android: { uri: 'light_bulb' },
+    ios: { uri: 'light_bulb' },
+    default: { uri: 'lightbulb' },
+  }),
+  triangleRuler: Platform.select({
+    web: { uri: '/triangle_ruler.png' },
+    android: { uri: 'triangle_ruler' },
+    ios: { uri: 'triangle_ruler' },
+    default: { uri: 'traingle_ruler' },
+  }),
+  tree: Platform.select({
+    web: { uri: '/tree.png' },
+    android: { uri: 'tree' },
+    ios: { uri: 'tree' },
+    default: { uri: 'tree' },
+  }),
+  magnifyingGlass: Platform.select({
+    web: { uri: '/magnifying_glass.png' },
+    android: { uri: 'magnifying_glass' },
+    ios: { uri: 'magnifying_glass' },
+    default: { uri: 'magnifying_glass' },
+  }),
+  info: Platform.select({
+    web: { uri: '/info.png' },
+    android: { uri: 'info' },
+    ios: { uri: 'info' },
+    default: { uri: 'info' },
+  }),
+  camera: Platform.select({
+    web: { uri: '/camera.png' },
+    android: { uri: 'camera' },
+    ios: { uri: 'camera' },
+    default: { uri: 'camera' },
+  }),
+  shield: Platform.select({
+    web: { uri: '/shield.png' },
+    android: { uri: 'shield' },
+    ios: { uri: 'shield' },
+    default: { uri: 'shield' },
+  }),
+  lockOpenCheck: Platform.select({
+    web: { uri: '/lock_open_check.png' },
+    android: { uri: 'lock_open_check' },
+    ios: { uri: 'lock_open_check' },
+    default: { uri: 'lock_open_check.png' },
+  }),
+};
+
 const PRIVACY_ITEMS = [
   'Location tracking for emergency alerts and evacuation guidance',
   'Identity verification for secure access to critical systems',
@@ -401,7 +458,7 @@ export default function RegisterScreen({ navigation }) {
         <View style={{ flex: 1, flexDirection: 'row' }}>
           <View style={{ width: 95, backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 8, paddingTop: 8, paddingBottom: 8, alignItems: 'center' }}>
             <View style={{ width: 68, height: 90, backgroundColor: 'rgba(255,255,255,0.13)', borderRadius: 3, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', marginTop: 40 }}>
-              <Text style={{ fontSize: 30 }}>👤</Text>
+              <Image source={ASSETS.person} style={{ width: 30, height: 30 }} resizeMode="contain" />
             </View>
           </View>
           <View style={{ flex: 1, paddingHorizontal: 8, paddingTop: 7, paddingBottom: 6, justifyContent: 'space-between' }}>
@@ -424,17 +481,19 @@ export default function RegisterScreen({ navigation }) {
         </View>
       </View>
       <View style={{ width: '100%', gap: 8, marginBottom: 24 }}>
-        {[
-          { icon: '💡', tip: 'Use good lighting — avoid shadows, glare, and flash reflections' },
-          { icon: '📐', tip: 'Place the ID on a flat surface and photograph it horizontally' },
-          { icon: '🌲', tip: 'Cedar logo (top-left), portrait (left), and ID number (bottom) must all be visible' },
-          { icon: '🔍', tip: 'Get close enough so the ID fills most of the photo' },
-        ].map((item, i) => (
-          <View key={i} style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
-            <Text style={{ fontSize: 14 }}>{item.icon}</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, flex: 1 }}>{item.tip}</Text>
-          </View>
-        ))}
+        {
+          [
+            { icon: ASSETS.lightBulb, tip: 'Use good lighting - avoid shadows, glare, and flash reflections' },
+            { icon: ASSETS.triangleRuler, tip: 'Place the ID on a flat surface and photograph it horizontally' },
+            { icon: ASSETS.tree, tip: 'Cedar logo (top-left), portrait (left), and ID number (bottom) must all be visible' },
+            { icon: ASSETS.magnifyingGlass, tip: 'Get close enough so the ID fills most of the photo' },
+          ]
+            .map((item, i) => (
+              <View key={i} style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+                <Image source={item.icon} style={{ width: 14, height: 14 }} resizeMode="contain" />
+                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, flex: 1 }}>{item.tip}</Text>
+              </View>
+            ))}
       </View>
       <TouchableOpacity onPress={() => { setShowGuide(false); handlePickPhoto(true); }} style={{ width: '100%', height: 48, backgroundColor: '#DC2626', borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
         <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>  Take Photo</Text>
@@ -487,7 +546,7 @@ export default function RegisterScreen({ navigation }) {
               {form.resident_idnb.length > 0 && !idValid && (<FieldError msg={`${12 - form.resident_idnb.length} digit${12 - form.resident_idnb.length !== 1 ? 's' : ''} remaining`} />)}
               <Text style={styles.inputLabel}>ID PHOTO</Text>
               <View style={{ backgroundColor: '#FFF1D6', borderRadius: 10, padding: 10, marginBottom: 10, borderLeftWidth: 3, borderLeftColor: '#EC7742', flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
-                <Text style={{ fontSize: 14 }}>ℹ️</Text>
+                <Image source={ASSETS.info} style={{ width: 14, height: 14 }} resizeMode="contain" />
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 11, color: '#000', fontWeight: '700', marginBottom: 2 }}>Lebanese National ID required</Text>
                   <Text style={{ fontSize: 10, color: 'rgba(0,0,0,0.6)', lineHeight: 15 }}>Take a flat, horizontal photo of the front of your ID in good lighting. Make sure the cedar logo (top-left), portrait photo (left side), and ID number strip (bottom) are all clearly visible.</Text>
@@ -503,7 +562,7 @@ export default function RegisterScreen({ navigation }) {
                   </>
                 ) : (
                   <>
-                    <Text style={{ fontSize: 28, marginBottom: 6 }}>📷</Text>
+                    <Image source={ASSETS.camera} style={{ width: 28, height: 28, marginBottom: 6 }} resizeMode="contain" />
                     <Text style={{ fontSize: 13, color: '#EC7742', fontWeight: '600' }}>Tap to add ID photo</Text>
                     <Text style={{ fontSize: 11, color: 'rgba(0,0,0,0.35)', marginTop: 2 }}>Camera or gallery</Text>
                   </>
@@ -511,7 +570,7 @@ export default function RegisterScreen({ navigation }) {
               </TouchableOpacity>
               {photoError ? (
                 <View style={{ backgroundColor: '#FFF1D6', borderRadius: 10, padding: 12, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: '#DC2626', flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
-                  <Text style={{ fontSize: 14 }}>📷</Text>
+                  <Image source={ASSETS.camera} style={{ width: 14, height: 14 }} resizeMode="contain" />
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 12, color: '#DC2626', fontWeight: '700', marginBottom: 2 }}>Photo rejected</Text>
                     <Text style={{ fontSize: 11, color: '#000', lineHeight: 16, opacity: 0.7 }}>{photoError}</Text>
@@ -543,7 +602,7 @@ export default function RegisterScreen({ navigation }) {
               {form.confirmPassword.length > 0 && form.confirmPassword !== form.user_password && (<FieldError msg="Passwords do not match" />)}
               <View style={styles.privacyBox}>
                 <View style={styles.privacyHeader}>
-                  <Text style={{ fontSize: 14 }}>🛡️</Text>
+                  <Image source={ASSETS.shield} style={{ width: 14, height: 14 }} resizeMode="contain" />
                   <Text style={styles.privacyTitle}>Privacy & Location Consent</Text>
                 </View>
                 {PRIVACY_ITEMS.map((item, i) => (
@@ -568,7 +627,7 @@ export default function RegisterScreen({ navigation }) {
               </View>
               {revokeMsg && (
                 <View style={{ backgroundColor: '#FFF1D6', borderRadius: 10, padding: 12, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: '#DC2626', flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
-                  <Text style={{ fontSize: 14 }}>ℹ️</Text>
+                  <Image source={ASSETS.info} style={{ width: 14, height: 14 }} resizeMode="contain" />
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 12, color: '#DC2626', fontWeight: '700', marginBottom: 2 }}>Tracking stopped</Text>
                     <Text style={{ fontSize: 11, color: '#000', lineHeight: 16, opacity: 0.7 }}>To fully revoke permission, go to Settings → Apps → EshMagan → Permissions.</Text>
@@ -585,7 +644,10 @@ export default function RegisterScreen({ navigation }) {
                 <CheckItem label="Location & consent granted" done={agreed && locationGranted} />
               </View>
               <TouchableOpacity onPress={handleRegister} disabled={loading} style={[styles.loginBtn, styles.loginBtnActive]}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginBtnText}>🔐  Create My Account</Text>}
+                {loading ? <ActivityIndicator color="#fff" /> : <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Image source={ASSETS.lockOpenCheck} style={{ width: 16, height: 16, tintColor: '#fff' }} />
+                  <Text style={styles.loginBtnText}>Create My Account</Text>
+                </View>}
               </TouchableOpacity>
               <TouchableOpacity onPress={() => nav?.navigate ? nav.navigate('Login') : nav?.goBack?.()} style={{ alignItems: 'center', marginTop: 14 }}>
                 <Text style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)' }}>

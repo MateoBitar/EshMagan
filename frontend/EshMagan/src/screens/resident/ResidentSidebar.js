@@ -4,12 +4,49 @@ import { View, Text, TouchableOpacity, Modal, Platform, StyleSheet, Image, } fro
 import { useAuth } from '../../context/AuthContext';
 import logoSource from '../../images/logoSource';
 
+const ASSETS = {
+  home: Platform.select({
+    web: { uri: '/home.png' },
+    android: { uri: 'home' },
+    ios: { uri: 'home' },
+    default: { uri: 'home' },
+  }),
+
+  alert: Platform.select({
+    web: { uri: '/alert.png' },
+    android: { uri: 'alert' },
+    ios: { uri: 'alert' },
+    default: { uri: 'alert' },
+  }),
+
+  compass: Platform.select({
+    web: { uri: '/compass.png' },
+    android: { uri: 'compass' },
+    ios: { uri: 'compass' },
+    default: { uri: 'compass' },
+  }),
+
+  openBook: Platform.select({
+    web: { uri: '/open_book.png' },
+    android: { uri: 'open_book' },
+    ios: { uri: 'open_book' },
+    default: { uri: 'open_book' },
+  }),
+
+  person: Platform.select({
+    web: { uri: '/person.png' },
+    android: { uri: 'person' },
+    ios: { uri: 'person' },
+    default: { uri: 'person' },
+  }),
+};
+
 const NAV_ITEMS = [
-  { screen: 'ResidentHome', emoji: '🏠', label: 'Home', desc: 'Dashboard & fire status' },
-  { screen: 'ResidentAlerts', emoji: '⚠️', label: 'Alerts', desc: 'Your fire alerts' },
-  { screen: 'Evacuation', emoji: '🧭', label: 'Evacuation', desc: 'Evacuation routes' },
-  { screen: 'SafetyTips', emoji: '📖', label: 'Safety Tips', desc: 'Preparedness guide' },
-  { screen: 'ResidentProfile', emoji: '👤', label: 'Profile', desc: 'Your account' },
+  { screen: 'ResidentHome', icon: ASSETS.home, label: 'Home', desc: 'Dashboard & fire status' },
+  { screen: 'ResidentAlerts', icon: ASSETS.alert, label: 'Alerts', desc: 'Your fire alerts' },
+  { screen: 'Evacuation', icon: ASSETS.compass, label: 'Evacuation', desc: 'Evacuation routes' },
+  { screen: 'SafetyTips', icon: ASSETS.openBook, label: 'Safety Tips', desc: 'Preparedness guide' },
+  { screen: 'ResidentProfile', icon: ASSETS.person, label: 'Profile', desc: 'Your account' },
 ];
 
 export default function ResidentSidebar({ visible, onClose, navigation, currentScreen }) {
@@ -70,7 +107,11 @@ export default function ResidentSidebar({ visible, onClose, navigation, currentS
                   style={[styles.navItem, isActive && styles.navItemActive]}
                 >
                   <View style={[styles.iconWrap, isActive && styles.iconWrapActive]}>
-                    <Text style={styles.iconEmoji}>{item.emoji}</Text>
+                    <Image
+                      source={item.icon}
+                      style={styles.iconImage}
+                      resizeMode="contain"
+                    />
                   </View>
 
                   <View style={styles.navTextWrap}>
@@ -185,8 +226,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FCD9A5',
   },
 
-  iconEmoji: {
-    fontSize: 18,
+  iconImage: {
+    width: 18,
+    height: 18,
   },
 
   navTextWrap: {

@@ -1,4 +1,3 @@
-// src/styles/screens/ResidentHomeScreen.styles.js
 import { StyleSheet, Platform } from 'react-native';
 
 const ACTION_WIDTH = Platform.OS === 'web' ? '49.6%' : '48.2%';
@@ -7,51 +6,224 @@ export default StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff1d6', minHeight: '100vh' },
   headerBannerSafe: { padding: 20, paddingTop: 28, backgroundColor: '#fff1d6' },
   headerBannerDanger: { padding: 20, paddingTop: 28, backgroundColor: '#dc2626' },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+
   headerLogoWrap: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerLogoIcon: { width: 50, height: 50, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   headerLogoImage: { width: 50, height: 50 },
+
   headerTitle: { color: '#000', fontSize: 20, fontWeight: '800' },
   headerSub: { color: 'rgba(0,0,0,0.8)', fontSize: 12 },
-  bellBtn: { width: 40, height: 40, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  bellEmoji: { fontSize: 20 },
-  statusCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)' },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 12 },
-  statusIconWrapSafe: { width: 56, height: 56, borderRadius: 16, backgroundColor: '#f0fdf4', alignItems: 'center', justifyContent: 'center' },
-  statusIconWrapDanger: { width: 56, height: 56, borderRadius: 16, backgroundColor: '#fef2f2', alignItems: 'center', justifyContent: 'center' },
-  statusEmoji: { fontSize: 28 },
+
+  bellBtn: {
+    width: 40,
+    height: 40,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  bellIconImage: {
+    width: 20,
+    height: 20,
+  },
+
+  menuEmoji: {
+    fontSize: 20,
+  },
+
+  statusCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
+  },
+
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 12,
+  },
+
+  statusIconWrapSafe: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#f0fdf4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  statusIconWrapDanger: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#fef2f2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  statusIconImage: {
+    width: 28,
+    height: 28,
+  },
+
   statusMsg: { fontSize: 20, fontWeight: '800', color: '#0f172a' },
   statusDesc: { fontSize: 13, color: '#64748b', marginTop: 2 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#f1f5f9', borderRadius: 10, padding: 10 },
+
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 10,
+    padding: 10,
+  },
+
+  locationIconImage: {
+    width: 16,
+    height: 16,
+  },
+
   locationText: { fontSize: 13, color: '#475569', fontWeight: '500' },
+
   section: { padding: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 14, top: 10, left: 3 },
+
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 14,
+    top: 10,
+    left: 3,
+  },
+
   actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  actionBtn: { width: ACTION_WIDTH, padding: 18, borderRadius: 18, boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.35)' },
-  actionEmoji: { fontSize: 28, marginBottom: 10 },
+
+  actionBtn: {
+    width: ACTION_WIDTH,
+    padding: 18,
+    borderRadius: 18,
+    boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.35)',
+  },
+
+  actionIconImage: {
+    width: 28,
+    height: 28,
+    marginBottom: 10,
+    tintColor: '#fff',
+  },
+
   actionLabel: { color: '#fff', fontWeight: '600', fontSize: 13 },
+
   firesSection: { paddingHorizontal: 20, marginBottom: 20 },
-  firesHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  firesCount: { backgroundColor: '#fff1d6', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+
+  firesHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+
+  firesCount: {
+    backgroundColor: '#fff1d6',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+
   firesCountText: { fontSize: 12, fontWeight: '600', color: '#475569' },
-  emptyBox: { backgroundColor: '#fff', borderWidth: 2, borderColor: 'rgba(255, 106, 61, 0.6)', borderRadius: 16, padding: 20, alignItems: 'center' },
+
+  emptyBox: {
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 106, 61, 0.6)',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+  },
+
   emptyText: { color: '#000' },
-  fireCard: { backgroundColor: '#fff', borderWidth: 2, borderRadius: 16, padding: 16, marginBottom: 10, boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)' },
-  fireCardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+
+  fireCard: {
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 10,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)',
+  },
+
+  fireCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+
   fireLocation: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
   fireId: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
+
   fireBadge: { paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderRadius: 8 },
   fireBadgeText: { fontSize: 11, fontWeight: '600' },
+
   fireCardBottom: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   fireStatus: { fontSize: 12, color: '#64748b' },
   fireArrow: { marginLeft: 'auto', fontSize: 20, color: '#94a3b8' },
+
   contactsSection: { paddingHorizontal: 20, paddingBottom: 30 },
-  contactCard: { backgroundColor: '#fff', borderWidth: 2, borderColor: '#eee', borderRadius: 16, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+
+  contactCard: {
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#eee',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
   contactLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  contactIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  contactEmoji: { fontSize: 22 },
+
+  contactIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  contactIconImage: {
+    width: 22,
+    height: 22,
+  },
+
   contactName: { fontSize: 15, fontWeight: '700', color: '#0f172a' },
+
   contactRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+
   contactNumber: { fontSize: 20, fontWeight: '800', color: '#1e293b' },
-  contactPhoneBtn: { width: 32, height: 32, backgroundColor: '#f1f5f9', borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+
+  contactPhoneBtn: {
+    width: 32,
+    height: 32,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  contactPhoneImage: {
+    width: 16,
+    height: 16,
+  },
 });

@@ -11,17 +11,74 @@ import styles from '../../styles/screens/ResidentHomeScreen.styles';
 import { useAuth } from '../../context/AuthContext';
 import logoSource from '../../images/logoSource';
 
+const ASSETS = {
+  compass: Platform.select({
+    web: { uri: '/compass.png' },
+    android: { uri: 'compass' },
+    ios: { uri: 'compass' },
+    default: { uri: 'compass' },
+  }),
+  map: Platform.select({
+    web: { uri: '/map.png' },
+    android: { uri: 'map' },
+    ios: { uri: 'map' },
+    default: { uri: 'map' },
+  }),
+  openBook: Platform.select({
+    web: { uri: '/open_book.png' },
+    android: { uri: 'open_book' },
+    ios: { uri: 'open_book' },
+    default: { uri: 'open_book' },
+  }),
+  alert: Platform.select({
+    web: { uri: '/alert.png' },
+    android: { uri: 'alert' },
+    ios: { uri: 'alert' },
+    default: { uri: 'alert' },
+  }),
+  flame: Platform.select({
+    web: { uri: '/flame_solid.png' },
+    android: { uri: 'flame_solid' },
+    ios: { uri: 'flame_solid' },
+    default: { uri: 'flame_solid' },
+  }),
+  ambulance: Platform.select({
+    web: { uri: '/ambulance.png' },
+    android: { uri: 'ambulance' },
+    ios: { uri: 'ambulance' },
+    default: { uri: 'ambulance' },
+  }),
+  police: Platform.select({
+    web: { uri: '/police_car.png' },
+    android: { uri: 'police_car' },
+    ios: { uri: 'police_car' },
+    default: { uri: 'police_car' },
+  }),
+  bell: Platform.select({
+    web: { uri: '/bell.png' },
+    android: { uri: 'bell' },
+    ios: { uri: 'bell' },
+    default: { uri: 'bell' },
+  }),
+  shield: Platform.select({
+    web: { uri: '/shield.png' },
+    android: { uri: 'shield' },
+    ios: { uri: 'shield' },
+    default: { uri: 'shield' },
+  }),
+};
+
 const QUICK_ACTIONS = [
-  { emoji: '🧭', label: 'Evacuation Routes', screen: 'Evacuation', color: '#FF6A3D' },
-  { emoji: '🗺️', label: 'Interactive Map', screen: 'ResidentMap', color: '#FF4D2D' },
-  { emoji: '📖', label: 'Safety Tips', screen: 'SafetyTips', color: '#E53923' },
-  { emoji: '⚠️', label: 'My Alerts', screen: 'ResidentAlerts', color: '#A32020' }
+  { icon: ASSETS.compass, label: 'Evacuation Routes', screen: 'Evacuation', color: '#FF6A3D' },
+  { icon: ASSETS.map, label: 'Interactive Map', screen: 'ResidentMap', color: '#FF4D2D' },
+  { icon: ASSETS.openBook, label: 'Safety Tips', screen: 'SafetyTips', color: '#E53923' },
+  { icon: ASSETS.alert, label: 'My Alerts', screen: 'ResidentAlerts', color: '#A32020' },
 ];
 
 const EMERGENCY_CONTACTS = [
-  { name: 'Fire Emergency', number: '125', emoji: '🔥', color: '#ef4444' },
-  { name: 'Medical Emergency', number: '140', emoji: '🚑', color: '#10b981' },
-  { name: 'Police', number: '112', emoji: '🚔', color: '#3b82f6' },
+  { name: 'Fire Emergency', number: '125', icon: ASSETS.flame, color: '#ef4444' },
+  { name: 'Medical Emergency', number: '140', icon: ASSETS.ambulance, color: '#10b981' },
+  { name: 'Police', number: '112', icon: ASSETS.police, color: '#3b82f6' },
 ];
 
 function getSeverityColor(level) {
@@ -48,7 +105,7 @@ function parsePoint(raw) {
       if (g.type === 'Point' && Array.isArray(g.coordinates)) {
         return { longitude: g.coordinates[0], latitude: g.coordinates[1] };
       }
-    } catch { }
+    } catch {}
     return null;
   }
   const wkt = raw.match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
@@ -124,6 +181,39 @@ export default function ResidentHomeScreen({ navigation }) {
   const nav = navigation;
 
   useEffect(() => {
+    if (Platform.OS === 'web') {
+      if (!navigator.geolocation) {
+        setUserPlaceName('Location unavailable');
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        async pos => {
+          const name = await getPlaceNameCached(pos.coords.latitude, pos.coords.longitude);
+          setUserPlaceName(name);
+        },
+        () => setUserPlaceName('Location unavailable'),
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else {
+      try {
+        const Geolocation = require('@react-native-community/geolocation').default;
+        Geolocation.getCurrentPosition(
+          async pos => {
+            const name = await getPlaceNameCached(pos.coords.latitude, pos.coords.longitude);
+            setUserPlaceName(name);
+          },
+          () => setUserPlaceName('Location unavailable'),
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      } catch {
+        setUserPlaceName('Location unavailable');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
     let mounted = true;
 
     const initLocation = async () => {
@@ -136,7 +226,19 @@ export default function ResidentHomeScreen({ navigation }) {
         try {
           const place = await getPlaceName(loc.latitude, loc.longitude);
           if (mounted) setUserPlaceName(place);
-        } catch { }
+        } catch {}
+
+        await gqlFetch(UPDATE_RESIDENT, {
+          resident_id: user.id,
+          input: {
+            last_known_location: {
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+            },
+          },
+        });
+
+        startResidentLocationTracking(user.id);
       } catch (e) {
         console.warn('[ResidentHomeScreen location]', e?.message || e);
       }
@@ -156,7 +258,11 @@ export default function ResidentHomeScreen({ navigation }) {
   const dangerousFires = fires;
   const hasActiveThreat = dangerousFires.length > 0;
 
-  const navigate = (screen, params) => { if (!screen) return; nav?.navigate(screen, params); };
+  const navigate = (screen, params) => {
+    if (!screen) return;
+    nav?.navigate(screen, params);
+  };
+
   const currentScreen = nav?.currentScreen || 'ResidentHome';
 
   const headerTitleColor = hasActiveThreat ? '#fff' : '#000';
@@ -164,11 +270,14 @@ export default function ResidentHomeScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ResidentSidebar visible={sidebarOpen} onClose={() => setSidebarOpen(false)} navigation={nav} currentScreen={currentScreen} />
+      <ResidentSidebar
+        visible={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        navigation={nav}
+        currentScreen={currentScreen}
+      />
 
       <ScrollView showsVerticalScrollIndicator={false}>
-
-        {/* Header Banner */}
         <View style={hasActiveThreat ? styles.headerBannerDanger : styles.headerBannerSafe}>
           <View style={styles.headerRow}>
             <View style={styles.headerLogoWrap}>
@@ -184,13 +293,15 @@ export default function ResidentHomeScreen({ navigation }) {
                 <Text style={[styles.headerSub, { color: headerSubColor }]}>Resident Portal</Text>
               </View>
             </View>
+
             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
               <TouchableOpacity style={styles.bellBtn} onPress={() => navigate('ResidentNotifications')}>
-                <Text style={styles.bellEmoji}>🔔</Text>
+                <Image source={ASSETS.bell} style={styles.bellIconImage} resizeMode="contain" />
               </TouchableOpacity>
+
               {Platform.OS === 'web' && (
                 <TouchableOpacity style={[styles.bellBtn, { marginLeft: 4 }]} onPress={() => setSidebarOpen(true)}>
-                  <Text style={{ fontSize: 20 }}>☰</Text>
+                  <Text style={styles.menuEmoji}>☰</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -199,18 +310,27 @@ export default function ResidentHomeScreen({ navigation }) {
           <View style={styles.statusCard}>
             <View style={styles.statusRow}>
               <View style={hasActiveThreat ? styles.statusIconWrapDanger : styles.statusIconWrapSafe}>
-                <Text style={styles.statusEmoji}>{hasActiveThreat ? '🚨' : '🛡️'}</Text>
+                <Image
+                  source={hasActiveThreat ? ASSETS.alert : ASSETS.shield}
+                  style={styles.statusIconImage}
+                  resizeMode="contain"
+                />
               </View>
+
               <View style={{ flex: 1 }}>
                 <Text style={styles.statusMsg}>{hasActiveThreat ? 'Active Fire Threat' : 'You Are Safe'}</Text>
                 <Text style={styles.statusDesc}>
-                  {loading ? 'Checking status...' : hasActiveThreat
-                    ? `${dangerousFires.length} active fire(s) detected nearby`
-                    : 'No active fire threats in your area'}
+                  {loading
+                    ? 'Checking status...'
+                    : hasActiveThreat
+                      ? `${dangerousFires.length} active fire(s) detected nearby`
+                      : 'No active fire threats in your area'}
                 </Text>
               </View>
+
               {loading && <ActivityIndicator color="#dc2626" size="small" />}
             </View>
+
             <View style={styles.locationRow}>
               <Text>📍</Text>
               <Text style={styles.locationText}>Your Location: {userPlaceName}</Text>
@@ -218,7 +338,6 @@ export default function ResidentHomeScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Quick Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.actionsGrid}>
@@ -233,14 +352,13 @@ export default function ResidentHomeScreen({ navigation }) {
                 }
                 style={[styles.actionBtn, { backgroundColor: action.color }]}
               >
-                <Text style={styles.actionEmoji}>{action.emoji}</Text>
+                <Image source={action.icon} style={styles.actionIconImage} resizeMode="contain" />
                 <Text style={styles.actionLabel}>{action.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Nearby Fires */}
         <View style={styles.firesSection}>
           <View style={styles.firesHeaderRow}>
             <Text style={styles.sectionTitle}>Nearby Fire Events</Text>
@@ -259,6 +377,7 @@ export default function ResidentHomeScreen({ navigation }) {
             fires.slice(0, 5).map(fire => {
               const riskColor = getSeverityColor(fire.fire_severitylevel);
               const riskLabel = getSeverityLabel(fire.fire_severitylevel);
+
               return (
                 <TouchableOpacity
                   key={fire.fire_id}
@@ -281,7 +400,6 @@ export default function ResidentHomeScreen({ navigation }) {
           )}
         </View>
 
-        {/* Emergency Contacts */}
         <View style={styles.contactsSection}>
           <Text style={styles.sectionTitle}>Emergency Contacts</Text>
           {EMERGENCY_CONTACTS.map(contact => (
@@ -291,19 +409,20 @@ export default function ResidentHomeScreen({ navigation }) {
               style={styles.contactCard}
             >
               <View style={styles.contactLeft}>
-                <View style={[styles.contactIcon, { backgroundColor: contact.color + '20' }]}>
-                  <Text style={styles.contactEmoji}>{contact.emoji}</Text>
+                <View style={[styles.contactIcon, { backgroundColor: `${contact.color}20` }]}>
+                  <Image source={contact.icon} style={styles.contactIconImage} resizeMode="contain" />
                 </View>
                 <Text style={styles.contactName}>{contact.name}</Text>
               </View>
               <View style={styles.contactRight}>
                 <Text style={styles.contactNumber}>{contact.number}</Text>
-                <View style={styles.contactPhoneBtn}><Text>📞</Text></View>
+                <View style={styles.contactPhoneBtn}>
+                  <Text>📞</Text>
+                </View>
               </View>
             </TouchableOpacity>
           ))}
         </View>
-
       </ScrollView>
     </SafeAreaView>
   );

@@ -8,9 +8,36 @@ import { useAuth } from '../../context/AuthContext';
 import styles from '../../styles/screens/LoginScreen.styles';
 import logoSource from '../../images/logoSource';
 
+const ASSETS = {
+  lock: Platform.select({
+    web: { uri: '/lock.png' },
+    android: { uri: 'lock' },
+    ios: { uri: 'lock' },
+    default: { uri: 'lock.png' },
+  }),
+  shield: Platform.select({
+    web: { uri: '/shield.png' },
+    android: { uri: 'shield' },
+    ios: { uri: 'shield' },
+    default: { uri: 'shield.png' },
+  }),
+  alert: Platform.select({
+    web: { uri: '/alert.png' },
+    android: { uri: 'alert' },
+    ios: { uri: 'alert' },
+    default: { uri: 'alert.png' },
+  }),
+  lockOpenCheck: Platform.select({
+    web: { uri: '/lock_open_check.png' },
+    android: { uri: 'lock_open_check' },
+    ios: { uri: 'lock_open_check' },
+    default: { uri: 'lock_open_check.png' },
+  }),
+};
+
 const TRUST_BADGES = [
-  { emoji: '🔒', title: 'AES-256', sub: 'Encrypted' },
-  { emoji: '🛡️', title: 'GDPR', sub: 'Compliant' },
+  { icon: ASSETS.lock, title: 'AES-256', sub: 'Encrypted' },
+  { icon: ASSETS.shield, title: 'GDPR', sub: 'Compliant' },
 ];
 
 const PRIVACY_ITEMS = [
@@ -146,7 +173,7 @@ export default function LoginScreen({ navigation }) {
                     gap: 8,
                   }}
                 >
-                  <Text style={{ fontSize: 14 }}>⚠️</Text>
+                  <Image source={ASSETS.alert} style={styles.alertIconImage} resizeMode="contain" />
                   <Text style={{ fontSize: 13, color: '#DC2626', fontWeight: '600', flex: 1 }}>
                     {loginError}
                   </Text>
@@ -155,7 +182,7 @@ export default function LoginScreen({ navigation }) {
 
               <View style={styles.privacyBox}>
                 <View style={styles.privacyHeader}>
-                  <Text style={{ fontSize: 14 }}>🛡️</Text>
+                  <Image source={ASSETS.shield} style={styles.shieldIconImage} resizeMode="contain" />
                   <Text style={styles.privacyTitle}>Privacy & Data Protection</Text>
                 </View>
 
@@ -180,7 +207,7 @@ export default function LoginScreen({ navigation }) {
                 {TRUST_BADGES.map(badge => (
                   <View key={badge.title} style={styles.trustBadge}>
                     <View style={styles.trustIcon}>
-                      <Text style={{ fontSize: 14 }}>{badge.emoji}</Text>
+                      <Image source={badge.icon} style={styles.trustBadgeIcon} resizeMode="contain" />
                     </View>
                     <View>
                       <Text style={styles.trustLabel}>{badge.title}</Text>
@@ -202,7 +229,10 @@ export default function LoginScreen({ navigation }) {
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.loginBtnText}>🔐  Secure Login to EshMagan</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Image source={ASSETS.lockOpenCheck} style={{ width: 16, height: 16, tintColor: '#fff' }} />
+                    <Text style={styles.loginBtnText}>Secure Login to EshMagan</Text>
+                  </View>
                 )}
               </TouchableOpacity>
 

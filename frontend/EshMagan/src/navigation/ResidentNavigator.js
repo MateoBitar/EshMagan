@@ -1,7 +1,6 @@
-// src/navigation/ResidentNavigator.js
 import React from 'react';
+import { Image, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
 
 import ResidentHomeScreen from '../screens/resident/ResidentHomeScreen';
 import ResidentMapScreen from '../screens/resident/ResidentMapScreen';
@@ -9,10 +8,30 @@ import ResidentAlertsScreen from '../screens/resident/ResidentAlertsScreen';
 import ResidentProfileScreen from '../screens/resident/ResidentProfileScreen';
 
 const ICONS = {
-  ResidentHome: '🏠',
-  ResidentMap: '🗺️',
-  ResidentAlerts: '🔔',
-  ResidentProfile: '👤',
+  ResidentHome: Platform.select({
+    web: { uri: '/home.png' },
+    android: { uri: 'home' },
+    ios: { uri: 'home' },
+    default: { uri: 'home' },
+  }),
+  ResidentMap: Platform.select({
+    web: { uri: '/map.png' },
+    android: { uri: 'map' },
+    ios: { uri: 'map' },
+    default: { uri: 'map' },
+  }),
+  ResidentAlerts: Platform.select({
+    web: { uri: '/bell.png' },
+    android: { uri: 'bell' },
+    ios: { uri: 'bell' },
+    default: { uri: 'bell' },
+  }),
+  ResidentProfile: Platform.select({
+    web: { uri: '/person.png' },
+    android: { uri: 'person' },
+    ios: { uri: 'person' },
+    default: { uri: 'person' },
+  }),
 };
 
 const LABELS = {
@@ -38,11 +57,22 @@ export default function ResidentNavigator() {
           height: 65,
         },
         tabBarActiveTintColor: '#DC2626',
-        tabBarInactiveTintColor: '#94a3b8',
-        tabBarLabelStyle: { fontSize: 12, fontWeight: '800' },
+        tabBarInactiveTintColor: '#585858',
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '800',
+        },
         tabBarLabel: LABELS[route.name] || route.name,
-        tabBarIcon: () => (
-          <Text style={{ fontSize: 20 }}>{ICONS[route.name] || '•'}</Text>
+        tabBarIcon: ({ focused }) => (
+          <Image
+            source={ICONS[route.name]}
+            resizeMode="contain"
+            style={{
+              width: 20,
+              height: 20,
+              tintColor: focused ? '#DC2626' : '#585858',
+            }}
+          />
         ),
       })}
     >
