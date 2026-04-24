@@ -5,7 +5,23 @@ import { Municipality } from '../entities/municipality.entity.js';
 import { User } from '../entities/user.entity.js';
 import { UserRepository } from './user.repository.js';
 
+/**
+ * This repository manages all database operations related to municipalities,
+ * including creation, retrieval, spatial queries, updates, and deactivation.
+ */
 export class MunicipalityRepository {
+    /**
+     * Create a new municipality.
+     *
+     * PRE-CONDITIONS:
+     * - data must include municipality_id, municipality_name, region_name,
+     *   municipality_code, municipality_location, and user.
+     * - municipality_location must contain latitude and longitude.
+     *
+     * POST-CONDITIONS:
+     * - Inserts a new municipality into the database.
+     * - Returns a Municipality entity with associated User.
+     */
     async createMunicipality(data) {
         const {
             municipality_id,
@@ -43,6 +59,16 @@ export class MunicipalityRepository {
         });
     }
 
+    /**
+     * Retrieve all municipalities.
+     *
+     * PRE-CONDITIONS:
+     * - Database connection must be available.
+     *
+     * POST-CONDITIONS:
+     * - Returns an array of Municipality entities.
+     * - Returns empty array if none found.
+     */
     async getAllMunicipalities() {
         const sql = `
             SELECT m.municipality_id, m.municipality_name, m.region_name, m.municipality_code,
@@ -77,6 +103,16 @@ export class MunicipalityRepository {
         });
     }
 
+    /**
+     * Retrieve municipality by ID.
+     *
+     * PRE-CONDITIONS:
+     * - municipality_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns Municipality if found.
+     * - Returns null if not found.
+     */
     async getMunicipalityById(municipality_id) {
         const sql = `
             SELECT m.municipality_id, m.municipality_name, m.region_name, m.municipality_code,
@@ -111,6 +147,16 @@ export class MunicipalityRepository {
         });
     }
 
+    /**
+     * Retrieve municipalities by name.
+     *
+     * PRE-CONDITIONS:
+     * - municipality_name must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching municipalities.
+     * - Returns empty array if none found.
+     */
     async getMunicipalitiesByName(municipality_name) {
         const sql = `
             SELECT m.municipality_id, m.municipality_name, m.region_name, m.municipality_code,
@@ -145,6 +191,16 @@ export class MunicipalityRepository {
         });
     }
 
+    /**
+     * Retrieve municipality by region.
+     *
+     * PRE-CONDITIONS:
+     * - region_name must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns municipalities in that region.
+     * - Returns empty array if none found.
+     */
     async getMunicipalityByRegion(region_name) {
         const sql = `
             SELECT m.municipality_id, m.municipality_name, m.region_name, m.municipality_code,
@@ -179,6 +235,16 @@ export class MunicipalityRepository {
         });
     }
 
+    /**
+     * Retrieve municipality by unique code.
+     *
+     * PRE-CONDITIONS:
+     * - municipality_code must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns a Municipality entity if found.
+     * - Returns null if no municipality matches the code.
+     */
     async getMunicipalityByCode(municipality_code) {
         const sql = `
         SELECT m.municipality_id, m.municipality_name, m.region_name, m.municipality_code,
@@ -213,6 +279,16 @@ export class MunicipalityRepository {
         });
     }
 
+    /**
+     * Retrieve municipality by geographic location (proximity).
+     *
+     * PRE-CONDITIONS:
+     * - municipality_location must contain longitude and latitude.
+     *
+     * POST-CONDITIONS:
+     * - Returns the nearest Municipality within 10km.
+     * - Returns null if no municipality is found.
+     */
     async getMunicipalityByLocation(municipality_location) {
         const sql = `
         SELECT m.municipality_id, m.municipality_name, m.region_name, m.municipality_code,
@@ -257,6 +333,16 @@ export class MunicipalityRepository {
         });
     }
 
+    /**
+     * Retrieve municipality by user email.
+     *
+     * PRE-CONDITIONS:
+     * - user_email must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns Municipality linked to the email.
+     * - Returns null if no match is found.
+     */
     async getMunicipalityByEmail(user_email) {
         const sql = `
         SELECT m.municipality_id, m.municipality_name, m.region_name, m.municipality_code,
@@ -291,6 +377,16 @@ export class MunicipalityRepository {
         });
     }
 
+    /**
+     * Retrieve municipality by user phone.
+     *
+     * PRE-CONDITIONS:
+     * - user_phone must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns Municipality linked to the phone number.
+     * - Returns null if no match is found.
+     */
     async getMunicipalityByPhone(user_phone) {
         const sql = `
         SELECT m.municipality_id, m.municipality_name, m.region_name, m.municipality_code,
@@ -325,6 +421,19 @@ export class MunicipalityRepository {
         });
     }
 
+    /**
+     * Update municipality and its associated user.
+     *
+     * PRE-CONDITIONS:
+     * - municipality_id must be provided.
+     * - data may contain municipality fields and/or user fields.
+     *
+     * POST-CONDITIONS:
+     * - Updates municipality fields if provided.
+     * - Updates user fields if provided.
+     * - Returns updated Municipality entity.
+     * - Returns null if municipality does not exist.
+     */
     async updateMunicipality(municipality_id, data) {
         const fields = [];
         const values = [];
@@ -404,6 +513,16 @@ export class MunicipalityRepository {
         });
     }
 
+    /**
+     * Deactivate municipality.
+     *
+     * PRE-CONDITIONS:
+     * - municipality_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Calls UserRepository to deactivate the user.
+     * - Returns result of deactivation.
+     */
     async deactivateMunicipality(municipality_id) {
         const userRepository = new UserRepository();
         return await userRepository.deactivateUser(municipality_id);

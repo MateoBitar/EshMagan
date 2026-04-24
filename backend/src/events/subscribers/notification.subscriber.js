@@ -10,6 +10,7 @@
 //                          → All municipalities in the DB      → individual Notification
 //                            (municipalities are government bodies — all are informed
 //                             and filter by fire_id on the client side)
+
 import { getJetStream, sc, SUBJECTS } from '../../config/nats.js';
 import { NotificationRepository } from '../../domain/repositories/notification.repository.js';
 import { ResidentRepository } from '../../domain/repositories/resident.repository.js';
@@ -21,6 +22,26 @@ import { UserRepository } from '../../domain/repositories/user.repository.js';
 
 const CONSUMER_NAME = 'notification-consumer';
 
+/**
+ * This file defines the notification subscriber.
+ * It listens for fire.risk.predicted events and generates notifications
+ * for residents, responders, and municipalities based on proximity and system rules.
+ */
+
+/**
+ * Start notification subscriber.
+ *
+ * PRE-CONDITIONS:
+ * - NATS connection must be initialized.
+ * - JetStream consumer must exist.
+ * - fire.risk.predicted events must be published.
+ *
+ * POST-CONDITIONS:
+ * - Creates notifications for residents, responders, and municipalities.
+ * - Sends push notifications if FCM tokens are available.
+ * - Acknowledges successfully processed messages.
+ * - Leaves failed messages unacknowledged for retry.
+ */
 export async function startNotificationSubscriber() {
     try {
         const js = getJetStream();
@@ -41,6 +62,16 @@ export async function startNotificationSubscriber() {
                 if (msg.subject === SUBJECTS.FIRE_RISK_PREDICTED) {
                     try {
                         const data = JSON.parse(sc.decode(msg.data));
+
+                        /**
+                         * Parse WKT location and prepare notification context.
+                         *
+                         * PRE-CONDITIONS:
+                         * - zone_location must be a valid WKT POINT.
+                         *
+                         * POST-CONDITIONS:
+                         * - Extracts coordinates or skips processing if invalid.
+                         */
                         const coords = parseWKTPoint(data.zone_location);
                         if (!coords) {
                             console.warn(`[NATS] Could not parse zone location: ${data.zone_location}`);
@@ -50,11 +81,20 @@ export async function startNotificationSubscriber() {
 
                         const locationQuery = { latitude: coords.latitude, longitude: coords.longitude };
                         const message = `High fire risk predicted in your area within the next 6 days. Risk level: ${data.risk_level}. Please prepare and follow safety guidelines.`;
-                        const expires_at = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000); // 6 days
+                        const expires_at = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000);
                         const fire_id = data.fire_id ?? null;
                         let total = 0;
 
-                        // Residents near danger zone
+                        /**
+                         * Notify residents near danger zone.
+                         *
+                         * PRE-CONDITIONS:
+                         * - ResidentRepository must return valid residents.
+                         *
+                         * POST-CONDITIONS:
+                         * - Creates notification per resident.
+                         * - Sends push notification if token exists.
+                         */
                         const residents = await residentRepository.getResidentsByLastKnownLocation(locationQuery);
                         for (const resident of residents ?? []) {
                             try {
@@ -92,7 +132,9 @@ export async function startNotificationSubscriber() {
                             }
                         }
 
-                        // Responders near danger zone
+                        /**
+                         * Notify responders near danger zone.
+                         */
                         const responders = await responderRepository.getRespondersByLastKnownLocation(locationQuery);
                         for (const responder of responders ?? []) {
                             try {
@@ -131,9 +173,9 @@ export async function startNotificationSubscriber() {
                             }
                         }
 
-                        // All municipalities in DB
-                        // Municipalities are government bodies — all are informed.
-                        // Client filters by fire_id to determine regional relevance.
+                        /**
+                         * Notify all municipalities.
+                         */
                         const municipalities = await municipalityRepository.getAllMunicipalities();
                         for (const municipality of municipalities ?? []) {
                             try {
@@ -175,11 +217,8 @@ export async function startNotificationSubscriber() {
 
                     } catch (err) {
                         console.error(`[NATS] Error processing fire.risk.predicted: ${err.message}`);
-                        // Do not ack — JetStream will redeliver
                     }
-                }
-
-                else {
+                } else {
                     msg.ack();
                 }
             }
@@ -190,7 +229,15 @@ export async function startNotificationSubscriber() {
     }
 }
 
-// HELPERS
+/**
+ * Parse WKT POINT string.
+ *
+ * PRE-CONDITIONS:
+ * - wkt must be a valid POINT string.
+ *
+ * POST-CONDITIONS:
+ * - Returns coordinates object or null if invalid.
+ */
 function parseWKTPoint(wkt) {
     const match = wkt?.match(/POINT\(([^\s]+)\s+([^\)]+)\)/i);
     if (!match) return null;

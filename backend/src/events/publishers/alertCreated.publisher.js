@@ -3,9 +3,32 @@
 // Published after an alert is created for a fire event.
 // Triggers: notification.subscriber to create individual notifications
 // for all residents targeted by the alert.
+
 import { getJetStream, sc, SUBJECTS } from '../../config/nats.js';
 
+/**
+ * This file defines the publisher responsible for emitting the "alert.created"
+ * event to the NATS JetStream system. It is used to notify downstream services
+ * (such as notification subscribers) that a new alert has been created and
+ * should be processed for targeted users.
+ */
+
 export async function publishAlertCreated(data) {
+
+    /**
+     * Publish an alert.created event.
+     *
+     * PRE-CONDITIONS:
+     * - data must include alert_type, target_role, alert_message,
+     *   fire_id, and expires_at.
+     * - NATS connection must be initialized.
+     *
+     * POST-CONDITIONS:
+     * - Encodes and publishes the alert.created event to JetStream.
+     * - Downstream subscribers (e.g., notification service) are triggered.
+     * - Throws error if publishing fails.
+     */
+
     try {
         const js = getJetStream();
 

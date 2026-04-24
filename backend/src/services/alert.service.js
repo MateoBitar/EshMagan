@@ -2,11 +2,38 @@
 
 import { Alert } from '../domain/entities/alert.entity.js';
 
+/**
+ * This file defines the AlertService class.
+ * It contains the business logic for managing alerts,
+ * including creation, retrieval, and deletion operations.
+ */
 export class AlertService {
+
+    /**
+     * Initialize AlertService.
+     *
+     * PRE-CONDITIONS:
+     * - alertRepository must be provided.
+     *
+     * POST-CONDITIONS:
+     * - AlertService is ready to handle alert-related operations.
+     */
     constructor(alertRepository) {
         this.alertRepository = alertRepository;
     }
 
+    /**
+     * Create a new alert.
+     *
+     * PRE-CONDITIONS:
+     * - data must include alert_type, target_role, alert_message,
+     *   expires_at, and fire_id.
+     *
+     * POST-CONDITIONS:
+     * - Creates Alert entity.
+     * - Persists alert via repository.
+     * - Returns alert DTO.
+     */
     async createAlert(data) {
         try {
             // Validate required fields
@@ -33,6 +60,15 @@ export class AlertService {
         }
     }
 
+    /**
+     * Retrieve all alerts.
+     *
+     * PRE-CONDITIONS:
+     * - alertRepository must be available.
+     *
+     * POST-CONDITIONS:
+     * - Returns array of alert DTOs.
+     */
     async getAllAlerts() {
         try {
             // Fetch all alerts from repository
@@ -43,6 +79,16 @@ export class AlertService {
         }
     }
 
+    /**
+     * Retrieve alert by ID.
+     *
+     * PRE-CONDITIONS:
+     * - alert_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns alert DTO if found.
+     * - Returns null if not found.
+     */
     async getAlertById(alert_id) {
         try {
             // Fetch admin by ID
@@ -54,6 +100,16 @@ export class AlertService {
         }
     }
 
+    /**
+     * Retrieve alerts by alert type.
+     *
+     * PRE-CONDITIONS:
+     * - alert_type must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching alert DTOs.
+     * - Returns empty array if none found.
+     */
     async getAlertsByAlertType(alert_type) {
         try {
             // Fetch alerts by type
@@ -65,6 +121,16 @@ export class AlertService {
         }
     }
 
+    /**
+     * Retrieve alerts by target role.
+     *
+     * PRE-CONDITIONS:
+     * - target_role must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching alert DTOs.
+     * - Returns empty array if none found.
+     */
     async getAlertsByTargetRole(target_role) {
         try {
             // Fetch alerts by target role
@@ -76,6 +142,16 @@ export class AlertService {
         }
     }
 
+    /**
+     * Retrieve alerts by expiration time.
+     *
+     * PRE-CONDITIONS:
+     * - expires_at must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching alert DTOs.
+     * - Returns empty array if none found.
+     */
     async getAlertsByExpiration(expires_at) {
         try {
             // Fetch alerts by expiration time
@@ -87,6 +163,16 @@ export class AlertService {
         }
     }
 
+    /**
+     * Retrieve alerts by fire ID.
+     *
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching alert DTOs.
+     * - Returns empty array if none found.
+     */
     async getAlertsByFireId(fire_id) {
         try {
             // Fetch alerts by associated fire ID
@@ -98,6 +184,16 @@ export class AlertService {
         }
     }
 
+    /**
+     * Delete alert by ID.
+     *
+     * PRE-CONDITIONS:
+     * - alert_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Deletes alert from repository.
+     * - Returns result of deletion.
+     */
     async deleteAlert(alert_id) {
         try {
             // Delete alert by ID
@@ -107,6 +203,16 @@ export class AlertService {
         }
     }
 
+    /**
+     * Delete expired alerts.
+     *
+     * PRE-CONDITIONS:
+     * - None.
+     *
+     * POST-CONDITIONS:
+     * - Deletes all expired alerts.
+     * - Returns result of deletion.
+     */
     async deleteExpiredAlerts() {
         try {
             // Delete all expired alerts
@@ -116,6 +222,16 @@ export class AlertService {
         }
     }
 
+    /**
+     * Delete alerts by fire ID.
+     *
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Deletes all alerts linked to fire.
+     * - Returns result of deletion.
+     */
     async deleteAlertsByFireId(fire_id) {
         try {
             // Delete all alerts associated with a specific fire ID

@@ -6,11 +6,32 @@
 //   2. Publishes alert.created → alert.subscriber handles creating Alerts for all roles
 //
 // NO DB writes here — alert.subscriber is solely responsible for creating Alerts.
+
 import { getJetStream, sc, SUBJECTS } from '../../config/nats.js';
 import { publishAlertCreated } from '../publishers/alertCreated.publisher.js';
 
 const CONSUMER_NAME = 'fireDetected-consumer';
 
+/**
+ * This file defines the fire detected subscriber.
+ * It listens for fire.detected events from NATS JetStream
+ * and converts them into alert.created events for system roles.
+ */
+
+/**
+ * Start fire detected subscriber.
+ *
+ * PRE-CONDITIONS:
+ * - NATS connection must be initialized.
+ * - JetStream consumer must exist.
+ * - fire.detected events must be published to the stream.
+ *
+ * POST-CONDITIONS:
+ * - Consumes fire.detected events.
+ * - Publishes alert.created events for Resident, Responder, and Municipality roles.
+ * - Acknowledges successfully processed messages.
+ * - Leaves failed messages unacknowledged so JetStream can redeliver.
+ */
 export async function startFireDetectedSubscriber() {
     try {
         const js = getJetStream();

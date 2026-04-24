@@ -2,12 +2,38 @@
 
 import { Responder } from '../domain/entities/responder.entity.js';
 
+/**
+ * This file defines the ResponderService class.
+ * It manages responder-related business logic including
+ * creation, retrieval, updates, location tracking, and deactivation.
+ */
 export class ResponderService {
+    /**
+     * Initialize ResponderService.
+     *
+     * PRE-CONDITIONS:
+     * - responderRepository and userService must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Service is ready to handle responder operations.
+     */
     constructor(responderRepository, userService) {
         this.responderRepository = responderRepository;
         this.userService = userService;
     }
 
+    /**
+     * Create a responder.
+     *
+     * PRE-CONDITIONS:
+     * - unit_nb, unit_location, assigned_region,
+     *   responder_status, and last_known_location must be provided.
+     *
+     * POST-CONDITIONS:
+     * - User is retrieved or created.
+     * - Responder entity is created and stored.
+     * - Returns responder DTO.
+     */
     async createResponder(data) {
         try {
             if (!data.unit_nb) throw new Error("Missing required field: Unit Number");
@@ -58,6 +84,15 @@ export class ResponderService {
         }
     }
 
+    /**
+     * Retrieve all responders.
+     *
+     * PRE-CONDITIONS:
+     * - Repository must be available.
+     *
+     * POST-CONDITIONS:
+     * - Returns list of responder DTOs.
+     */
     async getAllResponders() {
         try {
             // Fetch all responders from repository
@@ -69,6 +104,16 @@ export class ResponderService {
         }
     }
 
+    /**
+     * Retrieve responder by ID.
+     *
+     * PRE-CONDITIONS:
+     * - responder_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns responder DTO if found.
+     * - Returns null if not found.
+     */
     async getResponderById(responder_id) {
         try {
             // Fetch responder by ID
@@ -79,6 +124,17 @@ export class ResponderService {
             throw new Error(`Failed to fetch responder by ID: ${err.message}`);
         }
     }
+
+    /**
+     * Retrieve responders by unit number.
+     *
+     * PRE-CONDITIONS:
+     * - unit_nb must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns list of matching responder DTOs.
+     * - Returns empty array if none found.
+     */
 
     async getRespondersByUnitNb(unit_nb) {
         try {
@@ -91,6 +147,16 @@ export class ResponderService {
         }
     }
 
+    /**
+     * Retrieve responders by unit location.
+     *
+     * PRE-CONDITIONS:
+     * - unit_location must be valid WKT string or coordinate object.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching responders.
+     * - Returns empty array if none found.
+     */
     async getRespondersByUnitLocation(unit_location) {
         try {
             const coords = typeof unit_location === 'string'
@@ -108,6 +174,16 @@ export class ResponderService {
         }
     }
 
+    /**
+     * Retrieve responders by assigned region.
+     *
+     * PRE-CONDITIONS:
+     * - assigned_region must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching responders.
+     * - Returns empty array if none found.
+     */
     async getRespondersByAssignedRegion(assigned_region) {
         try {
             // Fetch responders by assigned region
@@ -119,6 +195,16 @@ export class ResponderService {
         }
     }
 
+    /**
+     * Retrieve responders by status.
+     *
+     * PRE-CONDITIONS:
+     * - responder_status must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching responders.
+     * - Returns empty array if none found.
+     */
     async getRespondersByResponderStatus(responder_status) {
         try {
             // Fetch responders by current status
@@ -130,6 +216,16 @@ export class ResponderService {
         }
     }
 
+    /**
+     * Retrieve responders by last known location.
+     *
+     * PRE-CONDITIONS:
+     * - last_known_location must be valid WKT string or coordinate object.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching responders.
+     * - Returns empty array if none found.
+     */
     async getRespondersByLastKnownLocation(last_known_location) {
         try {
             const coords = typeof last_known_location === 'string'
@@ -147,6 +243,16 @@ export class ResponderService {
         }
     }
 
+    /**
+     * Retrieve responder by email.
+     *
+     * PRE-CONDITIONS:
+     * - user_email must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns responder DTO if found.
+     * - Returns null if not found.
+     */
     async getResponderByEmail(user_email) {
         try {
             // Fetch responder by associated user email
@@ -158,6 +264,16 @@ export class ResponderService {
         }
     }
 
+    /**
+     * Retrieve responder by phone.
+     *
+     * PRE-CONDITIONS:
+     * - user_phone must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns responder DTO if found.
+     * - Returns null if not found.
+     */
     async getResponderByPhone(user_phone) {
         try {
             // Fetch responder by associated user phone
@@ -169,6 +285,16 @@ export class ResponderService {
         }
     }
 
+    /**
+     * Retrieve nearest responder.
+     *
+     * PRE-CONDITIONS:
+     * - fire_location must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns nearest responder DTO.
+     * - Returns null if none found.
+     */
     async getNearestResponder(fire_location) {
         try {
             if (!fire_location) throw new Error("Missing required field: Fire Location");
@@ -180,6 +306,16 @@ export class ResponderService {
         }
     }
 
+    /**
+     * Update responder.
+     *
+     * PRE-CONDITIONS:
+     * - responder_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Responder is updated.
+     * - Returns updated DTO.
+     */
     async updateResponder(responder_id, data) {
         try {
             // Update responder fields (handled in repository)
@@ -191,6 +327,16 @@ export class ResponderService {
         }
     }
 
+    /**
+     * Update responder status.
+     *
+     * PRE-CONDITIONS:
+     * - responder_id and responder_status must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Status is updated.
+     * - Returns updated responder DTO.
+     */
     async updateResponderStatus(responder_id, responder_status) {
         try {
             if (!responder_status) throw new Error("Missing required field: Responder Status");
@@ -202,6 +348,16 @@ export class ResponderService {
         }
     }
 
+    /**
+     * Update responder location.
+     *
+     * PRE-CONDITIONS:
+     * - responder_id, latitude, and longitude must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Responder location is updated.
+     * - Returns updated location data.
+     */
     async updateResponderLocation(responder_id, latitude, longitude) {
         try {
             if (latitude === undefined || latitude === null) throw new Error("Missing required field: Latitude");
@@ -213,6 +369,15 @@ export class ResponderService {
         }
     }
 
+    /**
+     * Deactivate responder.
+     *
+     * PRE-CONDITIONS:
+     * - responder_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Responder is deactivated.
+     */
     async deactivateResponder(responder_id) {
         try {
             // Deactivate responder in repository

@@ -1,7 +1,23 @@
 // src/domain/entities/municipality.entity.js
 
-// This entity represents a municipality, which is a local government user of the system, with additonal fields.
+// This entity represents a municipality, which is a local government user of the system, with additional fields.
+
+/**
+ * This file defines the Municipality entity class.
+ * It represents municipality data and provides methods
+ * to create instances and convert them into DTOs.
+ */
 export class Municipality {
+
+    /**
+     * Construct a Municipality entity
+     * 
+     * PRE-CONDITIONS:
+     * - Required municipality fields must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Initializes Municipality instance with provided data
+     */
     constructor({ municipality_id, municipality_name, region_name, municipality_code,
             municipality_location, updated_at, user }) {
 
@@ -15,6 +31,16 @@ export class Municipality {
     }
 
     // Static factory method
+
+    /**
+     * Create Municipality entity from raw data
+     * 
+     * PRE-CONDITIONS:
+     * - raw object must contain municipality fields
+     * 
+     * POST-CONDITIONS:
+     * - Returns new Municipality instance
+     */
     static fromEntity(raw) {
         return new Municipality({
             municipality_id: raw.municipality_id,
@@ -28,6 +54,16 @@ export class Municipality {
     }
 
     // Expose a DTO for controllers
+
+    /**
+     * Convert Municipality entity to DTO
+     * 
+     * PRE-CONDITIONS:
+     * - Municipality instance must be initialized
+     * 
+     * POST-CONDITIONS:
+     * - Returns plain object suitable for API responses
+     */
     toDTO() {
         return {
             municipality_id: this.municipality_id,

@@ -1,7 +1,23 @@
 // src/domain/entities/user.entity.js
 
 // This entity represents a system user, storing their credentials, role, and contact details.
+
+/**
+ * This file defines the User entity class.
+ * It represents user data and provides methods
+ * to create instances and convert them into DTOs.
+ */
 export class User {
+
+    /**
+     * Construct a User entity
+     * 
+     * PRE-CONDITIONS:
+     * - Required user fields must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Initializes User instance with provided data
+     */
     constructor({ user_id, user_email, user_password, user_phone, user_role, isactive,
         created_at, updated_at }) {
 
@@ -16,6 +32,16 @@ export class User {
     }
 
     // Static factory method
+
+    /**
+     * Create User entity from raw data
+     * 
+     * PRE-CONDITIONS:
+     * - raw object must contain user fields
+     * 
+     * POST-CONDITIONS:
+     * - Returns new User instance
+     */
     static fromEntity(raw) {
         return new User({
             user_id: raw.user_id,
@@ -30,6 +56,17 @@ export class User {
     }
 
     // Expose a DTO for controllers
+
+    /**
+     * Convert User entity to DTO
+     * 
+     * PRE-CONDITIONS:
+     * - User instance must be initialized
+     * 
+     * POST-CONDITIONS:
+     * - Returns plain object suitable for API responses
+     * - Includes all user fields
+     */
     toDTO() {
         return {
             user_id: this.user_id,

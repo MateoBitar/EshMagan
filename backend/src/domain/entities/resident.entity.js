@@ -1,7 +1,23 @@
 // src/domain/entities/resident.entity.js
 
 // This entity represents a resident user in the system, which is a specialized type of user with additional fields.
+
+/**
+ * This file defines the Resident entity class.
+ * It represents resident data and provides methods
+ * to create instances and convert them into DTOs.
+ */
 export class Resident {
+
+    /**
+     * Construct a Resident entity
+     * 
+     * PRE-CONDITIONS:
+     * - Required resident fields must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Initializes Resident instance with provided data
+     */
     constructor({ resident_id, resident_fname, resident_lname, resident_dob,
         resident_idnb, resident_idpic, home_location, work_location, last_known_location,
         updated_at, user }) {
@@ -20,6 +36,16 @@ export class Resident {
     }
 
     // Static factory method
+
+    /**
+     * Create Resident entity from raw data
+     * 
+     * PRE-CONDITIONS:
+     * - raw object must contain resident fields
+     * 
+     * POST-CONDITIONS:
+     * - Returns new Resident instance
+     */
     static fromEntity(raw) {
         return new Resident({
             resident_id: raw.resident_id,
@@ -37,6 +63,17 @@ export class Resident {
     }
 
     // Expose a DTO for controllers
+
+    /**
+     * Convert Resident entity to DTO
+     * 
+     * PRE-CONDITIONS:
+     * - Resident instance must be initialized
+     * 
+     * POST-CONDITIONS:
+     * - Returns plain object suitable for API responses
+     * - Sensitive data is masked
+     */
     toDTO() {
         return {
             resident_id: this.resident_id,

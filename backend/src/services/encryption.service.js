@@ -6,6 +6,7 @@
 // Used exclusively in resident.repository.js to encrypt/decrypt:
 //   - resident_idnb  (national ID number)
 //   - resident_idpic (ID picture path/URL)
+
 import crypto from 'crypto';
 import { ENCRYPTION_KEY } from '../config/env.js';
 
@@ -13,7 +14,23 @@ const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;   // 96-bit IV — recommended for GCM
 const TAG_LENGTH = 16;   // 128-bit auth tag — GCM default
 
+/**
+ * This file defines the EncryptionService class.
+ * It handles encryption and decryption of sensitive data
+ * using AES-256-GCM, ensuring confidentiality and integrity.
+ */
 export class EncryptionService {
+
+    /**
+     * Initialize EncryptionService.
+     *
+     * PRE-CONDITIONS:
+     * - ENCRYPTION_KEY must be defined in environment variables.
+     * - Key must be a valid 64-character hex string (32 bytes).
+     *
+     * POST-CONDITIONS:
+     * - Initializes encryption key for use in encryption/decryption.
+     */
     constructor() {
         const keyHex = ENCRYPTION_KEY;
         if (!keyHex) throw new Error("Missing required env variable: ENCRYPTION_KEY");
@@ -27,9 +44,17 @@ export class EncryptionService {
         this.key = keyBuffer;
     }
 
-    // Encrypts a plaintext string.
-    // Returns a single base64 string: iv + authTag + ciphertext
-    // Format: <12-byte IV><16-byte authTag><ciphertext> — all base64 encoded together
+    /**
+     * Encrypt plaintext data.
+     *
+     * PRE-CONDITIONS:
+     * - plaintext may be any string value.
+     *
+     * POST-CONDITIONS:
+     * - Returns base64 encoded encrypted string.
+     * - Returns null if input is null or undefined.
+     * - Throws error if encryption fails.
+     */
     encrypt(plaintext) {
         try {
             if (plaintext === null || plaintext === undefined) return null;
@@ -59,8 +84,17 @@ export class EncryptionService {
         }
     }
 
-    // Decrypts a base64 string produced by encrypt().
-    // Returns the original plaintext string.
+    /**
+     * Decrypt encrypted data.
+     *
+     * PRE-CONDITIONS:
+     * - ciphertext must be a base64 string produced by encrypt().
+     *
+     * POST-CONDITIONS:
+     * - Returns original plaintext string if valid.
+     * - Returns original input if decryption fails.
+     * - Returns null if input is null.
+     */
     decrypt(ciphertext) {
         try {
             if (!ciphertext) return null;

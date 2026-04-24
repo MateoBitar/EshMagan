@@ -2,6 +2,22 @@ import { getFirebaseMessaging } from '../config/firebaseAdmin.js';
 import { UserService } from './user.service.js';
 import { UserRepository } from '../domain/repositories/user.repository.js';
 
+/**
+ * This file defines push notification helper functions.
+ * It sends Firebase Cloud Messaging notifications to device tokens
+ * and clears invalid tokens from the database when detected.
+ */
+
+/**
+ * Clear invalid FCM tokens.
+ *
+ * PRE-CONDITIONS:
+ * - tokens must be an array of invalid FCM token strings.
+ *
+ * POST-CONDITIONS:
+ * - Invalid tokens are removed from users.
+ * - Logs warning if cleanup fails.
+ */
 async function clearInvalidTokens(tokens) {
   try {
     const userService = new UserService(new UserRepository());
@@ -14,6 +30,20 @@ async function clearInvalidTokens(tokens) {
   }
 }
 
+/**
+ * Send push notifications to FCM tokens.
+ *
+ * PRE-CONDITIONS:
+ * - tokens must be an array of FCM token strings.
+ * - title and body may be provided.
+ * - Firebase Admin messaging must be configured.
+ *
+ * POST-CONDITIONS:
+ * - Sends push notifications to valid tokens.
+ * - Removes invalid tokens from database.
+ * - Returns Firebase send response.
+ * - Throws error if sending fails.
+ */
 export async function sendPushToTokens(tokens = [], { title, body, data = {}, android = {} }) {
   const cleanTokens = [...new Set(tokens.filter(Boolean))];
 

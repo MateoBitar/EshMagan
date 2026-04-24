@@ -11,15 +11,40 @@
 //   alert.created         → alert broadcast to residents near fire
 //   assignment.created    → responder assigned to a fire
 //   evacuation.updated    → evacuation route status/priority changed
+
 import { connect, StringCodec, AckPolicy, RetentionPolicy, StorageType } from 'nats';
 import { NATS_URL } from './env.js';
+
+/**
+ * This file handles NATS connection, JetStream initialization,
+ * stream creation, and provides utility functions for accessing
+ * the messaging infrastructure.
+ */
 
 let nc = null;  // NATS connection
 let js = null;  // JetStream client
 let jsm = null; // JetStream manager
 
+/**
+ * String codec for encoding/decoding messages
+ * 
+ * PRE-CONDITIONS:
+ * - NATS library must be available
+ * 
+ * POST-CONDITIONS:
+ * - Provides encoding/decoding functionality
+ */
 export const sc = StringCodec();
 
+/**
+ * Define all NATS subjects used in the system
+ * 
+ * PRE-CONDITIONS:
+ * - Subjects must follow naming conventions
+ * 
+ * POST-CONDITIONS:
+ * - Centralized subject definitions for publishers/subscribers
+ */
 // All subjects under the ESHMAGAN stream
 export const SUBJECTS = {
     FIRE_DETECTED:       'fire.detected',
@@ -33,6 +58,18 @@ export const SUBJECTS = {
 
 // CONNECTION
 // Called once on startup to connect to NATS
+
+/**
+ * Establish connection to NATS and initialize JetStream
+ * 
+ * PRE-CONDITIONS:
+ * - NATS_URL must be defined
+ * 
+ * POST-CONDITIONS:
+ * - Initializes nc, js, and jsm
+ * - Ensures stream exists
+ * - Returns connection objects
+ */
 export async function connectNATS() {
     nc = await connect({ servers: NATS_URL });
     js  = nc.jetstream();
@@ -48,6 +85,17 @@ export async function connectNATS() {
 // STREAM SETUP
 // Creates the ESHMAGAN stream if it doesn't already exist.
 // Idempotent — safe to call on every startup.
+
+/**
+ * Ensure JetStream stream exists
+ * 
+ * PRE-CONDITIONS:
+ * - JetStream manager must be initialized
+ * 
+ * POST-CONDITIONS:
+ * - Creates stream if not existing
+ * - Leaves existing stream unchanged
+ */
 async function ensureStream() {
     const streamName = 'ESHMAGAN';
     const subjects   = Object.values(SUBJECTS);
@@ -70,22 +118,60 @@ async function ensureStream() {
 
 // GETTERS
 // Used by publishers and subscribers to get the active connection
+
+/**
+ * Get active NATS connection
+ * 
+ * PRE-CONDITIONS:
+ * - connectNATS() must be called first
+ * 
+ * POST-CONDITIONS:
+ * - Returns NATS connection instance
+ */
 export function getNATSConnection() {
     if (!nc) throw new Error('NATS not connected. Call connectNATS() first.');
     return nc;
 }
 
+/**
+ * Get JetStream client
+ * 
+ * PRE-CONDITIONS:
+ * - connectNATS() must be called first
+ * 
+ * POST-CONDITIONS:
+ * - Returns JetStream client
+ */
 export function getJetStream() {
     if (!js) throw new Error('JetStream not initialized. Call connectNATS() first.');
     return js;
 }
 
+/**
+ * Get JetStream manager
+ * 
+ * PRE-CONDITIONS:
+ * - connectNATS() must be called first
+ * 
+ * POST-CONDITIONS:
+ * - Returns JetStream manager
+ */
 export function getJetStreamManager() {
     if (!jsm) throw new Error('JetStream manager not initialized. Call connectNATS() first.');
     return jsm;
 }
 
 // DISCONNECT
+
+/**
+ * Disconnect from NATS
+ * 
+ * PRE-CONDITIONS:
+ * - NATS connection must exist
+ * 
+ * POST-CONDITIONS:
+ * - Gracefully closes connection
+ */
 export async function disconnectNATS() {
     if (nc) {
         await nc.drain();

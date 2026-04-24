@@ -1,7 +1,23 @@
 // src/domain/entities/notification.entity.js
 
 // This entity represents a notification sent to a user regarding a possible fire incident.
+
+/**
+ * This file defines the Notification entity class.
+ * It represents notification data and provides methods
+ * to create instances and convert them into DTOs.
+ */
 export class Notification {
+
+    /**
+     * Construct a Notification entity
+     * 
+     * PRE-CONDITIONS:
+     * - Required notification fields must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Initializes Notification instance with provided data
+     */
     constructor({notification_id, target_role, notification_message, notification_status, expires_at,
             created_at, fire_id, user_id}) {
 
@@ -16,6 +32,16 @@ export class Notification {
     }
 
     // Static factory method
+
+    /**
+     * Create Notification entity from raw data
+     * 
+     * PRE-CONDITIONS:
+     * - raw object must contain notification fields
+     * 
+     * POST-CONDITIONS:
+     * - Returns new Notification instance
+     */
     static fromEntity(raw) {
         return new Notification({
             notification_id: raw.notification_id,
@@ -30,6 +56,16 @@ export class Notification {
     }
 
     // Expose a DTO for controllers
+
+    /**
+     * Convert Notification entity to DTO
+     * 
+     * PRE-CONDITIONS:
+     * - Notification instance must be initialized
+     * 
+     * POST-CONDITIONS:
+     * - Returns plain object suitable for API responses
+     */
     toDTO() {
         return {
             notification_id: this.notification_id,

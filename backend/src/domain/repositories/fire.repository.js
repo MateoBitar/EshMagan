@@ -3,7 +3,24 @@
 import { pool } from '../../config/db.js'; 
 import { FireEvent } from '../entities/fire.entity.js'; 
 
+/**
+ * This file defines the FireRepository class.
+ * It handles all database operations related to fire events,
+ * including creation, retrieval, spatial queries, updates, statistics, and deletion.
+ */
 export class FireRepository { 
+
+    /**
+     * Creates a new fire event record.
+     * 
+     * PRE-CONDITIONS:
+     * - data must contain fire_source, fire_location, fire_severitylevel, is_extinguished, and is_verified.
+     * - fire_location must be a valid WKT geometry string.
+     * 
+     * POST-CONDITIONS:
+     * - Inserts a new fire event into the database.
+     * - Returns the created FireEvent entity.
+     */
     async createFire(data) { 
         // Creates a new fire event record 
         const { fire_source, fire_location, fire_severitylevel, is_extinguished, is_verified } = data;
@@ -21,6 +38,16 @@ export class FireRepository {
         return FireEvent.fromEntity(rows[0]); 
     }
 
+    /**
+     * Retrieves all fire events.
+     * 
+     * PRE-CONDITIONS:
+     * - Database connection must be available.
+     * 
+     * POST-CONDITIONS:
+     * - Returns an array of FireEvent entities.
+     * - Returns an empty array if no fire events exist.
+     */
     async getAllFires() { 
         // Retrieves all fire events 
         const sql = `
@@ -36,6 +63,16 @@ export class FireRepository {
         return rows.map(row => FireEvent.fromEntity(row));
     }
 
+    /**
+     * Retrieves a fire event by its unique ID.
+     * 
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     * 
+     * POST-CONDITIONS:
+     * - Returns a FireEvent entity if found.
+     * - Returns null if no fire event exists with the given ID.
+     */
     async getFireById(fire_id) { 
         // Retrieves a fire event by its unique ID 
         const sql = `
@@ -52,6 +89,16 @@ export class FireRepository {
         return FireEvent.fromEntity(rows[0]);
     }
 
+    /**
+     * Retrieves all active fires that are not extinguished.
+     * 
+     * PRE-CONDITIONS:
+     * - Database connection must be available.
+     * 
+     * POST-CONDITIONS:
+     * - Returns an array of FireEvent entities where is_extinguished is false.
+     * - Returns an empty array if no active fires exist.
+     */
     async getActiveFires() {
         // Retrieves all fires that are not extinguished
         const sql = `
@@ -68,6 +115,16 @@ export class FireRepository {
         return rows.map(row => FireEvent.fromEntity(row));
     }
 
+    /**
+     * Retrieves fires by verification status.
+     * 
+     * PRE-CONDITIONS:
+     * - fire_status must be provided.
+     * 
+     * POST-CONDITIONS:
+     * - Returns an array of FireEvent entities matching the verification status.
+     * - Returns an empty array if no matching fires exist.
+     */
     async getFiresByStatus(fire_status) {
         // Retrieves fires by verification status
         const sql = `
@@ -84,6 +141,17 @@ export class FireRepository {
         return rows.map(row => FireEvent.fromEntity(row));
     }
 
+    /**
+     * Retrieves fires located within a municipality boundary.
+     * 
+     * PRE-CONDITIONS:
+     * - municipality_id must be provided.
+     * - Municipality boundary location must exist in the database.
+     * 
+     * POST-CONDITIONS:
+     * - Returns an array of FireEvent entities inside the municipality boundary.
+     * - Returns an empty array if no fires are found in that municipality.
+     */
     async getFiresByMunicipality(municipality_id) { 
         // Retrieves fires within a municipality boundary 
         const sql = `
@@ -103,6 +171,16 @@ export class FireRepository {
         return rows.map(row => FireEvent.fromEntity(row));
     }
 
+    /**
+     * Retrieves fires within a given radius from a point.
+     * 
+     * PRE-CONDITIONS:
+     * - lat, lng, and radiusMeters must be provided.
+     * 
+     * POST-CONDITIONS:
+     * - Returns an array of FireEvent entities within the radius.
+     * - Returns an empty array if no fires are found.
+     */
     async getFiresRadius(lat, lng, radiusMeters) { 
         // Retrieves fires within a radius from a point 
         const sql = ` 
@@ -118,6 +196,16 @@ export class FireRepository {
         return rows.map(row => FireEvent.fromEntity(row));
     }
 
+    /**
+     * Retrieves fires located inside a polygon area.
+     * 
+     * PRE-CONDITIONS:
+     * - polygonGeoJSON must be provided as a valid GeoJSON polygon.
+     * 
+     * POST-CONDITIONS:
+     * - Returns an array of FireEvent entities inside the polygon.
+     * - Returns an empty array if no fires are found.
+     */
     async getFiresWithinPolygon(polygonGeoJSON) { 
         // Retrieves fires within a polygon area 
         const sql = `
@@ -134,6 +222,16 @@ export class FireRepository {
         return rows.map(row => FireEvent.fromEntity(row));
     }
 
+    /**
+     * Retrieves the most recent fires based on a limit.
+     * 
+     * PRE-CONDITIONS:
+     * - limit must be provided.
+     * 
+     * POST-CONDITIONS:
+     * - Returns an array of recent FireEvent entities.
+     * - Returns an empty array if no fires exist.
+     */
     async getRecentFires(limit) { 
         // Retrieves most recent fires 
         const fireSql = `
@@ -149,6 +247,16 @@ export class FireRepository {
         return rows.map(row => FireEvent.fromEntity(row));
     }
 
+    /**
+     * Retrieves fires created between two dates.
+     * 
+     * PRE-CONDITIONS:
+     * - startDate and endDate must be provided.
+     * 
+     * POST-CONDITIONS:
+     * - Returns an array of FireEvent entities created in the date range.
+     * - Returns an empty array if no fires are found.
+     */
     async getFiresByDate(startDate, endDate) { 
         // Retrieves fires created between two dates 
         const sql = `
@@ -164,6 +272,16 @@ export class FireRepository {
         return rows.map(row => FireEvent.fromEntity(row));
     }
 
+    /**
+     * Retrieves fire statistics between two dates.
+     * 
+     * PRE-CONDITIONS:
+     * - startDate and endDate must be provided.
+     * 
+     * POST-CONDITIONS:
+     * - Returns total fires, extinguished fires, and active fires.
+     * - Returns null if no statistics are found.
+     */
     async getFireStatistics(startDate, endDate) { 
         // Retrieves fire statistics (total fires, extinguished, active) between two dates 
         const sql = `
@@ -180,6 +298,17 @@ export class FireRepository {
         return rows[0]; 
     }
 
+    /**
+     * Retrieves fires near a location within a time range.
+     * 
+     * PRE-CONDITIONS:
+     * - lat, lng, startDate, and endDate must be provided.
+     * - radiusMeters may be provided or defaults to 1000.
+     * 
+     * POST-CONDITIONS:
+     * - Returns fires matching both spatial and time filters.
+     * - Returns an empty array if no fires match.
+     */
     async getFiresByLocationAndTime(lat, lng, startDate, endDate, radiusMeters = 1000) {
         // Retrieves fires near a location within a time range
         const sql = `
@@ -198,6 +327,18 @@ export class FireRepository {
         return rows.map(row => FireEvent.fromEntity(row));
     }
 
+    /**
+     * Updates a fire dynamically based on provided fields.
+     * 
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     * - data must contain at least one field to update.
+     * 
+     * POST-CONDITIONS:
+     * - Updates the provided fire fields and updated_at timestamp.
+     * - Returns updated FireEvent entity if found.
+     * - Returns null if no fire is found or no update is applied.
+     */
     async updateFire(fire_id, data) {
         const fields = [];
         const values = [];
@@ -248,6 +389,18 @@ export class FireRepository {
         return null; // nothing to update
     }
 
+    /**
+     * Updates the extinguished status of a fire.
+     * 
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     * - fire_status must be provided.
+     * 
+     * POST-CONDITIONS:
+     * - Updates is_extinguished and updated_at.
+     * - Returns updated FireEvent entity if found.
+     * - Returns null if fire is not found or no update is applied.
+     */
     async updateFireStatus(fire_id, fire_status) {
         const fields = [];
         const values = [];
@@ -282,6 +435,18 @@ export class FireRepository {
         return null; // nothing to update
     }
 
+    /**
+     * Updates the severity level of a fire.
+     * 
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     * - severityLevel must be provided.
+     * 
+     * POST-CONDITIONS:
+     * - Updates fire_severitylevel and updated_at.
+     * - Returns updated FireEvent entity if found.
+     * - Returns null if fire does not exist.
+     */
     async updateFireSeverity(fire_id, severityLevel) {
         // Updates the severity level of a fire
         const sql = `
@@ -301,6 +466,17 @@ export class FireRepository {
         return FireEvent.fromEntity(rows[0]);
     }
 
+    /**
+     * Deletes a fire event record.
+     * 
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     * 
+     * POST-CONDITIONS:
+     * - Deletes the fire if it exists.
+     * - Returns true if deleted.
+     * - Returns false if fire is not found.
+     */
     async deleteFire(fire_id) {
         // Deletes a fire event record
         const sql = `DELETE FROM fireevents WHERE fire_id = $1 RETURNING fire_id`;
@@ -313,6 +489,15 @@ export class FireRepository {
         return true; // Fire deleted successfully
     }
 
+    /**
+     * Counts fires using optional filters.
+     * 
+     * PRE-CONDITIONS:
+     * - filters may contain is_extinguished, is_verified, and fire_severitylevel.
+     * 
+     * POST-CONDITIONS:
+     * - Returns the number of fires matching the filters.
+     */
     async countFires(filters = {}) {
         const conditions = [];
         const values = [];

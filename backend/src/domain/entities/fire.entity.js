@@ -1,7 +1,23 @@
 // src/domain/entities/fire.entity.js
 
 // This entity represents a fire incident detected or reported in the system.
+
+/**
+ * This file defines the FireEvent entity class.
+ * It represents fire incident data and provides methods
+ * to create instances and convert them into DTOs.
+ */
 export class FireEvent {
+
+    /**
+     * Construct a FireEvent entity
+     * 
+     * PRE-CONDITIONS:
+     * - Required fire fields must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Initializes FireEvent instance with provided data
+     */
     constructor({ fire_id, fire_source, fire_location, fire_severitylevel, is_extinguished,
             is_verified, created_at, updated_at }) {
 
@@ -16,6 +32,16 @@ export class FireEvent {
     }
 
     // Static factory method
+
+    /**
+     * Create FireEvent entity from raw data
+     * 
+     * PRE-CONDITIONS:
+     * - raw object must contain fire fields
+     * 
+     * POST-CONDITIONS:
+     * - Returns new FireEvent instance
+     */
     static fromEntity(raw) {
         return new FireEvent({
             fire_id: raw.fire_id,
@@ -30,6 +56,16 @@ export class FireEvent {
     }
 
     // Expose a DTO for controllers
+
+    /**
+     * Convert FireEvent entity to DTO
+     * 
+     * PRE-CONDITIONS:
+     * - FireEvent instance must be initialized
+     * 
+     * POST-CONDITIONS:
+     * - Returns plain object suitable for API responses
+     */
     toDTO() {
         return {
             fire_id: this.fire_id,

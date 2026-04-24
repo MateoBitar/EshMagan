@@ -2,12 +2,38 @@
 
 import { Resident } from '../domain/entities/resident.entity.js';
 
+/**
+ * This file defines the ResidentService class.
+ * It manages resident-related business logic including
+ * creation, retrieval, updates, and deactivation.
+ */
 export class ResidentService {
+    /**
+     * Initialize ResidentService.
+     *
+     * PRE-CONDITIONS:
+     * - residentRepository and userService must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Service is ready to handle resident operations.
+     */
     constructor(residentRepository, userService) {
         this.residentRepository = residentRepository;
         this.userService = userService;
     }
 
+    /**
+     * Create a resident.
+     *
+     * PRE-CONDITIONS:
+     * - resident_fname, resident_lname, resident_dob,
+     *   resident_idnb, resident_idpic, and last_known_location must be provided.
+     *
+     * POST-CONDITIONS:
+     * - User is retrieved or created.
+     * - Resident entity is created and stored.
+     * - Returns resident DTO.
+     */
     async createResident(data) {
         try {
             // Resident-specific checks
@@ -63,6 +89,15 @@ export class ResidentService {
         }
     }
 
+    /**
+     * Retrieve all residents.
+     *
+     * PRE-CONDITIONS:
+     * - Repository must be available.
+     *
+     * POST-CONDITIONS:
+     * - Returns list of resident DTOs.
+     */
     async getAllResidents() {
         try {
             // Fetch all residents from repository
@@ -74,6 +109,16 @@ export class ResidentService {
         }
     }
 
+    /**
+     * Retrieve resident by ID.
+     *
+     * PRE-CONDITIONS:
+     * - resident_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns resident DTO if found.
+     * - Returns null if not found.
+     */
     async getResidentById(resident_id) {
         try {
             // Fetch resident by ID
@@ -85,6 +130,16 @@ export class ResidentService {
         }
     }
 
+    /**
+     * Retrieve residents by first name.
+     *
+     * PRE-CONDITIONS:
+     * - resident_fname must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching residents.
+     * - Returns empty array if none found.
+     */
     async getResidentsByFName(resident_fname) {
         try {
             // Fetch residents by first name (partial match)
@@ -96,6 +151,16 @@ export class ResidentService {
         }
     }
 
+    /**
+     * Retrieve residents by last name.
+     *
+     * PRE-CONDITIONS:
+     * - resident_lname must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching residents.
+     * - Returns empty array if none found.
+     */
     async getResidentsByLName(resident_lname) {
         try {
             // Fetch residents by last name (partial match)
@@ -107,6 +172,16 @@ export class ResidentService {
         }
     }
 
+    /**
+     * Retrieve resident by ID number.
+     *
+     * PRE-CONDITIONS:
+     * - resident_idnb must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns resident DTO if found.
+     * - Returns null if not found.
+     */
     async getResidentByIdNb(resident_idnb) {
         try {
             // Fetch resident by ID number
@@ -118,6 +193,16 @@ export class ResidentService {
         }
     }
 
+    /**
+     * Retrieve residents by last known location.
+     *
+     * PRE-CONDITIONS:
+     * - last_known_location must be valid WKT string or coordinate object.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching residents.
+     * - Returns empty array if none found.
+     */
     async getResidentsByLastKnownLocation(last_known_location) {
         try {
             const coords = typeof last_known_location === 'string'
@@ -135,6 +220,16 @@ export class ResidentService {
         }
     }
 
+    /**
+     * Retrieve resident by email.
+     *
+     * PRE-CONDITIONS:
+     * - user_email must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns resident DTO if found.
+     * - Returns null if not found.
+     */
     async getResidentByEmail(user_email) {
         try {
             // Fetch resident by associated user email
@@ -146,6 +241,16 @@ export class ResidentService {
         }
     }
 
+    /**
+     * Retrieve resident by phone.
+     *
+     * PRE-CONDITIONS:
+     * - user_phone must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns resident DTO if found.
+     * - Returns null if not found.
+     */
     async getResidentByPhone(user_phone) {
         try {
             // Fetch resident by associated user phone
@@ -157,6 +262,16 @@ export class ResidentService {
         }
     }
 
+    /**
+     * Update resident.
+     *
+     * PRE-CONDITIONS:
+     * - resident_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Resident is updated.
+     * - Returns updated DTO.
+     */
     async updateResident(resident_id, data) {
         try {
             // Update resident fields (handled in repository)
@@ -168,6 +283,15 @@ export class ResidentService {
         }
     }
 
+    /**
+     * Deactivate resident.
+     *
+     * PRE-CONDITIONS:
+     * - resident_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Resident is deactivated.
+     */
     async deactivateResident(resident_id) {
         try {
             // Deactivate resident in repository

@@ -1,7 +1,23 @@
 // src/domain/entities/admin.entity.js
 
 // This entity represents an admin user in the system, which is a specialized type of user with additional fields.
+
+/**
+ * This file defines the Admin entity class.
+ * It represents an admin domain object and provides methods
+ * to create instances and transform them into DTOs.
+ */
 export class Admin {
+    /**
+     * Construct an Admin entity
+     * 
+     * PRE-CONDITIONS:
+     * - admin_id, admin_fname, admin_lname must be provided
+     * - user object may be provided
+     * 
+     * POST-CONDITIONS:
+     * - Initializes Admin instance with provided data
+     */
     constructor({ admin_id, admin_fname, admin_lname, user }) {
 
         this.admin_id = admin_id;
@@ -11,6 +27,16 @@ export class Admin {
     }
 
     // Static factory method
+
+    /**
+     * Create Admin entity from raw database object
+     * 
+     * PRE-CONDITIONS:
+     * - raw object must contain admin fields
+     * 
+     * POST-CONDITIONS:
+     * - Returns new Admin instance
+     */
     static fromEntity(raw) {
         return new Admin({
             admin_id: raw.admin_id,
@@ -21,6 +47,16 @@ export class Admin {
     }
 
     // Expose a DTO for controllers
+
+    /**
+     * Convert Admin entity to DTO
+     * 
+     * PRE-CONDITIONS:
+     * - Admin instance must be initialized
+     * 
+     * POST-CONDITIONS:
+     * - Returns plain object suitable for API responses
+     */
     toDTO() {
         return {
             admin_id: this.admin_id,

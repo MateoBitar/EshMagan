@@ -1,7 +1,24 @@
 import { pool } from '../../config/db.js'; 
 import { FireAssignment } from '../entities/fireAssignment.entity.js'; 
 
+/**
+ * This file defines the FireAssignmentRepository class.
+ * It manages all database operations related to assigning responders to fires,
+ * including creation, retrieval, updates, deletion, and counting operations.
+ */
 export class FireAssignmentRepository { 
+
+    /**
+     * Creates a new fire assignment.
+     * 
+     * PRE-CONDITIONS:
+     * - data must contain assignment_status, fire_id, and responder_id.
+     * 
+     * POST-CONDITIONS:
+     * - Inserts a new assignment into the database.
+     * - Returns the created FireAssignment entity.
+     * - Returns null if insertion fails.
+     */
     async createAssignment(data) { 
         // Creates a new fire assignment record 
         const { assignment_status, fire_id, responder_id } = data;
@@ -18,6 +35,16 @@ export class FireAssignmentRepository {
         return FireAssignment.fromEntity(rows[0]); 
     }
 
+    /**
+     * Retrieves all fire assignments.
+     * 
+     * PRE-CONDITIONS:
+     * - Database connection must be available.
+     * 
+     * POST-CONDITIONS:
+     * - Returns an array of FireAssignment entities.
+     * - Returns an empty array if no assignments exist.
+     */
     async getAllAssignments() { 
         // Retrieves all fire assignments 
         const sql = `
@@ -32,6 +59,16 @@ export class FireAssignmentRepository {
         return rows.map(row => FireAssignment.fromEntity(row)); 
     }
 
+    /**
+     * Retrieves a fire assignment by its ID.
+     * 
+     * PRE-CONDITIONS:
+     * - assignment_id must be provided.
+     * 
+     * POST-CONDITIONS:
+     * - Returns FireAssignment entity if found.
+     * - Returns null if not found.
+     */
     async getAssignmentById(assignment_id) {
         // Retrieves a fire assignment by its ID
         const sql = `
@@ -47,6 +84,16 @@ export class FireAssignmentRepository {
         return FireAssignment.fromEntity(rows[0]);
     }
 
+    /**
+     * Retrieves assignments by fire ID.
+     * 
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     * 
+     * POST-CONDITIONS:
+     * - Returns assignments linked to the fire.
+     * - Returns empty array if none found.
+     */
     async getAssignmentsByFireId(fire_id) {
         // Retrieves all assignments for a specific fire incident
         const sql = `
@@ -63,6 +110,16 @@ export class FireAssignmentRepository {
         return rows.map(row => FireAssignment.fromEntity(row));
     }
 
+    /**
+     * Retrieves assignments by responder ID.
+     * 
+     * PRE-CONDITIONS:
+     * - responder_id must be provided.
+     * 
+     * POST-CONDITIONS:
+     * - Returns assignments linked to the responder.
+     * - Returns empty array if none found.
+     */
     async getAssignmentsByResponderId(responder_id) { 
         // Retrieves all assignments for a specific responder 
         const sql = `
@@ -78,6 +135,16 @@ export class FireAssignmentRepository {
         return rows.map(row => FireAssignment.fromEntity(row)); 
     }
 
+    /**
+     * Retrieves active assignments.
+     * 
+     * PRE-CONDITIONS:
+     * - None.
+     * 
+     * POST-CONDITIONS:
+     * - Returns assignments where status = 'active'.
+     * - Returns empty array if none exist.
+     */
     async getActiveAssignments() {
         // Retrieves all active assignments (status = 'active')
         const sql = `
@@ -95,6 +162,17 @@ export class FireAssignmentRepository {
         return rows.map(row => FireAssignment.fromEntity(row));
     }
 
+    /**
+     * Updates assignment status.
+     * 
+     * PRE-CONDITIONS:
+     * - assignment_id and status must be provided.
+     * 
+     * POST-CONDITIONS:
+     * - Updates assignment_status and timestamp.
+     * - Returns updated FireAssignment entity if found.
+     * - Returns null if assignment does not exist.
+     */
     async updateAssignmentStatus(assignment_id, status) {
         // Updates the status of a fire assignment
         const sql = `
@@ -113,6 +191,17 @@ export class FireAssignmentRepository {
         return FireAssignment.fromEntity(rows[0]);
     }
 
+    /**
+     * Deletes a fire assignment.
+     * 
+     * PRE-CONDITIONS:
+     * - assignment_id must be provided.
+     * 
+     * POST-CONDITIONS:
+     * - Deletes assignment if it exists.
+     * - Returns true if deleted.
+     * - Returns false if not found.
+     */
     async deleteAssignment(assignment_id) {
         // Deletes a fire assignment record
         const sql = `
@@ -128,6 +217,15 @@ export class FireAssignmentRepository {
         return true; // Assignment deleted successfully
     }
 
+    /**
+     * Counts assignments with filters.
+     * 
+     * PRE-CONDITIONS:
+     * - filters may include fire_id, responder_id, assignment_status.
+     * 
+     * POST-CONDITIONS:
+     * - Returns number of matching assignments.
+     */
     async countAssignments(filters = {}) { 
         // Counts assignments with optional filters
         const conditions = [];
@@ -156,6 +254,15 @@ export class FireAssignmentRepository {
         return parseInt(rows[0].count, 10);
     }
 
+    /**
+     * Counts assignments by fire.
+     * 
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     * 
+     * POST-CONDITIONS:
+     * - Returns number of assignments linked to fire.
+     */
     async countAssignmentsByFire(fire_id) {
         // Counts assignments for a specific fire
         const sql = `
@@ -168,6 +275,15 @@ export class FireAssignmentRepository {
         return parseInt(rows[0].count, 10);
     }
 
+    /**
+     * Counts assignments by responder.
+     * 
+     * PRE-CONDITIONS:
+     * - responder_id must be provided.
+     * 
+     * POST-CONDITIONS:
+     * - Returns number of assignments linked to responder.
+     */
     async countAssignmentsByResponder(responder_id) {
         // Counts assignments for a specific responder
         const sql = `

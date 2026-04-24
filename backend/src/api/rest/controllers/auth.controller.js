@@ -2,11 +2,27 @@
 
 import { validationResult } from 'express-validator';
 
+/**
+ * This file defines the REST controller for authentication operations.
+ * It handles user registration, login, token refresh, logout,
+ * and password management by delegating logic to authService.
+ */
+
 export class AuthController {
     constructor(authService) {
         this.authService = authService;
     }
 
+    /**
+     * Validates request input using express-validator.
+     * 
+     * PRE-CONDITIONS:
+     * - Request must contain validation rules
+     * 
+     * POST-CONDITIONS:
+     * - Returns false and sends 400 response if validation fails
+     * - Returns true if validation passes
+     */
     _validate(req, res) {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -16,8 +32,16 @@ export class AuthController {
         return true;
     }
 
-    // POST /api/auth/register
-    // Creates a new user account (no token issued, user must login after)
+    /**
+     * Registers a new user account.
+     * 
+     * PRE-CONDITIONS:
+     * - Request body must contain valid registration data
+     * 
+     * POST-CONDITIONS:
+     * - Returns created user with status 201
+     * - Handles validation, conflict, and server errors
+     */
     register = async (req, res) => {
         try {
             if (!this._validate(req, res)) return;
@@ -35,8 +59,16 @@ export class AuthController {
         }
     };
 
-    // POST /api/auth/login
-    // Returns accessToken + refreshToken + user DTO
+    /**
+     * Authenticates user and returns tokens.
+     * 
+     * PRE-CONDITIONS:
+     * - user_email and user_password must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns tokens and user data
+     * - Handles invalid credentials and errors
+     */
     login = async (req, res) => {
         try {
             if (!this._validate(req, res)) return;
@@ -55,8 +87,16 @@ export class AuthController {
         }
     };
 
-    // POST /api/auth/refresh
-    // Accepts a refresh token, rotates it, returns new accessToken + refreshToken
+    /**
+     * Refreshes authentication tokens.
+     * 
+     * PRE-CONDITIONS:
+     * - refreshToken must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns new access and refresh tokens
+     * - Handles invalid or expired tokens
+     */
     refresh = async (req, res) => {
         try {
             if (!this._validate(req, res)) return;
@@ -75,8 +115,16 @@ export class AuthController {
         }
     };
 
-    // POST /api/auth/logout
-    // Deletes the refresh token from DB, ends the session
+    /**
+     * Logs out user by invalidating refresh token.
+     * 
+     * PRE-CONDITIONS:
+     * - refreshToken must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Deletes token and ends session
+     * - Returns success message
+     */
     logout = async (req, res) => {
         try {
             if (!this._validate(req, res)) return;
@@ -92,8 +140,16 @@ export class AuthController {
         }
     };
 
-    // POST /api/auth/logout-all
-    // Deletes ALL refresh tokens for the user, logs out from every device
+    /**
+     * Logs out user from all devices.
+     * 
+     * PRE-CONDITIONS:
+     * - user must be authenticated (user_id available)
+     * 
+     * POST-CONDITIONS:
+     * - Deletes all refresh tokens
+     * - Returns success message
+     */
     logoutAll = async (req, res) => {
         try {
             const user_id = req.user?.user_id;
@@ -106,8 +162,18 @@ export class AuthController {
         }
     };
 
-    // POST /api/auth/change-password
-    // Requires valid access token, changes password and invalidates all sessions
+    /**
+     * Changes user password.
+     * 
+     * PRE-CONDITIONS:
+     * - user must be authenticated
+     * - old_password and new_password must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Updates password
+     * - Invalidates sessions
+     * - Returns success message
+     */
     changePassword = async (req, res) => {
         try {
             if (!this._validate(req, res)) return;

@@ -1,11 +1,32 @@
 // src/events/subscribers/evacuation.subscriber.js
 //
 // Responsible for converting evacuation.updated → alert.created
+
 import { getJetStream, sc, SUBJECTS } from '../../config/nats.js';
 import { publishAlertCreated } from '../publishers/alertCreated.publisher.js';
 
 const CONSUMER_NAME = 'evacuation-consumer';
 
+/**
+ * This file defines the evacuation subscriber.
+ * It listens for evacuation.updated events from NATS JetStream
+ * and converts them into alert.created events for affected user roles.
+ */
+
+/**
+ * Start evacuation subscriber.
+ *
+ * PRE-CONDITIONS:
+ * - NATS connection must be initialized.
+ * - JetStream consumer must exist.
+ * - evacuation.updated events must be published to the stream.
+ *
+ * POST-CONDITIONS:
+ * - Consumes evacuation.updated events.
+ * - Publishes alert.created events for Resident, Responder, and Municipality roles.
+ * - Acknowledges successfully processed messages.
+ * - Leaves failed messages unacknowledged so JetStream can retry.
+ */
 export async function startEvacuationSubscriber() {
     try {
         const js = getJetStream();

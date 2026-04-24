@@ -3,11 +3,37 @@
 import { User } from '../domain/entities/user.entity.js';
 import { hashPassword } from '../utils/hash.utils.js';
 
+/**
+ * This file defines the UserService class.
+ * It manages user-related business logic including
+ * creation, retrieval, updates, authentication support,
+ * and FCM token management.
+ */
 export class UserService {
+    /**
+     * Initialize UserService.
+     *
+     * PRE-CONDITIONS:
+     * - userRepository must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Service is ready to handle user operations.
+     */
     constructor(userRepository) {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Create a user.
+     *
+     * PRE-CONDITIONS:
+     * - user_email, user_password, user_phone, and user_role must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Password is hashed.
+     * - User entity is created and stored.
+     * - Returns user DTO.
+     */
     async createUser(data) {
         try {
             // User-specific checks
@@ -38,6 +64,15 @@ export class UserService {
         }
     }
 
+    /**
+     * Retrieve all users.
+     *
+     * PRE-CONDITIONS:
+     * - Repository must be available.
+     *
+     * POST-CONDITIONS:
+     * - Returns list of user DTOs.
+     */
     async getAllUsers() {
         try {
             // Fetch all users from repository
@@ -49,6 +84,16 @@ export class UserService {
         }
     }
 
+    /**
+     * Retrieve user by ID.
+     *
+     * PRE-CONDITIONS:
+     * - user_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns user DTO if found.
+     * - Returns null if not found.
+     */
     async getUserById(user_id) {
         try {
             // Fetch users by ID
@@ -60,6 +105,16 @@ export class UserService {
         }
     }
 
+    /**
+     * Retrieve user by email.
+     *
+     * PRE-CONDITIONS:
+     * - user_email must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns user DTO if found.
+     * - Returns null if not found.
+     */
     async getUserByEmail(user_email) {
         try {
             // Fetch users by email
@@ -71,6 +126,16 @@ export class UserService {
         }
     }
 
+    /**
+     * Retrieve user by phone.
+     *
+     * PRE-CONDITIONS:
+     * - user_phone must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns user DTO if found.
+     * - Returns null if not found.
+     */
     async getUserByPhone(user_phone) {
         try {
             // Fetch users by phone
@@ -82,6 +147,16 @@ export class UserService {
         }
     }
 
+    /**
+     * Retrieve users by role.
+     *
+     * PRE-CONDITIONS:
+     * - user_role must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching users.
+     * - Returns empty array if none found.
+     */
     async getUsersByRole(user_role) {
         try {
             // Fetch users by role
@@ -93,6 +168,15 @@ export class UserService {
         }
     }
 
+    /**
+     * Retrieve active users.
+     *
+     * PRE-CONDITIONS:
+     * - None.
+     *
+     * POST-CONDITIONS:
+     * - Returns active users.
+     */
     async getActiveUsers() {
         try {
             // Fetch active users
@@ -104,6 +188,15 @@ export class UserService {
         }
     }
 
+    /**
+     * Retrieve inactive users.
+     *
+     * PRE-CONDITIONS:
+     * - None.
+     *
+     * POST-CONDITIONS:
+     * - Returns inactive users.
+     */
     async getInActiveUsers() {
         try {
             // Fetch inactive users
@@ -115,6 +208,16 @@ export class UserService {
         }
     }
 
+    /**
+     * Retrieve active user by email.
+     *
+     * PRE-CONDITIONS:
+     * - user_email must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns user DTO if found and active.
+     * - Returns null otherwise.
+     */
     async getUserByEmailAndActive(user_email) {
         try {
             // Fetch user by email and active status
@@ -126,6 +229,16 @@ export class UserService {
         }
     }
 
+    /**
+     * Update user.
+     *
+     * PRE-CONDITIONS:
+     * - user_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - User is updated.
+     * - Returns updated DTO.
+     */
     async updateUser(user_id, data) {
         try {
             // Update user details
@@ -137,6 +250,16 @@ export class UserService {
         }
     }
 
+    /**
+     * Update user role.
+     *
+     * PRE-CONDITIONS:
+     * - user_id and user_role must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Role is updated.
+     * - Returns updated DTO.
+     */
     async updateUserRole(user_id, user_role) {
         try {
             // Update user role
@@ -148,6 +271,16 @@ export class UserService {
         }
     }
 
+    /**
+     * Update user status.
+     *
+     * PRE-CONDITIONS:
+     * - user_id and user_status must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Status is updated.
+     * - Returns updated DTO.
+     */
     async updateUserStatus(user_id, user_status) {
         try {
             // Update user active status
@@ -159,6 +292,16 @@ export class UserService {
         }
     }
 
+    /**
+     * Update last login timestamp.
+     *
+     * PRE-CONDITIONS:
+     * - user_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - last_login is updated.
+     * - Returns updated DTO.
+     */
     async updateLastLogin(user_id) {
         try {
             // Update user's last login timestamp
@@ -170,6 +313,15 @@ export class UserService {
         }
     }
 
+    /**
+     * Deactivate user.
+     *
+     * PRE-CONDITIONS:
+     * - user_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - User is deactivated.
+     */
     async deactivateUser(user_id) {
         try {
             // Deactivate user (soft delete)
@@ -181,6 +333,15 @@ export class UserService {
         }
     }
 
+    /**
+     * Filter users with pagination.
+     *
+     * PRE-CONDITIONS:
+     * - filters and pagination may be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns filtered user list.
+     */
     async filterUsers(filters = {}, pagination = { limit: 10, offset: 0 }) {
         try {
             // Filter users based on criteria and pagination
@@ -191,6 +352,15 @@ export class UserService {
         }
     }
 
+    /**
+     * Count users.
+     *
+     * PRE-CONDITIONS:
+     * - filters may be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns number of users.
+     */
     async countUsers(filters) {
         try {
             // Count users based on filters
@@ -200,27 +370,72 @@ export class UserService {
         }
     }
 
+    /**
+     * Save FCM token.
+     *
+     * PRE-CONDITIONS:
+     * - user_id and fcm_token must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Token is stored for the user.
+     */
     async saveFcmToken(user_id, fcm_token) {
         if (!user_id) throw new Error('Missing user_id');
         if (!fcm_token) throw new Error('Missing fcm_token');
         return await this.userRepository.saveFcmToken(user_id, fcm_token);
     }
 
+    /**
+     * Clear FCM token.
+     *
+     * PRE-CONDITIONS:
+     * - user_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Token is removed for the user.
+     */
     async clearFcmToken(user_id) {
         if (!user_id) throw new Error('Missing user_id');
         return await this.userRepository.clearFcmToken(user_id);
     }
 
+    /**
+     * Retrieve users with FCM tokens by role.
+     *
+     * PRE-CONDITIONS:
+     * - user_role must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns users with valid FCM tokens.
+     */
     async getUsersWithFcmByRole(user_role) {
         if (!user_role) throw new Error('Missing user_role');
         return await this.userRepository.getUsersWithFcmByRole(user_role);
     }
 
+    /**
+     * Retrieve FCM token by user ID.
+     *
+     * PRE-CONDITIONS:
+     * - user_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns token if exists.
+     */
     async getFcmTokenByUserId(user_id) {
         if (!user_id) throw new Error('Missing user_id');
         return await this.userRepository.getFcmTokenByUserId(user_id);
     }
 
+    /**
+     * Remove FCM token.
+     *
+     * PRE-CONDITIONS:
+     * - token must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Token is removed from database.
+     */
     async removeFcmToken(token) {
         if (!token) throw new Error('Missing token');
         return await this.userRepository.removeFcmToken(token);
