@@ -115,6 +115,9 @@ export default function NativeUnitsMap({
         let fireZones = [];
         let focusMarkers = { responders: {}, units: {}, fires: {} };
         let hasFitted = false;
+        let followUser = true;
+        let hasCenteredInitially = false;
+        let latestMeResponder = null;
         let latestUnits = [];
         let activeFireSidePopup = null;
         let activeFireTapTooltip = null;
@@ -165,6 +168,7 @@ export default function NativeUnitsMap({
         }
 
         map.on('dragstart zoomstart', function() {
+          followUser = false;
           window.ReactNativeWebView.postMessage('SHOW_RECENTER');
         });
 
@@ -202,6 +206,7 @@ export default function NativeUnitsMap({
         }
 
         window.updateUnits = function(units) {
+          latestMeResponder = (units || []).find(u => u && u.isMe) || null;
           latestUnits = units || [];
 
           markers.forEach(m => {
@@ -278,6 +283,24 @@ export default function NativeUnitsMap({
           });
 
           fitEverythingOnce();
+          if (
+            latestMeResponder &&
+            latestMeResponder.coords &&
+            validPair(latestMeResponder.coords.lat, latestMeResponder.coords.lng)
+          ) {
+            const lat = Number(latestMeResponder.coords.lat);
+            const lng = Number(latestMeResponder.coords.lng);
+
+            if (!hasCenteredInitially) {
+              map.flyTo([lat, lng], 15, { animate: true, duration: 0.8 });
+              hasCenteredInitially = true;
+            } else if (followUser) {
+              map.panTo([userCoords.lat, userCoords.lng], {
+                animate: true,
+                duration: 0.5,
+              });
+            }
+          }
         };
 
         window.updateFires = function(fires) {
@@ -387,6 +410,7 @@ export default function NativeUnitsMap({
         };
 
         window.resetMap = function() {
+          followUser = true;
           closeFireSidePopup();
           closeAllFireTooltips();
 

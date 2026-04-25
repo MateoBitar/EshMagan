@@ -29,6 +29,8 @@ export default function WebUnitsMap({
   const markerMapRef = useRef({ responders: {}, units: {}, fires: {} });
   const hasFittedRef = useRef(false);
   const [showRecenter, setShowRecenter] = useState(false);
+  const followUserRef = useRef(true);
+  const hasCenteredInitiallyRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !divRef.current) return;
@@ -96,6 +98,7 @@ export default function WebUnitsMap({
       }).addTo(map);
 
       map.on('dragstart zoomstart', () => {
+        followUserRef.current = false;
         setShowRecenter(true);
       });
 
@@ -138,6 +141,22 @@ export default function WebUnitsMap({
 
     const validUnits = (units || []).filter(u => u.coords && isValidCoordPair(u.coords.lat, u.coords.lng));
     const validFires = (fires || []).filter(f => f.coords && isValidCoordPair(f.coords.lat, f.coords.lng));
+    const me = (units || []).find(u => u.isMe);
+
+    if (me?.coords && isValidCoordPair(me.coords.lat, me.coords.lng)) {
+      const lat = Number(me.coords.lat);
+      const lng = Number(me.coords.lng);
+
+      if (!hasCenteredInitiallyRef.current) {
+        map.flyTo([lat, lng], 15, { animate: true, duration: 0.8 });
+        hasCenteredInitiallyRef.current = true;
+      } else if (followUserRef.current) {
+        map.panTo([userCoords.lat, userCoords.lng], {
+          animate: true,
+          duration: 0.5,
+        });
+      }
+    }
 
     let combinedBounds = null;
 
@@ -325,6 +344,7 @@ export default function WebUnitsMap({
   }, [selectedFireId, selectedUnitId, selectedResponderId]);
 
   const handleRecenter = () => {
+    followUserRef.current = true;
     try {
       const map = mapRef.current;
       if (!map) return;
