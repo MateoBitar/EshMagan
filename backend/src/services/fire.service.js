@@ -681,7 +681,7 @@ export class FireService {
                 if (!fireCoords) return false;
 
                 const dist = this._distanceInMeters(userLocation, fireCoords);
-                const radius = this._getFireZoneRadiusMeters(fire.fire_severitylevel);
+                const radius = this._getFireZoneRadiusMeters();
 
                 return dist <= radius;
             });
@@ -693,7 +693,7 @@ export class FireService {
     }
 
     // Find all residents located near a specific fire.
-    // radiusMeters defaults to 1km around the fire's location.
+    // radiusMeters defaults to 10km around the fire's location.
     /**
      * Find residents near a fire.
      *
@@ -703,7 +703,7 @@ export class FireService {
      * POST-CONDITIONS:
      * - Returns residents within radius of fire.
      */
-    async findResidentsNearFire(fire_id, radiusMeters = 1000) {
+    async findResidentsNearFire(fire_id, radiusMeters = 10000) {
         try {
             if (!fire_id) throw new Error("Missing required field: Fire ID");
 
@@ -731,19 +731,16 @@ export class FireService {
     }
 
     /**
-     * Determine fire danger radius based on severity.
+     * Determine fire alert radius.
      *
      * PRE-CONDITIONS:
-     * - severity level must be provided.
+     * - No input required.
      *
      * POST-CONDITIONS:
-     * - Returns radius in meters.
+     * - Returns fixed alert radius (10km).
      */
-    _getFireZoneRadiusMeters(level) {
-        if (level >= 8) return 1000;
-        if (level >= 6) return 800;
-        if (level >= 3) return 500;
-        return 400;
+    _getFireZoneRadiusMeters() {
+        return 10000;
     }
 
     /**
@@ -796,7 +793,7 @@ export class FireService {
                         latitude: g.coordinates[1]
                     };
                 }
-            } catch {}
+            } catch { }
         }
 
         return this._parseWKTPoint(raw);
