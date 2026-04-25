@@ -136,6 +136,7 @@ function WebMap({ safeCoords, safePolygonCoords, userCoords, polyline }) {
   const safeMarkerRef = useRef(null);
   const hasFittedRouteRef = useRef(false);
   const [followUser, setFollowUser] = useState(true);
+  const hasCenteredInitiallyRef = useRef(false);
 
   useEffect(() => {
     hasFittedRouteRef.current = false;
@@ -218,11 +219,21 @@ function WebMap({ safeCoords, safePolygonCoords, userCoords, polyline }) {
       userMarkerRef.current.setLatLng([userCoords.lat, userCoords.lng]);
     }
 
-    if (followUser) {
-      const focusZoom = 16;
-      map.setView([userCoords.lat, userCoords.lng], focusZoom);
+    if (!hasCenteredInitiallyRef.current) {
+      map.flyTo([userCoords.lat, userCoords.lng], 15, {
+        animate: true,
+        duration: 0.8,
+      });
+
+      hasCenteredInitiallyRef.current = true;
+      setFollowUser(true);
+    } else if (followUser) {
+      map.panTo([userCoords.lat, userCoords.lng], {
+        animate: true,
+        duration: 0.5,
+      });
     }
-  }, [userCoords?.lat, userCoords?.lng, followUser]);
+  }, [userCoords?.lat, userCoords?.lng]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -260,7 +271,7 @@ function WebMap({ safeCoords, safePolygonCoords, userCoords, polyline }) {
     const pl = L.polyline(polyline, { color: '#DC2626', weight: 5, opacity: 0.88 }).addTo(map);
     polylineRef.current = pl;
 
-    if (!hasFittedRouteRef.current) {
+    if (!hasFittedRouteRef.current && !hasCenteredInitiallyRef.current) {
       map.fitBounds(pl.getBounds(), { padding: [52, 52] });
       hasFittedRouteRef.current = true;
     }
@@ -376,6 +387,7 @@ function NativeMap({ safeCoords, safePolygonCoords, userCoords, polylineCoords, 
         let safePolygon = null;
         let hasFittedRoute = false;
         let followUser = true;
+        let hasCenteredInitially = false;
 
         map.on('dragstart', function() {
           followUser = false;
@@ -402,9 +414,20 @@ function NativeMap({ safeCoords, safePolygonCoords, userCoords, polylineCoords, 
             userMarker = L.marker([lat, lng], { icon }).bindPopup('Your Location').addTo(map);
           }
 
-          if (followUser) {
-            const focusZoom = 16;
-            map.setView([lat, lng], focusZoom);
+          if (!hasCenteredInitially) {
+            map.flyTo([lat, lng], 15, {
+              animate: true,
+              duration: 0.8
+            });
+
+            hasCenteredInitially = true;
+            followUser = true;
+            window.ReactNativeWebView.postMessage('FOLLOW_ON');
+          } else if (followUser) {
+            map.panTo([userCoords.lat, userCoords.lng], {
+              animate: true,
+              duration: 0.5,
+            });
           }
         };
 
@@ -435,7 +458,7 @@ function NativeMap({ safeCoords, safePolygonCoords, userCoords, polylineCoords, 
               opacity: 0.88
             }).addTo(map);
 
-            if (!hasFittedRoute) {
+            if (!hasFittedRoute && !hasCenteredInitially) {
               map.fitBounds(routePolyline.getBounds(), { padding: [52, 52] });
               hasFittedRoute = true;
             }
@@ -562,6 +585,8 @@ function NativeMap({ safeCoords, safePolygonCoords, userCoords, polylineCoords, 
             setMapReady(true);
           } else if (msg === 'FOLLOW_OFF') {
             setFollowUser(false);
+          } else if (msg === 'FOLLOW_ON') {
+            setFollowUser(true);
           }
         }}
         javaScriptEnabled
@@ -722,7 +747,7 @@ export default function EvacuationScreen({ navigation, route }) {
 
     const movedDistance = distanceInMeters(lastRerouteCoordsRef.current, from);
     const shouldReroute =
-      !lastRerouteCoordsRef.current || movedDistance >= 20;
+      !lastRerouteCoordsRef.current || movedDistance >= 5;
 
     if (!shouldReroute) return;
 

@@ -214,10 +214,10 @@ export function startResidentLocationTracking(residentId, onLocationUpdate) {
     },
     {
     enableHighAccuracy: true,
-    distanceFilter: 5,
+    distanceFilter: 3,
     interval: 5000,
     fastestInterval: 2000,
-    maximumAge: 10000,
+    maximumAge: 5000,
   }
   );
 }
@@ -276,10 +276,10 @@ export function startResponderLocationTracking(responderId, onLocationUpdate) {
     },
     {
       enableHighAccuracy: true,
-      distanceFilter: 5,
-      interval: 8000,
-      fastestInterval: 4000,
-      maximumAge: 10000,
+      distanceFilter: 3,
+      interval: 5000,
+      fastestInterval: 2000,
+      maximumAge: 5000,
     }
   );
 }
