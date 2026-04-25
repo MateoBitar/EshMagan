@@ -14,7 +14,10 @@ import AdminDashboard from '../screens/admin/AdminDashboard';
 import ResponderCommandView from '../screens/responder/ResponderCommandView';
 import ResidentNotificationsScreen from '../screens/resident/ResidentNotificationsScreen';
 import EvacuationScreen from '../screens/resident/EvacuationScreen';
-import ARModeScreen from '../screens/resident/ARModeScreen';
+const ARModeScreen =
+  Platform.OS !== 'web'
+    ? require('../screens/resident/ARModeScreen').default
+    : null;
 import SafetyTipsScreen from '../screens/resident/SafetyTipsScreen';
 import IncidentDetailsScreen from '../screens/municipality/IncidentDetailsScreen';
 import WebNavigator from './WebNavigator';
@@ -58,7 +61,9 @@ export default function RootNavigator() {
             {isAdmin && <Stack.Screen name="AdminDashboard" component={AdminDashboard} />}
             <Stack.Screen name="ResidentNotifications" component={ResidentNotificationsScreen} options={{ animation: 'fade' }} />
             <Stack.Screen name="Evacuation" component={EvacuationScreen} />
-            <Stack.Screen name="ARMode" component={ARModeScreen} options={{ animation: 'fade' }} />
+            {ARModeScreen && (
+              <Stack.Screen name="ARMode" component={ARModeScreen} options={{ animation: 'fade' }} />
+            )}
             <Stack.Screen name="SafetyTips" component={SafetyTipsScreen} />
             <Stack.Screen name="IncidentDetails" component={IncidentDetailsScreen} />
           </>

@@ -607,6 +607,7 @@ export default function EvacuationScreen({ navigation, route }) {
   const { userLocation } = useAuth();
   let nav = navigation;
   let routeParams = route?.params || {};
+  const isNative = Platform.OS === 'ios' || Platform.OS === 'android';
 
   if (Platform.OS !== 'web') {
     try {
@@ -673,7 +674,7 @@ export default function EvacuationScreen({ navigation, route }) {
       mounted = false;
     };
   }, [fireId]);
-  
+
   useEffect(() => {
     if (userLocation?.lat != null && userLocation?.lng != null) {
       setUserCoords({
@@ -925,9 +926,13 @@ export default function EvacuationScreen({ navigation, route }) {
 
           {(isUnsafe || selectedIdx !== null) && (
             <TouchableOpacity
-              style={[styles.arModeBtn, !routePolyline?.length && { opacity: 0.5 }]}
-              disabled={!selectedRoute || !routePolyline?.length}
+              style={[
+                styles.arModeBtn,
+                (!isNative || !selectedRoute || !routePolyline?.length) && { opacity: 0.45 },
+              ]}
+              disabled={!isNative || !selectedRoute || !routePolyline?.length}
               onPress={() =>
+                isNative &&
                 selectedRoute &&
                 routePolyline?.length &&
                 nav?.navigate('ARMode', {
@@ -939,7 +944,9 @@ export default function EvacuationScreen({ navigation, route }) {
                 })
               }
             >
-              <Text style={styles.arModeBtnText}>⚡ AR</Text>
+              <Text style={styles.arModeBtnText}>
+                {isNative ? '⚡ AR' : 'AR unavailable on web or desktop'}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -964,19 +971,6 @@ export default function EvacuationScreen({ navigation, route }) {
               <Text style={styles.directionsTitle}>
                 {isUnsafe || selectedIdx !== null ? `Directions (${directions.length} steps)` : 'Turn-by-Turn Directions'}
               </Text>
-
-              <View style={{ width: 74, height: 30, alignItems: 'flex-end', justifyContent: 'center' }}>
-                {(isUnsafe || selectedIdx !== null) && (
-                  <TouchableOpacity
-                    onPress={() => setVoiceOn(v => !v)}
-                    style={[styles.voiceBtn, voiceOn ? styles.voiceBtnOn : styles.voiceBtnOff]}
-                  >
-                    <Text style={voiceOn ? styles.voiceBtnTextOn : styles.voiceBtnTextOff}>
-                      🔊 {voiceOn ? 'On' : 'Off'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
             </View>
 
             <ScrollView
@@ -1043,7 +1037,7 @@ export default function EvacuationScreen({ navigation, route }) {
           </View>
         </View>
 
-        {(isUnsafe || selectedIdx !== null) && (
+        {isNative && (isUnsafe || selectedIdx !== null) && (
           <View style={[styles.footer, { flexShrink: 0 }]}>
             <TouchableOpacity
               style={styles.startBtn}
