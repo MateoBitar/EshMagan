@@ -1,7 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Platform } from 'react-native';
 import styles, { C, RESPONDER_STATUS_COLORS } from '../../../styles/screens/ResponderCommandView.styles';
 import { getFireZoneRadiusMeters, getFireZoneStyle } from '../../responder/utils/helpers';
+
+const ASSETS = {
+  pin: Platform.select({
+    web: { uri: '/pin.png' },
+    android: { uri: 'pin' },
+    ios: { uri: 'pin' },
+    default: { uri: 'pin' },
+  }),
+};
 
 function isValidCoordPair(lat, lng) {
   return Number.isFinite(lat) && Number.isFinite(lng);
@@ -430,7 +439,10 @@ export default function WebMunicipalityMap({
       <View ref={divRef} style={{ width: '100%', height: '100%' }} />
       {showRecenter ? (
         <TouchableOpacity onPress={handleRecenter} style={styles.recenterButton}>
-          <Text style={styles.recenterButtonText}>📍Recenter</Text>
+          <View style={styles.recenterContent}>
+            <Image source={ASSETS.pin} style={styles.recenterIcon} resizeMode="contain" />
+            <Text style={styles.recenterButtonText}>Recenter</Text>
+          </View>
         </TouchableOpacity>
       ) : null}
     </View>

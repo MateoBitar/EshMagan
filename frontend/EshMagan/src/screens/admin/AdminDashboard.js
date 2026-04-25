@@ -31,6 +31,15 @@ import { useAuth } from "../../context/AuthContext";
 import stylesFactory from "../../styles/screens/AdminDashboard.styles";
 import logoSource from '../../images/logoSource';
 
+const ASSETS = {
+  warning: Platform.select({
+    web: { uri: '/warning.png' },
+    android: { uri: 'warning' },
+    ios: { uri: 'warning' },
+    default: { uri: 'warning' },
+  }),
+};
+
 const TABS = ["Admins", "Responders", "Municipalities"];
 
 const KNOWN_DOMAINS = [
@@ -1205,7 +1214,11 @@ export default function AdminDashboard({ navigation }) {
                   gap: 8,
                 }}
               >
-                <Text style={{ fontSize: 14 }}>⚠️</Text>
+                <Image
+                  source={ASSETS.warning}
+                  style={{ width: 14, height: 14 }}
+                  resizeMode="contain"
+                />
                 <Text style={{ fontSize: 13, color: "#DC2626", fontWeight: "600", flex: 1 }}>
                   {confirmError}
                 </Text>

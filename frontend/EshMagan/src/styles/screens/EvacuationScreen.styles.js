@@ -3,25 +3,52 @@ import { StyleSheet } from 'react-native';
 
 export default StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f8fafc', height: '100vh', overflow: 'hidden' },
+
+  screenWrap: { flex: 1, overflow: 'hidden' },
+  webFixedScreen: { height: '100vh', overflow: 'hidden' },
+  fixedHeader: { flexShrink: 0 },
+  fixedMapArea: { flexShrink: 0, height: 445 },
+  fixedRouteSwitcher: { flexShrink: 0 },
+  directionsOuter: { overflow: 'hidden', flexShrink: 0 },
+  directionsOuterUnsafe: { height: 225 },
+  directionsOuterSafe: { height: 290 },
+
   header: { backgroundColor: '#dc2626', borderBottomWidth: 1, borderBottomColor: '#dc2626', padding: 16 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   backText: { color: '#f8fafc', fontSize: 14 },
+
   navBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,1)', borderWidth: 1, borderColor: 'rgba(59,130,246,0.25)', borderRadius: 100, paddingHorizontal: 10, paddingVertical: 4 },
+  navBadgeInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  navBadgeIcon: { width: 14, height: 14 },
   navBadgeText: { color: '#000', fontSize: 12, fontWeight: '600' },
+
   headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
   headerSub: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
-  mapArea: { height: 460, backgroundColor: '#cbd1d2', position: 'relative', overflow: 'hidden' , flexShrink: 0 },
+
+  mapArea: { height: 460, backgroundColor: '#cbd1d2', position: 'relative', overflow: 'hidden', flexShrink: 0 },
+  mapContainer: { width: '100%', height: '100%', backgroundColor: '#ddd', position: 'relative' },
+  mapCanvas: { width: '100%', height: '100%' },
+  nativeMapWrap: { flex: 1 },
+  missingWebViewWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8e0d8' },
+  missingWebViewText: { color: '#64748b', fontSize: 13 },
+
+  recenterBtn: { position: 'absolute', left: 12, bottom: 12, backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, elevation: 3 },
+  recenterContent: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  recenterIcon: { width: 14, height: 14 },
+  recenterText: { fontWeight: '700', color: '#0f172a' },
+
   mapOverlay: { position: 'absolute', bottom: 16, alignSelf: 'center', backgroundColor: '#dc2626', borderWidth: 1, borderColor: '#dc2626', borderRadius: 100, paddingHorizontal: 16, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 8, zIndex: 1000 },
+  mapOverlayIcon: { width: 12, height: 12 },
   mapOverlayText: { color: '#f8fafc', fontSize: 13, fontWeight: '600', zIndex: 1000 },
-  locationDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#3b82f6', borderWidth: 2, borderColor: '#000' },
-  destinationDot: { position: 'absolute', top: 16, right: 32, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0)', borderWidth: 2, borderColor: 'rgba(0,0,0,0)', alignItems: 'center', justifyContent: 'center' },
-  mapLabel: { color: '#000', fontSize: 13 },
+
   mapLocating: { position: 'absolute', top: 10, alignSelf: 'center', backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 100, paddingHorizontal: 14, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: '#dc2626' },
   mapLocatingText: { color: '#dc2626', fontSize: 12, fontWeight: '600' },
+
   routeSwitcherBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f8fafc', paddingVertical: 10, paddingLeft: 16, paddingRight: 8, gap: 8, minHeight: 62 },
   routeSwitcherLabel: { fontSize: 12, fontWeight: '700', color: '#64748b', flexShrink: 0 },
   routeSwitcherLoading: { fontSize: 13, color: '#94a3b8', marginLeft: 8 },
   routeSwitcherScroll: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 4 },
+
   routePill: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 12, borderWidth: 2, gap: 2, minWidth: 80 },
   routePillActive: { backgroundColor: '#fff', borderColor: '#dc2626' },
   routePillInactive: { backgroundColor: 'rgba(30,41,59,0.05)', borderColor: 'rgba(30,41,59,0.15)' },
@@ -29,35 +56,50 @@ export default StyleSheet.create({
   routePillPriorityActive: { color: '#dc2626' },
   routePillKm: { fontSize: 11, fontWeight: '500', color: '#94a3b8' },
   routePillKmActive: { color: '#475569' },
+
   routeStatusClear: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, backgroundColor: 'rgba(16,185,129,0.1)', borderColor: 'rgba(16,185,129,0.3)' },
   routeStatusCaution: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, backgroundColor: 'rgba(234,179,8,0.1)', borderColor: 'rgba(234,179,8,0.3)' },
   routeStatusClearText: { fontSize: 9, fontWeight: '600', color: '#34d399' },
   routeStatusCautionText: { fontSize: 9, fontWeight: '600', color: '#fbbf24' },
+
   arModeBtn: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1.5, borderColor: '#dc2626', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
   arModeBtnText: { color: '#dc2626', fontSize: 12, fontWeight: '600' },
+
   directionsSection: { padding: 16, paddingTop: 2, flex: 1, minHeight: 0 },
-  directionsHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 36,marginBottom: 5 },
+  directionsSectionFixed: { height: '100%', overflow: 'hidden' },
+  directionsHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 36, marginBottom: 5 },
   directionsTitle: { color: '#000', fontWeight: '600', fontSize: 14 },
+  directionsScroll: { flex: 1 },
+  directionsScrollContent: { paddingBottom: 0 },
+
   directionsLoading: { paddingVertical: 24, alignItems: 'center' },
   directionsLoadingText: { color: '#94a3b8', fontSize: 12, marginTop: 8 },
   emptyDirections: { padding: 16, backgroundColor: '#f8fafc', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' },
   emptyDirectionsText: { color: '#64748b', fontSize: 13, textAlign: 'center' },
+
   stepRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   stepCol: { alignItems: 'center' },
   stepNum: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   stepNumActive: { backgroundColor: '#dc2626' },
   stepNumInactive: { backgroundColor: '#000' },
+  stepIconText: { fontSize: 13, color: '#fff', fontWeight: '800' },
   stepLine: { width: 1, flex: 1, backgroundColor: '#000', marginVertical: 2 },
   stepCard: { flex: 1, backgroundColor: '#f8fafc', borderWidth: 1.5, borderColor: '#dc2626', borderRadius: 12, padding: 12, marginBottom: 4 },
   stepInstruction: { color: '#000', fontSize: 13, marginBottom: 6 },
   stepMeta: { color: '#475569', fontSize: 11 },
+
   safeZoneBox: { backgroundColor: '#f8fafc', borderWidth: 1.5, borderColor: '#dc2626', borderRadius: 12, padding: 16, marginTop: 4 },
-  safeZoneRow: { flexDirection: 'row', gap: 10 },
+  safeZoneRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  safeZoneIcon: { width: 22, height: 22 },
   safeZoneTitle: { color: '#000', fontWeight: '600', fontSize: 14 },
   safeZoneName: { color: '#475569', fontSize: 13, marginTop: 2 },
   safeZoneSub: { color: '#475569', fontSize: 11, marginTop: 2 },
+
   attribution: { fontSize: 10, color: '#94a3b8', textAlign: 'center', marginTop: 8 },
+
   footer: { padding: 16, paddingTop: 0, paddingBottom: 14, borderTopColor: '#fff', backgroundColor: '#f8fafc' },
+  footerFixed: { flexShrink: 0 },
   startBtn: { height: 52, backgroundColor: '#dc2626', borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
+  startBtnIcon: { width: 18, height: 18 },
   startBtnText: { color: '#f8fafc', fontWeight: '700', fontSize: 16 },
 });

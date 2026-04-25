@@ -2,12 +2,33 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView,
-  SafeAreaView, Animated, Platform, ActivityIndicator,
+  SafeAreaView, Animated, Platform, ActivityIndicator, Image,
 } from 'react-native';
 import { gqlFetch, GET_EVACUATIONS_BY_FIRE } from '../../services/api';
 import { global } from '../../styles/global';
 import styles from '../../styles/screens/EvacuationScreen.styles';
 import { useAuth } from '../../context/AuthContext';
+
+const ASSETS = {
+  compass: Platform.select({
+    web: { uri: '/compass.png' },
+    android: { uri: 'compass' },
+    ios: { uri: 'compass' },
+    default: { uri: 'compass' },
+  }),
+  pin: Platform.select({
+    web: { uri: '/pin.png' },
+    android: { uri: 'pin' },
+    ios: { uri: 'pin' },
+    default: { uri: 'pin' },
+  }),
+  refresh: Platform.select({
+    web: { uri: '/refresh.png' },
+    android: { uri: 'refresh' },
+    ios: { uri: 'refresh' },
+    default: { uri: 'refresh' },
+  }),
+};
 
 // ─── Coordinate helpers ───────────────────────────────────────────────────────
 
@@ -116,10 +137,10 @@ async function fetchOSRMRoute(fromLat, fromLng, toLat, toLng) {
 
 function turnIcon(type) {
   if (!type || type === 'continue' || type === 'new name') return '→';
-  if (type === 'depart') return '📍';
-  if (type === 'arrive') return '🏁';
+  if (type === 'depart') return '↑';
+  if (type === 'arrive') return '■';
   if (type === 'turn') return '↪';
-  if (type === 'roundabout' || type === 'rotary') return '🔄';
+  if (type === 'roundabout' || type === 'rotary') return '⟳';
   if (type === 'fork' || type === 'merge') return '↗';
   if (type.includes('ramp')) return '↗';
   return '→';
@@ -327,7 +348,10 @@ function WebMap({ safeCoords, safePolygonCoords, userCoords, polyline }) {
             elevation: 3,
           }}
         >
-          <Text style={{ fontWeight: '700', color: '#0f172a' }}>📍 Recenter</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Image source={ASSETS.pin} style={{ width: 14, height: 14 }} resizeMode="contain" />
+            <Text style={{ fontWeight: '700', color: '#0f172a' }}>Recenter</Text>
+          </View>
         </TouchableOpacity>
       )}
     </View>
@@ -835,7 +859,10 @@ export default function EvacuationScreen({ navigation, route }) {
               <Text style={styles.backText}>‹ Back</Text>
             </TouchableOpacity>
             <View style={styles.navBadge}>
-              <Text style={styles.navBadgeText}>🧭 Live Navigation</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Image source={ASSETS.compass} style={{ width: 14, height: 14 }} resizeMode="contain" />
+                <Text style={styles.navBadgeText}>Live Navigation</Text>
+              </View>
             </View>
           </View>
 
@@ -880,7 +907,7 @@ export default function EvacuationScreen({ navigation, route }) {
 
           {shouldShowEvacuationMapData && routingMeta && (
             <View style={[styles.mapOverlay, { pointerEvents: 'none' }]}>
-              <Text style={{ color: '#fff', fontSize: 12 }}>🧭</Text>
+              <Image source={ASSETS.compass} style={{ width: 12, height: 12 }} resizeMode="contain" />
               <Text style={styles.mapOverlayText}>
                 {routingMeta.totalKm} km  •  {routingMeta.totalTime}
               </Text>
@@ -970,7 +997,7 @@ export default function EvacuationScreen({ navigation, route }) {
               }
             >
               <Text style={styles.arModeBtnText}>
-                {isNative ? '⚡ AR' : 'AR unavailable on web or desktop'}
+                {isNative ? 'AR' : 'AR unavailable on web or desktop'}
               </Text>
             </TouchableOpacity>
           )}
@@ -1045,7 +1072,7 @@ export default function EvacuationScreen({ navigation, route }) {
               {(isUnsafe || selectedIdx !== null) && selectedRoute && (
                 <View style={styles.safeZoneBox}>
                   <View style={styles.safeZoneRow}>
-                    <Text style={{ fontSize: 22 }}>📍</Text>
+                    <Image source={ASSETS.pin} style={{ width: 22, height: 22 }} resizeMode="contain" />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.safeZoneTitle}>Safe Zone</Text>
                       <Text style={styles.safeZoneName}>Assembly Point</Text>
@@ -1078,7 +1105,7 @@ export default function EvacuationScreen({ navigation, route }) {
                 })
               }
             >
-              <Text style={{ fontSize: 18 }}>🧭</Text>
+              <Image source={ASSETS.compass} style={{ width: 18, height: 18 }} resizeMode="contain" />
               <Text style={styles.startBtnText}>Start AR Navigation</Text>
             </TouchableOpacity>
           </View>

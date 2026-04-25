@@ -596,6 +596,17 @@ export default StyleSheet.create({
     gap: 12,
   },
 
+  alertMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+
+  alertMetaIcon: {
+    width: 12,
+    height: 12,
+  },
+
   alertCardMeta: {
     color: C.textDim,
     fontSize: 11,
@@ -659,6 +670,17 @@ export default StyleSheet.create({
     gap: 10,
   },
 
+  notificationFireIdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+
+  notificationFireIcon: {
+    width: 12,
+    height: 12,
+  },
+
   notificationStatusBadge: {
     paddingHorizontal: 7,
     paddingVertical: 2,
@@ -718,6 +740,17 @@ export default StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
+  },
+
+  recenterContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+
+  recenterIcon: {
+    width: 14,
+    height: 14,
   },
 
   recenterButtonText: {

@@ -107,8 +107,9 @@ export default StyleSheet.create({
     borderColor: 'rgba(236,119,66,0.16)',
   },
 
-  alertsInfoEmoji: {
-    fontSize: 16,
+  alertsInfoIcon: {
+    width: 16,
+    height: 16,
   },
 
   alertsInfoText: {
@@ -119,7 +120,7 @@ export default StyleSheet.create({
     lineHeight: 17,
   },
 
-    contentContainer: {
+  contentContainer: {
     flex: 1,
     minHeight: '88.5vh',
     maxHeight: '88.5vh',

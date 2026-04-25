@@ -1,6 +1,15 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Platform, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, ScrollView, Image } from 'react-native';
 import styles from '../../../styles/screens/ResponderCommandView.styles';
+
+const ASSETS = {
+  fire: Platform.select({
+    web: { uri: '/fire.png' },
+    android: { uri: 'fire' },
+    ios: { uri: 'fire' },
+    default: { uri: 'fire' },
+  }),
+};
 
 export default function NotificationsTab({
     notifications,
@@ -12,10 +21,10 @@ export default function NotificationsTab({
             <Text style={styles.sectionHeader}>
                 {unreadNotifs.length} unread • {notifications.length} total
             </Text>
-            <View style={{ flex: 1, minHeight: '75.1vh', maxHeight: '75.1vh', overflow: 'hidden' }}>
+            <View style={styles.responderTabListFrame}>
                 <ScrollView
-                    style={{ flex: 1 }}
-                    contentContainerStyle={{ gap: 2, paddingBottom: 20 }}
+                    style={styles.fullFlex}
+                    contentContainerStyle={styles.responderTabScrollContent}
                     showsVerticalScrollIndicator={false}
                 >
                     {notifications.length === 0 ? (
@@ -75,9 +84,16 @@ export default function NotificationsTab({
                                                 </View>
 
                                                 {n.fire_id && (
-                                                    <Text style={styles.notificationFireId}>
-                                                        🔥#{n.fire_id?.slice(0, 8)}
-                                                    </Text>
+                                                    <View style={styles.notificationFireIdRow}>
+                                                        <Image
+                                                            source={ASSETS.fire}
+                                                            style={styles.notificationFireIcon}
+                                                            resizeMode="contain"
+                                                        />
+                                                        <Text style={styles.notificationFireId}>
+                                                            #{n.fire_id?.slice(0, 8)}
+                                                        </Text>
+                                                    </View>
                                                 )}
 
                                                 {n.notification_status === 'Sent' && (

@@ -1,7 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Platform } from 'react-native';
 import styles, { C, RESPONDER_STATUS_COLORS } from '../../../styles/screens/ResponderCommandView.styles';
 import { getFireZoneRadiusMeters, getFireZoneStyle } from '../../responder/utils/helpers';
+
+const ASSETS = {
+  pin: Platform.select({
+    web: { uri: '/pin.png' },
+    android: { uri: 'pin' },
+    ios: { uri: 'pin' },
+    default: { uri: 'pin' },
+  }),
+};
 
 function isValidCoordPair(lat, lng) {
   return Number.isFinite(lat) && Number.isFinite(lng);
@@ -125,12 +134,12 @@ export default function WebResidentMap({
     if (!map || !L) return;
 
     markerLayerRef.current.forEach(m => {
-      try { m.remove(); } catch {}
+      try { m.remove(); } catch { }
     });
     markerLayerRef.current = [];
 
     fireLayerRef.current.forEach(f => {
-      try { f.remove(); } catch {}
+      try { f.remove(); } catch { }
     });
     fireLayerRef.current = [];
 
@@ -309,7 +318,7 @@ export default function WebResidentMap({
       map.flyTo(latlng, zoom, { animate: true, duration: 0.8 });
       if (typeof target.openPopup === 'function') target.openPopup();
       setShowRecenter(false);
-    } catch {}
+    } catch { }
   }, [selectedFireId, selectedResponderId]);
 
   const handleRecenter = () => {
@@ -332,10 +341,13 @@ export default function WebResidentMap({
 
   return (
     <View style={styles.mapPlaceholder}>
-      <View ref={divRef} style={{ width: '100%', height: '100%' }} />
+      <View ref={divRef} style={styles.mapCanvas} />
       {showRecenter ? (
         <TouchableOpacity onPress={handleRecenter} style={styles.recenterButton}>
-          <Text style={styles.recenterButtonText}>📍 Recenter</Text>
+          <View style={styles.recenterContent}>
+            <Image source={ASSETS.pin} style={styles.recenterIcon} resizeMode="contain" />
+            <Text style={styles.recenterButtonText}>Recenter</Text>
+          </View>
         </TouchableOpacity>
       ) : null}
     </View>

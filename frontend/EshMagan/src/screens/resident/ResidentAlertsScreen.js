@@ -19,6 +19,22 @@ import styles, { C } from '../../styles/screens/ResidentAlertsScreen.styles';
 import logoSource from '../../images/logoSource';
 import { useAuth } from '../../context/AuthContext';
 
+const ASSETS = {
+  pin: Platform.select({
+    web: { uri: '/pin.png' },
+    android: { uri: 'pin' },
+    ios: { uri: 'pin' },
+    default: { uri: 'pin' },
+  }),
+
+  refresh: Platform.select({
+    web: { uri: '/refresh.png' },
+    android: { uri: 'refresh' },
+    ios: { uri: 'refresh' },
+    default: { uri: 'refresh' },
+  }),
+};
+
 const ALERT_RADIUS_METERS = 10000;
 
 function fmtDate(val) {
@@ -235,7 +251,11 @@ export default function ResidentAlertsScreen({ navigation }) {
                 : styles.alertsInfoBoxLocating,
             ]}
           >
-            <Text style={styles.alertsInfoEmoji}>{myLocation ? '📍' : '🔄'}</Text>
+            <Image
+              source={myLocation ? ASSETS.pin : ASSETS.refresh}
+              style={styles.alertsInfoIcon}
+              resizeMode="contain"
+            />
             <Text style={styles.alertsInfoText}>
               {myLocation
                 ? `Showing alerts within ${ALERT_RADIUS_METERS / 1000}km of your location`

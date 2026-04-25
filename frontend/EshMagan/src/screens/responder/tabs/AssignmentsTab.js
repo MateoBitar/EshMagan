@@ -3,6 +3,15 @@ import { View, ScrollView, Text, Platform, TouchableOpacity, ActivityIndicator, 
 import styles, { C, ASSIGNMENT_COLORS } from '../../../styles/screens/ResponderCommandView.styles';
 import logoSource from '../../../images/logoSource';
 
+const ASSETS = {
+  lock: Platform.select({
+    web: { uri: '/lock.png' },
+    android: { uri: 'lock' },
+    ios: { uri: 'lock' },
+    default: { uri: 'lock' },
+  }),
+};
+
 export default function AssignmentsTab({
   myAssignments,
   activeAssignments,
@@ -18,10 +27,10 @@ export default function AssignmentsTab({
         {activeAssignments.length} active • {myAssignments.length} total
       </Text>
 
-      <View style={{ flex: 1, minHeight: '75.1vh', maxHeight: '75.1vh', overflow: 'hidden' }}>
+      <View style={styles.responderTabListFrame}>
         <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ gap: 2, paddingBottom: 20 }}
+          style={styles.fullFlex}
+          contentContainerStyle={styles.responderTabScrollContent}
           showsVerticalScrollIndicator={false}
         >
           {myAssignments.length === 0 ? (
@@ -97,7 +106,11 @@ export default function AssignmentsTab({
 
                       {myStatus === 'Unavailable' && (
                         <View style={styles.assignmentUnavailableWarning}>
-                          <Text style={styles.assignmentUnavailableEmoji}>🔒</Text>
+                          <Image
+                            source={ASSETS.lock}
+                            style={styles.assignmentUnavailableIcon}
+                            resizeMode="contain"
+                          />
                           <Text style={styles.assignmentUnavailableText}>
                             Set yourself Active or Standby to update assignments
                           </Text>

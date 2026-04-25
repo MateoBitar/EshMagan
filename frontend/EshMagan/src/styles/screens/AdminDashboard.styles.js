@@ -352,5 +352,240 @@ export default function stylesFactory(width, height) {
       textAlign: "center",
       fontSize: 15,
     },
+
+    // Add these inside StyleSheet.create({ ... })
+
+    fieldError: {
+      fontSize: 11,
+      color: "#DC2626",
+      marginTop: -10,
+      marginBottom: 12,
+    },
+
+    tabsRow: {
+      flexDirection: "row",
+      gap: 8,
+      marginBottom: 14,
+      marginLeft: 15,
+    },
+
+    tabButtonBase: {
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: 12,
+      borderWidth: 1,
+    },
+
+    tabButtonActive: {
+      backgroundColor: "#EC7742",
+      borderColor: "#EC7742",
+    },
+
+    tabButtonInactive: {
+      backgroundColor: "#fff",
+      borderColor: "#e2e8f0",
+    },
+
+    tabButtonTextBase: {
+      fontWeight: "700",
+    },
+
+    tabButtonTextActive: {
+      color: "#fff",
+    },
+
+    tabButtonTextInactive: {
+      color: "#334155",
+    },
+
+    tableHeightWrap: {
+      maxHeight: height * 0.6,
+      minHeight: 0,
+    },
+
+    tableList: {
+      maxHeight: height * 0.6 - 50,
+    },
+
+    inputError: {
+      borderColor: "#DC2626",
+    },
+
+    passwordRulesRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginTop: -6,
+      marginBottom: 12,
+      flexWrap: "wrap",
+    },
+
+    passwordRuleItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+
+    passwordRuleDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+
+    passwordRuleDotActive: {
+      backgroundColor: "#EC7742",
+    },
+
+    passwordRuleDotInactive: {
+      backgroundColor: "rgba(0,0,0,0.15)",
+    },
+
+    passwordRuleText: {
+      fontSize: 10,
+    },
+
+    passwordRuleTextActive: {
+      color: "#EC7742",
+    },
+
+    passwordRuleTextInactive: {
+      color: "rgba(0,0,0,0.35)",
+    },
+
+    regionLabel: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: "#0f172a",
+      marginBottom: 8,
+    },
+
+    regionDropdownButton: {
+      minHeight: 48,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+
+    regionDropdownButtonClosed: {
+      marginBottom: 12,
+    },
+
+    regionDropdownButtonOpen: {
+      marginBottom: 8,
+    },
+
+    regionDropdownText: {
+      color: "#0f172a",
+      flex: 1,
+    },
+
+    regionDropdownPlaceholder: {
+      color: "rgba(0,0,0,0.35)",
+    },
+
+    regionDropdownChevron: {
+      color: "#64748b",
+      fontSize: 16,
+    },
+
+    regionDropdownMenu: {
+      borderWidth: 1,
+      borderColor: "#dbe2ea",
+      borderRadius: 12,
+      backgroundColor: "#ffffff",
+      marginBottom: 12,
+      maxHeight: 220,
+      shadowColor: "#000",
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 4,
+      overflow: "hidden",
+    },
+
+    regionDropdownScroll: {
+      maxHeight: 220,
+    },
+
+    regionDropdownEmpty: {
+      padding: 12,
+      color: "#64748b",
+    },
+
+    regionOption: {
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      backgroundColor: "#ffffff",
+      borderBottomWidth: 1,
+      borderBottomColor: "#f1f5f9",
+    },
+
+    regionOptionLast: {
+      borderBottomWidth: 0,
+    },
+
+    regionOptionSelected: {
+      backgroundColor: "#FFF1D6",
+    },
+
+    regionOptionText: {
+      color: "#334155",
+      fontWeight: "500",
+    },
+
+    regionOptionTextSelected: {
+      color: "#EC7742",
+      fontWeight: "700",
+    },
+
+    fullFlex: {
+      flex: 1,
+    },
+
+    modalActionsSpaced: {
+      gap: 12,
+    },
+
+    modalActionButton: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: 44,
+    },
+
+    modalActionText: {
+      textAlign: "center",
+      lineHeight: 20,
+    },
+
+    confirmDescription: {
+      fontSize: 13,
+      color: "#475569",
+      marginBottom: 12,
+    },
+
+    confirmErrorBox: {
+      backgroundColor: "#FFF1D6",
+      borderRadius: 10,
+      padding: 12,
+      marginBottom: 16,
+      borderLeftWidth: 3,
+      borderLeftColor: "#DC2626",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+
+    warningIcon: {
+      width: 14,
+      height: 14,
+    },
+
+    confirmErrorText: {
+      fontSize: 13,
+      color: "#DC2626",
+      fontWeight: "600",
+      flex: 1,
+    },
   });
 }

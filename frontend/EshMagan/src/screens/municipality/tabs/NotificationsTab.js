@@ -1,6 +1,15 @@
 import React from 'react';
-import { View, ScrollView, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, ScrollView, Text, TouchableOpacity, ActivityIndicator, Image, Platform } from 'react-native';
 import styles, { C } from '../../../styles/screens/MunicipalityDashboard.styles';
+
+const ASSETS = {
+  fire: Platform.select({
+    web: { uri: '/fire.png' },
+    android: { uri: 'fire' },
+    ios: { uri: 'fire' },
+    default: { uri: 'fire' },
+  }),
+};
 
 export default function NotificationsTab({
   notifications = [],
@@ -101,9 +110,12 @@ export default function NotificationsTab({
                         </View>
 
                         {n.fire_id ? (
-                          <Text style={styles.notificationFireId}>
-                            🔥#{String(n.fire_id).slice(0, 8)}
-                          </Text>
+                          <View style={styles.notificationFireIdRow}>
+                            <Image source={ASSETS.fire} style={styles.notificationFireIcon} resizeMode="contain" />
+                            <Text style={styles.notificationFireId}>
+                              #{String(n.fire_id).slice(0, 8)}
+                            </Text>
+                          </View>
                         ) : null}
 
                         {isUnread ? (

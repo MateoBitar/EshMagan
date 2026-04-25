@@ -69,6 +69,12 @@ const ASSETS = {
     ios: { uri: 'siren' },
     default: { uri: 'siren' },
   }),
+  pin: Platform.select({
+    web: { uri: '/pin.png' },
+    android: { uri: 'pin' },
+    ios: { uri: 'pin' },
+    default: { uri: 'pin' },
+  }),
   phone: Platform.select({
     web: { uri: '/phone.png' },
     android: { uri: 'phone' },
@@ -353,7 +359,11 @@ export default function ResidentHomeScreen({ navigation }) {
             </View>
 
             <View style={styles.locationRow}>
-              <Text>📍</Text>
+              <Image
+                source={ASSETS.pin}
+                style={styles.locationIconImage}
+                resizeMode="contain"
+              />
               <Text style={styles.locationText}>Your Location: {userPlaceName}</Text>
             </View>
           </View>

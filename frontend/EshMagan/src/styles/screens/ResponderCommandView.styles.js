@@ -674,10 +674,6 @@ export default StyleSheet.create({
     marginBottom: 4,
   },
 
-  assignmentFireEmoji: {
-    fontSize: 20,
-  },
-
   assignmentFireSource: {
     color: C.text,
     fontWeight: '800',
@@ -735,10 +731,6 @@ export default StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-
-  assignmentUnavailableEmoji: {
-    fontSize: 12,
   },
 
   assignmentUnavailableText: {
@@ -984,6 +976,11 @@ export default StyleSheet.create({
     position: 'relative',
   },
 
+  mapCanvas: {
+    width: '100%',
+    height: '100%',
+  },
+
   recenterButton: {
     position: 'absolute',
     left: 12,
@@ -997,6 +994,17 @@ export default StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
+  },
+
+  recenterContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+
+  recenterIcon: {
+    width: 14,
+    height: 14,
   },
 
   recenterButtonText: {

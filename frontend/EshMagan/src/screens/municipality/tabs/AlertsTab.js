@@ -11,6 +11,21 @@ import {
 import styles, { C } from '../../../styles/screens/MunicipalityDashboard.styles';
 import logoSource from '../../../images/logoSource';
 
+const ASSETS = {
+  fire: Platform.select({
+    web: { uri: '/fire.png' },
+    android: { uri: 'fire' },
+    ios: { uri: 'fire' },
+    default: { uri: 'fire' },
+  }),
+  time: Platform.select({
+    web: { uri: '/time.png' },
+    android: { uri: 'time' },
+    ios: { uri: 'time' },
+    default: { uri: 'time' },
+  }),
+};
+
 export default function AlertsTab({
   alerts = [],
   loading,
@@ -130,14 +145,20 @@ export default function AlertsTab({
                       </Text>
 
                       <View style={styles.alertCardMetaRow}>
-                        <Text style={styles.alertCardMeta}>
-                          🕐 {fmtDate ? fmtDate(alert.created_at) : alert.created_at}
-                        </Text>
+                        <View style={styles.alertMetaRow}>
+                          <Image source={ASSETS.time} style={styles.alertMetaIcon} />
+                          <Text style={styles.alertCardMeta}>
+                            {fmtDate ? fmtDate(alert.created_at) : alert.created_at}
+                          </Text>
+                        </View>
 
                         {alert.fire_id ? (
-                          <Text style={styles.alertCardMeta}>
-                            🔥#{String(alert.fire_id).slice(0, 8)}
-                          </Text>
+                          <View style={styles.alertMetaRow}>
+                            <Image source={ASSETS.fire} style={styles.alertMetaIcon} />
+                            <Text style={styles.alertCardMeta}>
+                              #{String(alert.fire_id).slice(0, 8)}
+                            </Text>
+                          </View>
                         ) : null}
                       </View>
                     </View>

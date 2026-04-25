@@ -89,8 +89,9 @@ export default StyleSheet.create({
   },
 
   locationIconImage: {
-    width: 16,
-    height: 16,
+    width: 14,
+    height: 14,
+    marginRight: 6,
   },
 
   locationText: { fontSize: 13, color: '#475569', fontWeight: '500' },

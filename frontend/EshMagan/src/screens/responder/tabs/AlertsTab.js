@@ -11,6 +11,21 @@ import {
 import styles, { C } from '../../../styles/screens/ResponderCommandView.styles';
 import logoSource from '../../../images/logoSource';
 
+const ASSETS = {
+  fire: Platform.select({
+    web: { uri: '/fire.png' },
+    android: { uri: 'fire' },
+    ios: { uri: 'fire' },
+    default: { uri: 'fire' },
+  }),
+  time: Platform.select({
+    web: { uri: '/time.png' },
+    android: { uri: 'time' },
+    ios: { uri: 'time' },
+    default: { uri: 'time' },
+  }),
+};
+
 export default function AlertsTab({
   alerts,
   activeAlerts,
@@ -32,7 +47,7 @@ export default function AlertsTab({
           0 nearby alerts • locating...
         </Text>
 
-        <View style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        <View style={styles.responderTabListFrame}>
           <View style={styles.emptyWrap}>
             <ActivityIndicator color={C.tangerine} />
             <Text style={styles.emptyDesc}>Getting your location to filter nearby alerts.</Text>
@@ -62,10 +77,10 @@ export default function AlertsTab({
         {sorted.length} nearby alert{sorted.length !== 1 ? 's' : ''} • {alertRadiusMeters / 1000} km radius
       </Text>
 
-      <View style={{ flex: 1, minHeight: '75.1vh', maxHeight: '75.1vh', overflow: 'hidden' }}>
+      <View style={styles.responderTabListFrame}>
         <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ gap: 2, paddingBottom: 20 }}
+          style={styles.fullFlex}
+          contentContainerStyle={styles.responderTabScrollContent}
           showsVerticalScrollIndicator={false}
         >
           {sorted.length === 0 ? (
@@ -132,14 +147,20 @@ export default function AlertsTab({
                       </Text>
 
                       <View style={styles.alertCardMetaRow}>
-                        <Text style={styles.alertCardMeta}>
-                          🕐 {fmtDate ? fmtDate(alert.created_at) : alert.created_at}
-                        </Text>
+                        <View style={styles.alertMetaRow}>
+                          <Image source={ASSETS.time} style={styles.alertMetaIcon} resizeMode="contain" />
+                          <Text style={styles.alertCardMeta}>
+                            {fmtDate ? fmtDate(alert.created_at) : alert.created_at}
+                          </Text>
+                        </View>
 
                         {alert.fire_id ? (
-                          <Text style={styles.alertCardMeta}>
-                            🔥#{String(alert.fire_id).slice(0, 8)}
-                          </Text>
+                          <View style={styles.alertMetaRow}>
+                            <Image source={ASSETS.fire} style={styles.alertMetaIcon} resizeMode="contain" />
+                            <Text style={styles.alertCardMeta}>
+                              #{String(alert.fire_id).slice(0, 8)}
+                            </Text>
+                          </View>
                         ) : null}
                       </View>
                     </View>
