@@ -4,6 +4,7 @@
 // 1. assignment.created → notify assigned Responder ONLY
 // 2. fire.spread → create alert for Resident, Responder, Municipality
 //
+
 import { getJetStream, sc, SUBJECTS } from '../../config/nats.js';
 import { NotificationRepository } from '../../domain/repositories/notification.repository.js';
 import { ResponderRepository } from '../../domain/repositories/responder.repository.js';
@@ -11,6 +12,27 @@ import { publishAlertCreated } from '../publishers/alertCreated.publisher.js';
 
 const CONSUMER_NAME = 'fireAssignment-consumer';
 
+/**
+ * This file defines the fire assignment subscriber.
+ * It listens for assignment.created and fire.spread events from NATS JetStream.
+ * It creates direct responder notifications for assignments and broadcasts alerts
+ * when fire spread events occur.
+ */
+
+/**
+ * Start fire assignment subscriber.
+ *
+ * PRE-CONDITIONS:
+ * - NATS connection must be initialized.
+ * - JetStream consumer must exist.
+ * - NotificationRepository and ResponderRepository must be available.
+ *
+ * POST-CONDITIONS:
+ * - Processes assignment.created events by notifying the assigned responder.
+ * - Processes fire.spread events by publishing alert.created events.
+ * - Acknowledges processed messages.
+ * - Acknowledges bad messages to avoid repeated processing.
+ */
 export async function startFireAssignmentSubscriber() {
     try {
         const js = getJetStream();

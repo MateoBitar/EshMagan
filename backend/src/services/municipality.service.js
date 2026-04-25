@@ -2,12 +2,37 @@
 
 import { Municipality } from '../domain/entities/municipality.entity.js';
 
+/**
+ * This file defines the MunicipalityService class.
+ * It manages municipality-related business logic including
+ * creation, retrieval, updates, and deactivation.
+ */
 export class MunicipalityService {
+    /**
+     * Initialize MunicipalityService.
+     *
+     * PRE-CONDITIONS:
+     * - municipalityRepository and userService must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Service is ready to handle municipality operations.
+     */
     constructor(municipalityRepository, userService) {
         this.municipalityRepository = municipalityRepository;
         this.userService = userService;
     }
 
+    /**
+     * Create a municipality.
+     *
+     * PRE-CONDITIONS:
+     * - municipality_name, region_name, municipality_code, and municipality_location must be provided.
+     *
+     * POST-CONDITIONS:
+     * - User is retrieved or created.
+     * - Municipality entity is created and stored.
+     * - Returns municipality DTO.
+     */
     async createMunicipality(data) {
         try {
             if (!data.municipality_name) throw new Error("Missing required field: Municipality Name");
@@ -56,6 +81,15 @@ export class MunicipalityService {
         }
     }
 
+    /**
+     * Retrieve all municipalities.
+     *
+     * PRE-CONDITIONS:
+     * - Repository must be available.
+     *
+     * POST-CONDITIONS:
+     * - Returns list of municipality DTOs.
+     */
     async getAllMunicipalities() {
         try {
             // Fetch all municipalities from repository
@@ -67,6 +101,16 @@ export class MunicipalityService {
         }
     }
 
+    /**
+     * Retrieve municipality by ID.
+     *
+     * PRE-CONDITIONS:
+     * - municipality_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns municipality DTO if found.
+     * - Returns null if not found.
+     */
     async getMunicipalityById(municipality_id) {
         try {
             // Fetch municipality by ID
@@ -78,6 +122,16 @@ export class MunicipalityService {
         }
     }
 
+    /**
+     * Retrieve municipalities by name.
+     *
+     * PRE-CONDITIONS:
+     * - municipality_name must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching municipalities.
+     * - Returns empty array if none found.
+     */
     async getMunicipalitiesByName(municipality_name) {
         try {
             // Fetch municipalities by name (partial match)
@@ -89,6 +143,15 @@ export class MunicipalityService {
         }
     }
 
+    /**
+     * Retrieve municipalities by region.
+     *
+     * PRE-CONDITIONS:
+     * - region_name must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching municipalities.
+     */
     async getMunicipalityByRegion(region_name) {
         try {
             // Fetch municipalities by region
@@ -100,6 +163,16 @@ export class MunicipalityService {
         }
     }
 
+    /**
+     * Retrieve municipality by code.
+     *
+     * PRE-CONDITIONS:
+     * - municipality_code must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns municipality DTO if found.
+     * - Returns null if not found.
+     */
     async getMunicipalityByCode(municipality_code) {
         try {
             // Fetch municipality by unique code
@@ -111,6 +184,16 @@ export class MunicipalityService {
         }
     }
 
+    /**
+     * Retrieve municipality by location.
+     *
+     * PRE-CONDITIONS:
+     * - municipality_location must be valid WKT string or coordinate object.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching municipality DTO.
+     * - Returns null if not found.
+     */
     async getMunicipalityByLocation(municipality_location) {
         try {
             const coords = typeof municipality_location === 'string'
@@ -127,6 +210,17 @@ export class MunicipalityService {
             throw new Error(`Failed to fetch municipality by location: ${err.message}`);
         }
     }
+
+    /**
+     * Retrieve municipality by email.
+     *
+     * PRE-CONDITIONS:
+     * - user_email must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns municipality DTO if found.
+     * - Returns null if not found.
+     */
     async getMunicipalityByEmail(user_email) {
         try {
             // Fetch municipality by associated user email
@@ -138,6 +232,16 @@ export class MunicipalityService {
         }
     }
 
+    /**
+     * Retrieve municipality by phone.
+     *
+     * PRE-CONDITIONS:
+     * - user_phone must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns municipality DTO if found.
+     * - Returns null if not found.
+     */
     async getMunicipalityByPhone(user_phone) {
         try {
             // Fetch municipality by associated user phone
@@ -149,6 +253,16 @@ export class MunicipalityService {
         }
     }
 
+    /**
+     * Update municipality.
+     *
+     * PRE-CONDITIONS:
+     * - municipality_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Municipality is updated.
+     * - Returns updated DTO.
+     */
     async updateMunicipality(municipality_id, data) {
         try {
             // Update municipality fields
@@ -160,6 +274,15 @@ export class MunicipalityService {
         }
     }
 
+    /**
+     * Deactivate municipality.
+     *
+     * PRE-CONDITIONS:
+     * - municipality_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Municipality is deactivated.
+     */
     async deactivateMunicipality(municipality_id) {
         try {
             // Deactivate municipality

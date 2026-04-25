@@ -2,12 +2,38 @@
 
 import { Notification } from '../domain/entities/notification.entity.js';
 
+/**
+ * This file defines the NotificationService class.
+ * It manages notification-related business logic including
+ * creation, retrieval, updates, and deletion operations.
+ */
 export class NotificationService {
+    /**
+     * Initialize NotificationService.
+     *
+     * PRE-CONDITIONS:
+     * - notificationRepository and userService must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Service is ready to handle notification operations.
+     */
     constructor(notificationRepository, userService) {
         this.notificationRepository = notificationRepository;
         this.userService = userService;
     }
 
+    /**
+     * Create a notification.
+     *
+     * PRE-CONDITIONS:
+     * - target_role, notification_message, notification_status,
+     *   expires_at, and user_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - User existence is validated.
+     * - Notification entity is created and stored.
+     * - Returns notification DTO.
+     */
     async createNotification(data) {
         try {
             // Notification-specific checks
@@ -40,6 +66,15 @@ export class NotificationService {
         }
     }
 
+    /**
+     * Retrieve all notifications.
+     *
+     * PRE-CONDITIONS:
+     * - Repository must be available.
+     *
+     * POST-CONDITIONS:
+     * - Returns list of notification DTOs.
+     */
     async getAllNotifications() {
         try {
             // Fetch all notifications from repository
@@ -50,6 +85,16 @@ export class NotificationService {
         }
     }
 
+    /**
+     * Retrieve notification by ID.
+     *
+     * PRE-CONDITIONS:
+     * - notification_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns notification DTO if found.
+     * - Returns null if not found.
+     */
     async getNotificationById(notification_id) {
         try {
             // Fetch notification by ID
@@ -61,6 +106,16 @@ export class NotificationService {
         }
     }
 
+    /**
+     * Retrieve notifications by target role.
+     *
+     * PRE-CONDITIONS:
+     * - target_role must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching notifications.
+     * - Returns empty array if none found.
+     */
     async getNotificationsByTargetRole(target_role) {
         try {
             // Fetch notifications by target role
@@ -72,6 +127,16 @@ export class NotificationService {
         }
     }
 
+    /**
+     * Retrieve notifications by status.
+     *
+     * PRE-CONDITIONS:
+     * - notification_status must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching notifications.
+     * - Returns empty array if none found.
+     */
     async getNotificationsByStatus(notification_status) {
         try {
             // Fetch notifications by status
@@ -83,6 +148,15 @@ export class NotificationService {
         }
     }
 
+    /**
+     * Retrieve notifications by expiration date.
+     *
+     * PRE-CONDITIONS:
+     * - expires_at must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching notifications.
+     */
     async getNotificationsByExpiration(expires_at) {
         try {
             // Fetch notifications by expiration date
@@ -94,6 +168,15 @@ export class NotificationService {
         }
     }
 
+    /**
+     * Retrieve notifications by fire ID.
+     *
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching notifications.
+     */
     async getNotificationsByFireId(fire_id) {
         try {
             // Fetch notifications by associated fire ID
@@ -105,6 +188,15 @@ export class NotificationService {
         }
     }
 
+    /**
+     * Retrieve notifications by user ID.
+     *
+     * PRE-CONDITIONS:
+     * - user_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching notifications.
+     */
     async getNotificationsByUserId(user_id) {
         try {
             // Fetch notifications by associated user ID
@@ -116,6 +208,16 @@ export class NotificationService {
         }
     }
 
+    /**
+     * Update notification status.
+     *
+     * PRE-CONDITIONS:
+     * - notification_id and new_status must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Notification status updated.
+     * - Returns updated DTO.
+     */
     async updateNotificationStatus(notification_id, new_status) {
         try {
             // Validate new status input
@@ -130,6 +232,15 @@ export class NotificationService {
         }
     }
 
+    /**
+     * Delete notification.
+     *
+     * PRE-CONDITIONS:
+     * - notification_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Notification deleted from database.
+     */
     async deleteNotification(notification_id) {
         try {
             // Delete notification by ID
@@ -139,6 +250,15 @@ export class NotificationService {
         }
     }
 
+    /**
+     * Delete expired notifications.
+     *
+     * PRE-CONDITIONS:
+     * - None.
+     *
+     * POST-CONDITIONS:
+     * - All expired notifications are removed.
+     */
     async deleteExpiredNotifications() {
         try {
             // Delete all notifications that have expired (expires_at <= NOW())
@@ -148,6 +268,15 @@ export class NotificationService {
         }
     }
 
+    /**
+     * Delete non-failed notifications.
+     *
+     * PRE-CONDITIONS:
+     * - None.
+     *
+     * POST-CONDITIONS:
+     * - Notifications with status other than 'Failed' are removed.
+     */
     async deleteNonFailedNotifications() {
         try {
             // Delete all notifications that do not have a status of 'Failed'
@@ -157,6 +286,15 @@ export class NotificationService {
         }
     }
 
+    /**
+     * Delete notifications by fire ID.
+     *
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - All notifications linked to fire are deleted.
+     */
     async deleteNotificationsByFireId(fire_id) {
         try {
             // Delete all notifications associated with a specific fire ID

@@ -2,11 +2,37 @@
 
 import { Evacuation } from '../domain/entities/evacuation.entity.js';
 
+/**
+ * This file defines the EvacuationService class.
+ * It contains the business logic for evacuation route management,
+ * including creation, retrieval, updates, and deletion.
+ */
 export class EvacuationService {
+
+    /**
+     * Initialize EvacuationService.
+     *
+     * PRE-CONDITIONS:
+     * - evacuationRepository must be provided.
+     *
+     * POST-CONDITIONS:
+     * - EvacuationService is ready to handle evacuation-related operations.
+     */
     constructor(evacuationRepository) {
         this.evacuationRepository = evacuationRepository;
     }
 
+    /**
+     * Create a new evacuation route.
+     *
+     * PRE-CONDITIONS:
+     * - All required evacuation fields must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Creates Evacuation entity.
+     * - Persists evacuation via repository.
+     * - Returns evacuation DTO.
+     */
     async createEvacuation(data) {
         try {
             // Evacuation-specific checks
@@ -29,7 +55,7 @@ export class EvacuationService {
                 fire_id:        data.fire_id
             });
 
-            // Persist via repository (repo handles fire_id FK validation internally)
+            // Persist via repository
             const createdEvacuation = await this.evacuationRepository.createEvacuation(evacuation);
             return createdEvacuation.toDTO();
         } catch (err) {
@@ -37,9 +63,17 @@ export class EvacuationService {
         }
     }
 
+    /**
+     * Retrieve all evacuation routes.
+     *
+     * PRE-CONDITIONS:
+     * - evacuationRepository must be available.
+     *
+     * POST-CONDITIONS:
+     * - Returns array of evacuation DTOs.
+     */
     async getAllEvacuations() {
         try {
-            // Fetch all evacuation routes from repository
             const evacuations = await this.evacuationRepository.getAllEvacuations();
             return evacuations.map(evac => evac.toDTO());
         } catch (err) {
@@ -47,39 +81,61 @@ export class EvacuationService {
         }
     }
 
+    /**
+     * Retrieve evacuation route by ID.
+     *
+     * PRE-CONDITIONS:
+     * - route_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns evacuation DTO if found.
+     * - Returns null if not found.
+     */
     async getEvacuationById(route_id) {
         try {
-            // Fetch evacuation route by ID
             const evacuation = await this.evacuationRepository.getEvacuationById(route_id);
-            if (!evacuation) return null;  // Not found
+            if (!evacuation) return null;
             return evacuation.toDTO();
         } catch (err) {
             throw new Error(`Failed to fetch evacuation route by ID: ${err.message}`);
         }
     }
 
+    /**
+     * Retrieve evacuation routes by status.
+     */
     async getEvacuationsByStatus(route_status) {
         try {
-            // Fetch evacuation routes by status
             const evacuations = await this.evacuationRepository.getEvacuationsByStatus(route_status);
-            if (!evacuations || evacuations.length === 0) return [];  // No evacuation routes found for this status
+            if (!evacuations || evacuations.length === 0) return [];
             return evacuations.map(evac => evac.toDTO());
         } catch (err) {
             throw new Error(`Failed to fetch evacuation routes by status: ${err.message}`);
         }
     }
 
+    /**
+     * Retrieve evacuation routes by priority.
+     */
     async getEvacuationsByPriority(route_priority) {
         try {
-            // Fetch evacuation routes by priority
             const evacuations = await this.evacuationRepository.getEvacuationsByPriority(route_priority);
-            if (!evacuations || evacuations.length === 0) return [];  // No evacuation routes found for this priority
+            if (!evacuations || evacuations.length === 0) return [];
             return evacuations.map(evac => evac.toDTO());
         } catch (err) {
             throw new Error(`Failed to fetch evacuation routes by priority: ${err.message}`);
         }
     }
 
+    /**
+     * Retrieve evacuation routes by safe zone.
+     *
+     * PRE-CONDITIONS:
+     * - safe_zone must be valid WKT string or coordinate object.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching evacuation routes.
+     */
     async getEvacuationsByZone(safe_zone) {
         try {
             const coords = typeof safe_zone === 'string'
@@ -89,6 +145,7 @@ export class EvacuationService {
                     return { longitude: parseFloat(match[1]), latitude: parseFloat(match[2]) };
                 })()
                 : safe_zone;
+
             const evacuations = await this.evacuationRepository.getEvacuationsByZone(coords);
             if (!evacuations || evacuations.length === 0) return [];
             return evacuations.map(e => e.toDTO());
@@ -97,88 +154,104 @@ export class EvacuationService {
         }
     }
 
+    /**
+     * Retrieve evacuation routes by fire ID.
+     */
     async getEvacuationsByFireId(fire_id) {
         try {
-            // Fetch evacuation routes by associated fire ID
             const evacuations = await this.evacuationRepository.getEvacuationsByFireId(fire_id);
-            if (!evacuations || evacuations.length === 0) return [];  // No evacuation routes found for this fire ID
+            if (!evacuations || evacuations.length === 0) return [];
             return evacuations.map(evac => evac.toDTO());
         } catch (err) {
             throw new Error(`Failed to fetch evacuation routes by fire ID: ${err.message}`);
         }
     }
 
+    /**
+     * Retrieve nearest evacuation route.
+     *
+     * PRE-CONDITIONS:
+     * - latitude and longitude must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns nearest evacuation route or null.
+     */
     async getNearestEvacuation(latitude, longitude) {
         try {
-            // Validate input coordinates
             if (latitude  === undefined || latitude  === null) throw new Error("Missing required field: Latitude");
             if (longitude === undefined || longitude === null) throw new Error("Missing required field: Longitude");
 
-            // Fetch nearest evacuation route to the given coordinates
             const evacuation = await this.evacuationRepository.getNearestEvacuation(latitude, longitude);
-            if (!evacuation) return null;  // No evacuation routes found
+            if (!evacuation) return null;
             return evacuation.toDTO();
         } catch (err) {
             throw new Error(`Failed to fetch nearest evacuation route: ${err.message}`);
         }
     }
 
+    /**
+     * Update evacuation route status.
+     */
     async updateEvacuationStatus(route_id, new_status) {
         try {
-            // Validate new status
             if (!new_status) throw new Error("Missing required field: New Status");
 
-            // Update evacuation route status
             const evacuation = await this.evacuationRepository.updateEvacuationStatus(route_id, new_status);
-            if (!evacuation) return null;  // Evacuation route not found or update failed
+            if (!evacuation) return null;
             return evacuation.toDTO();
         } catch (err) {
             throw new Error(`Failed to update evacuation route status: ${err.message}`);
         }
     }
 
+    /**
+     * Update evacuation route priority.
+     */
     async updateEvacuationPriority(route_id, new_priority) {
         try {
-            // Validate new priority
             if (new_priority === undefined || new_priority === null)
                 throw new Error("Missing required field: New Priority");
 
-            // Update evacuation route priority
             const evacuation = await this.evacuationRepository.updateEvacuationPriority(route_id, new_priority);
-            if (!evacuation) return null;  // Evacuation route not found or update failed
+            if (!evacuation) return null;
             return evacuation.toDTO();
         } catch (err) {
             throw new Error(`Failed to update evacuation route priority: ${err.message}`);
         }
     }
 
+    /**
+     * Update evacuation route geometry.
+     */
     async updateEvacuationGeometry(route_id, new_route_path, new_safe_zone) {
         try {
-            // Validate new geometry inputs
             if (!new_route_path) throw new Error("Missing required field: New Route Path");
             if (!new_safe_zone)  throw new Error("Missing required field: New Safe Zone");
 
-            // Update evacuation route geometry (path and safe zone)
             const evacuation = await this.evacuationRepository.updateEvacuationGeometry(route_id, new_route_path, new_safe_zone);
-            if (!evacuation) return null;  // Evacuation route not found or update failed
+            if (!evacuation) return null;
             return evacuation.toDTO();
         } catch (err) {
             throw new Error(`Failed to update evacuation route geometry: ${err.message}`);
         }
     }
 
+    /**
+     * Delete evacuation route.
+     */
     async deleteEvacuation(route_id) {
         try {
-            // Delete evacuation route by ID
             return await this.evacuationRepository.deleteEvacuation(route_id);
         } catch (err) {
             throw new Error(`Failed to delete evacuation route: ${err.message}`);
         }
     }
 
+    /**
+     * Delete evacuation routes by fire ID.
+     */
     async deleteEvacuationsByFireId(fire_id) {
         try {
-            // Delete all evacuation routes associated with a specific fire ID
             return await this.evacuationRepository.deleteEvacuationsByFireId(fire_id);
         } catch (err) {
             throw new Error(`Failed to delete evacuation routes by fire ID: ${err.message}`);

@@ -2,11 +2,35 @@
 
 import { FireAssignment } from '../domain/entities/fireAssignment.entity.js';
 
+/**
+ * This file defines the FireAssignmentService class.
+ * It manages the lifecycle of fire-responder assignments,
+ * including creation, retrieval, updates, deletion, and counting.
+ */
 export class FireAssignmentService {
+    /**
+     * Initialize FireAssignmentService.
+     *
+     * PRE-CONDITIONS:
+     * - fireAssignmentRepository must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Service is ready to manage assignment operations.
+     */
     constructor(fireAssignmentRepository) {
         this.fireAssignmentRepository = fireAssignmentRepository;
     }
 
+    /**
+     * Create a fire assignment.
+     *
+     * PRE-CONDITIONS:
+     * - fire_id, responder_id, and assignment_status must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Assignment entity is created and stored.
+     * - Returns assignment DTO.
+     */
     async createAssignment(data) {
         try {
             // Validate required fields
@@ -29,6 +53,15 @@ export class FireAssignmentService {
         }
     }
 
+    /**
+     * Retrieve all assignments.
+     *
+     * PRE-CONDITIONS:
+     * - Repository must be available.
+     *
+     * POST-CONDITIONS:
+     * - Returns list of assignment DTOs.
+     */
     async getAllAssignments() {
         try {
             // Fetch all assignments from the database
@@ -39,6 +72,16 @@ export class FireAssignmentService {
         }
     }
 
+    /**
+     * Retrieve assignment by ID.
+     *
+     * PRE-CONDITIONS:
+     * - assignment_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns assignment DTO if found.
+     * - Returns null if not found.
+     */
     async getAssignmentById(assignment_id) {
         try {
             // Fetch a single assignment by its ID
@@ -50,6 +93,16 @@ export class FireAssignmentService {
         }
     }
 
+    /**
+     * Retrieve assignments by fire ID.
+     *
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching assignments.
+     * - Returns empty array if none found.
+     */
     async getAssignmentsByFireId(fire_id) {
         try {
             // Fetch all assignments associated with a specific fire ID
@@ -61,6 +114,16 @@ export class FireAssignmentService {
         }
     }
 
+    /**
+     * Retrieve assignments by responder ID.
+     *
+     * PRE-CONDITIONS:
+     * - responder_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching assignments.
+     * - Returns empty array if none found.
+     */
     async getAssignmentsByResponderId(responder_id) {
         try {
             // Fetch all assignments associated with a specific responder ID
@@ -72,6 +135,15 @@ export class FireAssignmentService {
         }
     }
 
+    /**
+     * Retrieve active assignments.
+     *
+     * PRE-CONDITIONS:
+     * - Repository must be available.
+     *
+     * POST-CONDITIONS:
+     * - Returns active assignments.
+     */
     async getActiveAssignments() {
         try {
             // Fetch all active assignments (e.g., those with status 'active')
@@ -83,6 +155,16 @@ export class FireAssignmentService {
         }
     }
 
+    /**
+     * Update assignment status.
+     *
+     * PRE-CONDITIONS:
+     * - assignment_id and status must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Assignment status updated.
+     * - Returns updated assignment DTO.
+     */
     async updateAssignmentStatus(assignment_id, status) {
         try {
             // Update the status of an existing assignment
@@ -94,6 +176,15 @@ export class FireAssignmentService {
         }
     }
 
+    /**
+     * Delete assignment.
+     *
+     * PRE-CONDITIONS:
+     * - assignment_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Assignment removed from database.
+     */
     async deleteAssignment(assignment_id) {
         try {
             // Delete an assignment by its ID
@@ -103,6 +194,15 @@ export class FireAssignmentService {
         }
     }
 
+    /**
+     * Count assignments with filters.
+     *
+     * PRE-CONDITIONS:
+     * - filters may be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns number of matching assignments.
+     */
     async countAssignments(filters) {
         try {
             // Count the number of assignments based on provided filters (e.g., by fire_id, responder_id, status)
@@ -112,6 +212,15 @@ export class FireAssignmentService {
         }
     }
 
+    /**
+     * Count assignments by fire ID.
+     *
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns number of assignments linked to fire.
+     */
     async countAssignmentsByFire(fire_id) {
         try {
             // Count the number of assignments associated with a specific fire ID
@@ -121,6 +230,15 @@ export class FireAssignmentService {
         }
     }
 
+    /**
+     * Count assignments by responder ID.
+     *
+     * PRE-CONDITIONS:
+     * - responder_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns number of assignments linked to responder.
+     */
     async countAssignmentsByResponder(responder_id) {
         try {
             // Count the number of assignments associated with a specific responder ID

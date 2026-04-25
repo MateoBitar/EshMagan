@@ -1,8 +1,25 @@
 // src/api/graphql/resolvers/resident.resolver.js
 import { updateLocationViaGrpc } from '../../../grpc/clients/location.grpc.client.js';
 
+/**
+ * This file defines GraphQL resolvers for Resident operations.
+ * It handles queries and mutations related to residents and delegates
+ * logic to residentService and fireService. It also integrates a gRPC
+ * client for optimized location updates.
+ */
+
 export const residentResolvers = {
   Query: {
+    /**
+     * Retrieve all residents.
+     * 
+     * PRE-CONDITIONS:
+     * - dataSources.residentService must be available
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of residents
+     * - Throws error if operation fails
+     */
     // Fetch all residents
     getAllResidents: async (_, __, { dataSources }) => {
       try {
@@ -12,6 +29,16 @@ export const residentResolvers = {
       }
     },
 
+    /**
+     * Retrieve a resident by ID.
+     * 
+     * PRE-CONDITIONS:
+     * - resident_id must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns resident if found
+     * - Throws error if not found or fails
+     */
     // Fetch resident by ID
     getResidentById: async (_, { resident_id }, { dataSources }) => {
       try {
@@ -23,6 +50,16 @@ export const residentResolvers = {
       }
     },
 
+    /**
+     * Retrieve residents by first name.
+     * 
+     * PRE-CONDITIONS:
+     * - resident_fname must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of residents
+     * - Throws error if operation fails
+     */
     // Fetch residents by first name
     getResidentsByFName: async (_, { resident_fname }, { dataSources }) => {
       try {
@@ -32,6 +69,16 @@ export const residentResolvers = {
       }
     },
 
+    /**
+     * Retrieve residents by last name.
+     * 
+     * PRE-CONDITIONS:
+     * - resident_lname must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of residents
+     * - Throws error if operation fails
+     */
     // Fetch residents by last name
     getResidentsByLName: async (_, { resident_lname }, { dataSources }) => {
       try {
@@ -41,6 +88,16 @@ export const residentResolvers = {
       }
     },
 
+    /**
+     * Retrieve a resident by ID number.
+     * 
+     * PRE-CONDITIONS:
+     * - resident_idnb must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns resident if found
+     * - Throws error if not found or fails
+     */
     // Fetch resident by ID number
     getResidentByIdNb: async (_, { resident_idnb }, { dataSources }) => {
       try {
@@ -52,6 +109,16 @@ export const residentResolvers = {
       }
     },
 
+    /**
+     * Retrieve residents by last known location.
+     * 
+     * PRE-CONDITIONS:
+     * - last_known_location must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of residents
+     * - Throws error if operation fails
+     */
     // Fetch residents by last known location
     getResidentsByLastKnownLocation: async (_, { last_known_location }, { dataSources }) => {
       try {
@@ -61,6 +128,16 @@ export const residentResolvers = {
       }
     },
 
+    /**
+     * Retrieve a resident by email.
+     * 
+     * PRE-CONDITIONS:
+     * - user_email must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns resident if found
+     * - Throws error if not found or fails
+     */
     // Fetch resident by email
     getResidentByEmail: async (_, { user_email }, { dataSources }) => {
       try {
@@ -72,6 +149,16 @@ export const residentResolvers = {
       }
     },
 
+    /**
+     * Retrieve a resident by phone.
+     * 
+     * PRE-CONDITIONS:
+     * - user_phone must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns resident if found
+     * - Throws error if not found or fails
+     */
     // Fetch resident by phone
     getResidentByPhone: async (_, { user_phone }, { dataSources }) => {
       try {
@@ -83,6 +170,16 @@ export const residentResolvers = {
       }
     },
 
+    /**
+     * Retrieve nearby fires based on location.
+     * 
+     * PRE-CONDITIONS:
+     * - latitude and longitude must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of nearby fires
+     * - Throws error if operation fails
+     */
     getNearbyFires: async (_, { latitude, longitude }, { dataSources }) => {
       try {
         return await dataSources.fireService.getNearbyFires(latitude, longitude);
@@ -93,6 +190,16 @@ export const residentResolvers = {
   },
 
   Mutation: {
+    /**
+     * Create a new resident.
+     * 
+     * PRE-CONDITIONS:
+     * - input must contain valid resident data
+     * 
+     * POST-CONDITIONS:
+     * - Returns created resident
+     * - Throws error if creation fails
+     */
     // Create a new resident
     createResident: async (_, { input }, { dataSources }) => {
       try {
@@ -102,6 +209,18 @@ export const residentResolvers = {
       }
     },
 
+    /**
+     * Update resident details.
+     * 
+     * PRE-CONDITIONS:
+     * - resident_id must be provided
+     * - input must be valid
+     * 
+     * POST-CONDITIONS:
+     * - Returns updated resident
+     * - Uses gRPC if only location is updated
+     * - Throws error if update fails
+     */
     // Update resident details
     updateResident: async (_, { resident_id, input }, { dataSources }) => {
       try {
@@ -135,6 +254,16 @@ export const residentResolvers = {
       }
     },
 
+    /**
+     * Deactivate a resident.
+     * 
+     * PRE-CONDITIONS:
+     * - resident_id must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns result of deactivation
+     * - Throws error if operation fails
+     */
     // Deactivate a resident
     deactivateResident: async (_, { resident_id }, { dataSources }) => {
       try {

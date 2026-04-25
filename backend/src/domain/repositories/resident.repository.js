@@ -8,8 +8,26 @@ import { EncryptionService } from '../../services/encryption.service.js';
 
 const encryption = new EncryptionService();
 
+/**
+ * This repository manages all database operations related to residents,
+ * including creation, retrieval, spatial queries, updates, encryption handling,
+ * and deactivation. Sensitive fields are encrypted/decrypted transparently.
+ */
+
 // SHARED HELPER
 // Parses a DB row into a Resident entity, decrypting sensitive fields transparently.
+
+/**
+ * Convert raw DB row into Resident entity.
+ *
+ * PRE-CONDITIONS:
+ * - row must contain resident and location fields.
+ * - encrypted fields must be valid for decryption.
+ *
+ * POST-CONDITIONS:
+ * - Returns a fully constructed Resident entity.
+ * - Sensitive fields are decrypted.
+ */
 function toResident(row, userEntity) {
     const homeLocation = row.home_location ? JSON.parse(row.home_location) : null;
     const workLocation = row.work_location ? JSON.parse(row.work_location) : null;
@@ -46,6 +64,18 @@ function toResident(row, userEntity) {
 }
 
 export class ResidentRepository {
+    /**
+     * Create a new resident.
+     *
+     * PRE-CONDITIONS:
+     * - data must include all required resident fields.
+     * - last_known_location must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Inserts resident into DB.
+     * - Sensitive fields are encrypted.
+     * - Returns created Resident entity.
+     */
     async createResident(data) {
         const {
             resident_id, // comes from user.user_id
@@ -111,6 +141,16 @@ export class ResidentRepository {
         });
     }
 
+    /**
+     * Retrieve all residents.
+     *
+     * PRE-CONDITIONS:
+     * - Database connection must be available.
+     *
+     * POST-CONDITIONS:
+     * - Returns an array of Resident entities.
+     * - Returns empty array if no residents exist.
+     */
     async getAllResidents() {
         const sql = `
             SELECT 
@@ -141,6 +181,16 @@ export class ResidentRepository {
         return result;
     }
 
+    /**
+     * Retrieve resident by ID.
+     *
+     * PRE-CONDITIONS:
+     * - resident_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns Resident if found.
+     * - Returns null if not found.
+     */
     async getResidentById(resident_id) {
         const sql = `
             SELECT 
@@ -170,6 +220,16 @@ export class ResidentRepository {
         return toResident(rows[0], User.fromEntity(rows[0]));
     }
 
+    /**
+     * Retrieve residents by first name.
+     *
+     * PRE-CONDITIONS:
+     * - resident_fname must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching residents.
+     * - Returns empty array if none found.
+     */
     async getResidentsByFName(resident_fname) {
         const sql = `
             SELECT 
@@ -199,6 +259,16 @@ export class ResidentRepository {
         return rows.map(row => toResident(row, User.fromEntity(row)));
     }
 
+    /**
+     * Retrieve residents by last name.
+     *
+     * PRE-CONDITIONS:
+     * - resident_lname must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns matching residents.
+     * - Returns empty array if none found.
+     */
     async getResidentsByLName(resident_lname) {
         const sql = `
             SELECT 
@@ -228,6 +298,16 @@ export class ResidentRepository {
         return rows.map(row => toResident(row, User.fromEntity(row)));
     }
 
+    /**
+     * Retrieve resident by ID number (encrypted).
+     *
+     * PRE-CONDITIONS:
+     * - resident_idnb must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Decrypts all records and compares.
+     * - Returns matching resident or null.
+     */
     async getResidentByIdNb(resident_idnb) {
         // resident_idnb is stored encrypted with a random IV per call,
         // so we cannot do a direct SQL WHERE match on the ciphertext.
@@ -270,6 +350,16 @@ export class ResidentRepository {
         return toResident(match, User.fromEntity(match));
     }
 
+    /**
+     * Retrieve residents by proximity to last known location.
+     *
+     * PRE-CONDITIONS:
+     * - last_known_location must contain longitude and latitude.
+     *
+     * POST-CONDITIONS:
+     * - Returns residents within 10km radius.
+     * - Returns empty array if none found.
+     */
     async getResidentsByLastKnownLocation(last_known_location) {
         const sql = `
             SELECT 
@@ -304,6 +394,16 @@ export class ResidentRepository {
         return rows.map(row => toResident(row, User.fromEntity(row)));
     }
 
+    /**
+     * Retrieve resident by email.
+     *
+     * PRE-CONDITIONS:
+     * - user_email must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns Resident if found.
+     * - Returns null if not found.
+     */
     async getResidentByEmail(user_email) {
         const sql = `
             SELECT 
@@ -333,6 +433,16 @@ export class ResidentRepository {
         return toResident(rows[0], User.fromEntity(rows[0]));
     }
 
+    /**
+     * Retrieve resident by phone.
+     *
+     * PRE-CONDITIONS:
+     * - user_phone must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns Resident if found.
+     * - Returns null if not found.
+     */
     async getResidentByPhone(user_phone) {
         const sql = `
             SELECT 
@@ -362,6 +472,19 @@ export class ResidentRepository {
         return toResident(rows[0], User.fromEntity(rows[0]));
     }
 
+    /**
+     * Update resident information.
+     *
+     * PRE-CONDITIONS:
+     * - resident_id must be provided.
+     * - data may contain any updatable fields.
+     *
+     * POST-CONDITIONS:
+     * - Updates provided fields.
+     * - Encrypts sensitive fields if updated.
+     * - Returns updated Resident entity.
+     * - Returns null if resident does not exist.
+     */
     async updateResident(resident_id, data) {
         const fields = [];
         const values = [];
@@ -448,6 +571,16 @@ export class ResidentRepository {
         return toResident(rows[0], User.fromEntity(rows[0]));
     }
 
+    /**
+     * Deactivate resident.
+     *
+     * PRE-CONDITIONS:
+     * - resident_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Deactivates associated user.
+     * - Returns result of deactivation.
+     */
     async deactivateResident(resident_id) {
         const userRepository = new UserRepository();
         return await userRepository.deactivateUser(resident_id);

@@ -4,13 +4,41 @@ import { hashPassword, comparePassword, needsRehash } from '../utils/hash.utils.
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt.utils.js';
 import { Resident } from '../domain/entities/resident.entity.js';
 
+/**
+ * This file defines the AuthService class.
+ * It handles authentication and authorization logic,
+ * including registration, login, token management,
+ * password changes, and session control.
+ */
 export class AuthService {
+
+    /**
+     * Initialize AuthService.
+     *
+     * PRE-CONDITIONS:
+     * - userRepository, refreshTokenRepository, and residentRepository must be provided.
+     *
+     * POST-CONDITIONS:
+     * - AuthService is ready to handle authentication workflows.
+     */
     constructor(userRepository, refreshTokenRepository, residentRepository) {
         this.userRepository         = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.residentRepository     = residentRepository;
     }
 
+    /**
+     * Register a new resident user.
+     *
+     * PRE-CONDITIONS:
+     * - All required user and resident fields must be provided.
+     * - Email must not already exist.
+     *
+     * POST-CONDITIONS:
+     * - Creates user with hashed password.
+     * - Creates linked resident profile.
+     * - Returns created user DTO.
+     */
     async register(data) {
         try {
             if (!data.user_email)          throw new Error("Missing required field: Email");
@@ -76,6 +104,19 @@ export class AuthService {
         }
     }
 
+    /**
+     * Authenticate user and generate tokens.
+     *
+     * PRE-CONDITIONS:
+     * - user_email and user_password must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Validates credentials.
+     * - Generates access and refresh tokens.
+     * - Stores refresh token.
+     * - Updates last login.
+     * - Returns tokens and user DTO.
+     */
     async login(user_email, user_password) {
         try {
             if (!user_email)    throw new Error("Missing required field: Email");
@@ -105,6 +146,18 @@ export class AuthService {
         }
     }
 
+    /**
+     * Refresh authentication tokens.
+     *
+     * PRE-CONDITIONS:
+     * - refresh token must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Validates token.
+     * - Generates new access and refresh tokens.
+     * - Replaces stored refresh token.
+     * - Returns new tokens.
+     */
     async refreshToken(token) {
         try {
             if (!token) throw new Error("Missing required field: Refresh Token");
@@ -127,6 +180,16 @@ export class AuthService {
         }
     }
 
+    /**
+     * Logout user.
+     *
+     * PRE-CONDITIONS:
+     * - refresh token must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Deletes refresh token.
+     * - Returns true.
+     */
     async logout(token) {
         try {
             if (!token) throw new Error("Missing required field: Refresh Token");
@@ -137,6 +200,16 @@ export class AuthService {
         }
     }
 
+    /**
+     * Logout from all sessions.
+     *
+     * PRE-CONDITIONS:
+     * - user_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Deletes all refresh tokens for user.
+     * - Returns true.
+     */
     async logoutAll(user_id) {
         try {
             if (!user_id) throw new Error("Missing required field: User ID");
@@ -147,6 +220,18 @@ export class AuthService {
         }
     }
 
+    /**
+     * Change user password.
+     *
+     * PRE-CONDITIONS:
+     * - user_id, old_password, and new_password must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Validates old password.
+     * - Updates password hash.
+     * - Invalidates all existing sessions.
+     * - Returns true.
+     */
     async changePassword(user_id, old_password, new_password) {
         try {
             if (!old_password) throw new Error("Missing required field: Old Password");

@@ -4,7 +4,24 @@ import { pool } from '../../config/db.js';
 import { Alert } from '../entities/alert.entity.js';
 import { FireRepository } from './fire.repository.js';
 
+/**
+ * This file defines the AlertRepository class.
+ * It handles all database operations related to Alert entities,
+ * including creation, retrieval, and deletion.
+ */
 export class AlertRepository {
+
+    /**
+     * Create a new alert
+     * 
+     * PRE-CONDITIONS:
+     * - alert data must be provided
+     * - fire_id must exist if provided
+     * 
+     * POST-CONDITIONS:
+     * - Inserts alert into database
+     * - Returns Alert entity
+     */
     async createAlert(data) {
         const { alert_type, target_role, alert_message, expires_at, fire_id } = data;
 
@@ -27,6 +44,15 @@ export class AlertRepository {
         return Alert.fromEntity(alertRows[0]);
     }
 
+    /**
+     * Retrieve all active alerts
+     * 
+     * PRE-CONDITIONS:
+     * - Database must contain alert records
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of Alert entities
+     */
     async getAllAlerts() {
         const sql = `
             SELECT alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
@@ -42,6 +68,15 @@ export class AlertRepository {
         return rows.map(row => Alert.fromEntity(row));
     }
 
+    /**
+     * Retrieve alert by ID
+     * 
+     * PRE-CONDITIONS:
+     * - alert_id must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns Alert entity or null
+     */
     async getAlertById(alert_id) {
         const sql = `
             SELECT alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
@@ -57,6 +92,15 @@ export class AlertRepository {
         return Alert.fromEntity(rows[0]);
     }
 
+    /**
+     * Retrieve alerts by type
+     * 
+     * PRE-CONDITIONS:
+     * - alert_type must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of Alert entities
+     */
     async getAlertsByAlertType(alert_type) {
         const sql = `
             SELECT alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
@@ -73,6 +117,15 @@ export class AlertRepository {
         return rows.map(row => Alert.fromEntity(row));
     }
 
+    /**
+     * Retrieve alerts by target role
+     * 
+     * PRE-CONDITIONS:
+     * - target_role must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of Alert entities
+     */
     async getAlertsByTargetRole(target_role) {
         const sql = `
             SELECT alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
@@ -89,6 +142,15 @@ export class AlertRepository {
         return rows.map(row => Alert.fromEntity(row));
     }
 
+    /**
+     * Retrieve alerts by expiration time
+     * 
+     * PRE-CONDITIONS:
+     * - expires_at must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of Alert entities
+     */
     async getAlertsByExpiration(expires_at) {
         const sql = `
             SELECT alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
@@ -104,6 +166,15 @@ export class AlertRepository {
         return rows.map(row => Alert.fromEntity(row));
     }
 
+    /**
+     * Retrieve alerts by fire ID
+     * 
+     * PRE-CONDITIONS:
+     * - fire_id must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of Alert entities
+     */
     async getAlertsByFireId(fire_id) {
         const sql = `
             SELECT alert_id, alert_type, target_role, alert_message, expires_at, created_at, fire_id
@@ -120,6 +191,15 @@ export class AlertRepository {
         return rows.map(row => Alert.fromEntity(row));
     }
 
+    /**
+     * Delete alert by ID
+     * 
+     * PRE-CONDITIONS:
+     * - alert_id must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns true if deleted, false otherwise
+     */
     async deleteAlert(alert_id) {
         const sql = `
             DELETE FROM alerts 
@@ -135,6 +215,15 @@ export class AlertRepository {
         return true; // Alert deleted successfully
     }
 
+    /**
+     * Delete expired alerts
+     * 
+     * PRE-CONDITIONS:
+     * - Alerts must exist
+     * 
+     * POST-CONDITIONS:
+     * - Returns true if any alerts were deleted
+     */
     async deleteExpiredAlerts() {
         const sql = `
             DELETE FROM alerts 
@@ -146,6 +235,15 @@ export class AlertRepository {
         return rows.length > 0; // Returns true if any expired alerts were deleted
     }
 
+    /**
+     * Delete alerts by fire ID
+     * 
+     * PRE-CONDITIONS:
+     * - fire_id must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns true if any alerts were deleted
+     */
     async deleteAlertsByFireId(fire_id) {
         const sql = `
             DELETE FROM alerts 

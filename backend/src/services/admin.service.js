@@ -2,12 +2,39 @@
 
 import { Admin } from '../domain/entities/admin.entity.js';
 
+/**
+ * This file defines the AdminService class.
+ * It contains the business logic for admin operations,
+ * including admin creation, retrieval, and deactivation.
+ */
 export class AdminService {
+    /**
+     * Initialize AdminService.
+     *
+     * PRE-CONDITIONS:
+     * - adminRepository must be provided.
+     * - userService must be provided.
+     *
+     * POST-CONDITIONS:
+     * - AdminService is ready to handle admin-related business logic.
+     */
     constructor(adminRepository, userService) {
         this.adminRepository = adminRepository;
         this.userService = userService;
     }
 
+    /**
+     * Create a new admin.
+     *
+     * PRE-CONDITIONS:
+     * - admin_fname and admin_lname must be provided.
+     * - User may already exist by user_id or user_email.
+     *
+     * POST-CONDITIONS:
+     * - Creates user if needed.
+     * - Creates admin linked to user.
+     * - Returns admin DTO.
+     */
     async createAdmin(data) {
         try {
             if (!data.admin_fname) throw new Error("Missing required field: Admin First Name");
@@ -52,6 +79,15 @@ export class AdminService {
         }
     }
 
+    /**
+     * Retrieve all admins.
+     *
+     * PRE-CONDITIONS:
+     * - Admin repository must be available.
+     *
+     * POST-CONDITIONS:
+     * - Returns array of admin DTOs.
+     */
     async getAllAdmins() {
         try {
             // Fetch all admins from repository
@@ -63,6 +99,16 @@ export class AdminService {
         }
     }
 
+    /**
+     * Retrieve admin by ID.
+     *
+     * PRE-CONDITIONS:
+     * - admin_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns admin DTO if found.
+     * - Returns null if not found.
+     */
     async getAdminById(admin_id) {
         try {
             // Fetch admin by ID
@@ -74,6 +120,16 @@ export class AdminService {
         }
     }
 
+    /**
+     * Retrieve admin by first name.
+     *
+     * PRE-CONDITIONS:
+     * - admin_fname must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns admin DTO if found.
+     * - Returns null if not found.
+     */
     async getAdminByFName(admin_fname) {
         try {
             // Fetch admin by first name
@@ -85,6 +141,16 @@ export class AdminService {
         }
     }
 
+    /**
+     * Retrieve admin by last name.
+     *
+     * PRE-CONDITIONS:
+     * - admin_lname must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns admin DTO if found.
+     * - Returns null if not found.
+     */
     async getAdminByLName(admin_lname) {
         try {
             // Fetch admin by last name
@@ -96,6 +162,16 @@ export class AdminService {
         }
     }
 
+    /**
+     * Retrieve admin by email.
+     *
+     * PRE-CONDITIONS:
+     * - user_email must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns admin DTO if found.
+     * - Returns null if not found.
+     */
     async getAdminByEmail(user_email) {
         try {
             // Fetch admin by associated user email
@@ -107,6 +183,16 @@ export class AdminService {
         }
     }
 
+    /**
+     * Retrieve admin by phone.
+     *
+     * PRE-CONDITIONS:
+     * - user_phone must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns admin DTO if found.
+     * - Returns null if not found.
+     */
     async getAdminByPhone(user_phone) {
         try {
             // Fetch admin by associated user phone
@@ -118,6 +204,16 @@ export class AdminService {
         }
     }
 
+    /**
+     * Retrieve admins by creation date.
+     *
+     * PRE-CONDITIONS:
+     * - created_at must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns array of admin DTOs.
+     * - Returns empty array if none found.
+     */
     async getAdminsByCreationDate(created_at) {
         try {
             // Fetch admins by creation date
@@ -129,6 +225,16 @@ export class AdminService {
         }
     }
 
+    /**
+     * Deactivate admin.
+     *
+     * PRE-CONDITIONS:
+     * - admin_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Deactivates admin through repository.
+     * - Returns deactivation result.
+     */
     async deactivateAdmin(admin_id) {
         try {
             // Deactivate admin in repository

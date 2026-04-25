@@ -5,7 +5,26 @@ import { Responder } from '../entities/responder.entity.js';
 import { User } from '../entities/user.entity.js';
 import { UserRepository } from './user.repository.js';
 
+/**
+ * This file defines the ResponderRepository class.
+ * It handles all database operations related to responders,
+ * including creation, retrieval, spatial location queries,
+ * status/location updates, nearest responder lookup, and deactivation.
+ */
+
 export class ResponderRepository {
+    /**
+     * Create a new responder.
+     *
+     * PRE-CONDITIONS:
+     * - data must include responder_id, unit_nb, unit_location,
+     *   assigned_region, responder_status, and last_known_location.
+     * - user must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Inserts responder into database.
+     * - Returns created Responder entity.
+     */
     async createResponder(data) {
         const {
             responder_id,
@@ -63,6 +82,16 @@ export class ResponderRepository {
         });
     }
 
+    /**
+    * Retrieve all responders.
+    *
+    * PRE-CONDITIONS:
+    * - Database connection must be available.
+    *
+    * POST-CONDITIONS:
+    * - Returns array of active responders.
+    * - Returns empty array if none found.
+    */
     async getAllResponders() {
         const sql = `
         SELECT r.responder_id, r.unit_nb,
@@ -108,6 +137,16 @@ export class ResponderRepository {
         });
     }
 
+    /**
+    * Retrieve responder by ID.
+    *
+    * PRE-CONDITIONS:
+    * - responder_id must be provided.
+    *
+    * POST-CONDITIONS:
+    * - Returns Responder if found.
+    * - Returns null if not found.
+    */
     async getResponderById(responder_id) {
         const sql = `
         SELECT r.responder_id, r.unit_nb,
@@ -152,6 +191,16 @@ export class ResponderRepository {
         });
     }
 
+    /**
+    * Retrieve responders by unit number.
+    *
+    * PRE-CONDITIONS:
+    * - unit_nb must be provided.
+    *
+    * POST-CONDITIONS:
+    * - Returns matching responders.
+    * - Returns empty array if none found.
+    */
     async getRespondersByUnitNb(unit_nb) {
         const sql = `
         SELECT r.responder_id, r.unit_nb,
@@ -197,6 +246,16 @@ export class ResponderRepository {
         });
     }
 
+    /**
+    * Retrieve responders near a unit location.
+    *
+    * PRE-CONDITIONS:
+    * - unit_location must contain longitude and latitude.
+    *
+    * POST-CONDITIONS:
+    * - Returns responders within 1km radius.
+    * - Returns empty array if none found.
+    */
     async getRespondersByUnitLocation(unit_location) {
         const sql = `
         SELECT r.responder_id, r.unit_nb,
@@ -244,6 +303,16 @@ export class ResponderRepository {
         });
     }
 
+    /**
+    * Retrieve responders by assigned region.
+    *
+    * PRE-CONDITIONS:
+    * - assigned_region must be provided.
+    *
+    * POST-CONDITIONS:
+    * - Returns responders in the region.
+    * - Returns empty array if none found.
+    */
     async getRespondersByAssignedRegion(assigned_region) {
         const sql = `
         SELECT r.responder_id, r.unit_nb,
@@ -289,6 +358,16 @@ export class ResponderRepository {
         });
     }
 
+    /**
+    * Retrieve responders by status.
+    *
+    * PRE-CONDITIONS:
+    * - responder_status must be provided.
+    *
+    * POST-CONDITIONS:
+    * - Returns responders matching status.
+    * - Returns empty array if none found.
+    */
     async getRespondersByResponderStatus(responder_status) {
         const sql = `
         SELECT r.responder_id, r.unit_nb,
@@ -334,6 +413,16 @@ export class ResponderRepository {
         });
     }
 
+    /**
+    * Retrieve responders near last known location.
+    *
+    * PRE-CONDITIONS:
+    * - last_known_location must contain longitude and latitude.
+    *
+    * POST-CONDITIONS:
+    * - Returns responders within 25km radius.
+    * - Returns empty array if none found.
+    */
     async getRespondersByLastKnownLocation(last_known_location) {
         const sql = `
         SELECT r.responder_id, r.unit_nb,
@@ -384,6 +473,16 @@ export class ResponderRepository {
         });
     }
 
+    /**
+    * Retrieve responder by email.
+    *
+    * PRE-CONDITIONS:
+    * - user_email must be provided.
+    *
+    * POST-CONDITIONS:
+    * - Returns responder if found.
+    * - Returns null if not found.
+    */
     async getResponderByEmail(user_email) {
         const sql = `
         SELECT r.responder_id, r.unit_nb,
@@ -428,6 +527,16 @@ export class ResponderRepository {
         });
     }
 
+    /**
+    * Retrieve responder by phone.
+    *
+    * PRE-CONDITIONS:
+    * - user_phone must be provided.
+    *
+    * POST-CONDITIONS:
+    * - Returns responder if found.
+    * - Returns null if not found.
+    */
     async getResponderByPhone(user_phone) {
         const sql = `
         SELECT r.responder_id, r.unit_nb,
@@ -482,6 +591,17 @@ export class ResponderRepository {
     // ST_Distance handles both correctly:
     //   - POINT   → straight-line distance to the ignition point
     //   - POLYGON → distance to the nearest edge of the polygon
+    /**
+    * FORM DEFINITION:
+    * Retrieve nearest available responder to a fire location.
+    *
+    * PRE-CONDITIONS:
+    * - fire_location must be provided (POINT or POLYGON or coordinates).
+    *
+    * POST-CONDITIONS:
+    * - Returns closest active/standby responder.
+    * - Returns null if none available.
+    */
     async getNearestResponder(fire_location) {
         // Convert LocationInput into WKT string
         const locationWKT = typeof fire_location === 'string'
@@ -540,6 +660,19 @@ export class ResponderRepository {
         });
     }
 
+    /**
+    * FORM DEFINITION:
+    * Update responder information.
+    *
+    * PRE-CONDITIONS:
+    * - responder_id must be provided.
+    * - data may include responder and/or user fields.
+    *
+    * POST-CONDITIONS:
+    * - Updates provided fields.
+    * - Returns updated Responder entity.
+    * - Returns null if responder not found.
+    */
     async updateResponder(responder_id, data) {
         const fields = [];
         const values = [];
@@ -633,14 +766,38 @@ export class ResponderRepository {
     }
 
     // Wrapper for quick status updates
+    /**
+     FORM DEFINITION:
+    * Update responder status.
+    *
+    * PRE-CONDITIONS:
+    * - responder_id and responder_status must be provided.
+    *
+    * POST-CONDITIONS:
+    * - Updates responder status.
+    * - Returns updated responder.
+    */
     async updateResponderStatus(responder_id, responder_status) {
         return this.updateResponder(responder_id, { responder_status });
     }
+
 
     // Called at high frequency from the gRPC GPS stream so it deliberately
     // skips the full JOIN re-fetch that updateResponder() does. It updates
     // a single column and returns only the bare coordinates + timestamp,
     // which is all the gRPC handler needs to confirm the write.
+    /**
+    * FORM DEFINITION:
+    * Update responder last known location.
+    *
+    * PRE-CONDITIONS:
+    * - responder_id, latitude, and longitude must be provided.
+    *
+    * POST-CONDITIONS:
+    * - Updates location in database.
+    * - Returns updated responder location data.
+    * - Returns null if responder not found.
+    */
     async updateResponderLocation(responder_id, latitude, longitude) {
         await pool.query(`
             UPDATE responderdetails
@@ -696,6 +853,17 @@ export class ResponderRepository {
         };
     }
 
+    /**
+    * FORM DEFINITION:
+    * Deactivate responder.
+    *
+    * PRE-CONDITIONS:
+    * - responder_id must be provided.
+    *
+    * POST-CONDITIONS:
+    * - Deactivates associated user.
+    * - Returns result of deactivation.
+    */
     async deactivateResponder(responder_id) {
         const userRepository = new UserRepository();
         return await userRepository.deactivateUser(responder_id);

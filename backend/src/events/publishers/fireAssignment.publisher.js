@@ -2,9 +2,30 @@
 //
 // Published when a responder is assigned to a fire.
 // Triggers: fireAssignment.subscriber to notify the assigned responder.
+
 import { getJetStream, sc, SUBJECTS } from '../../config/nats.js';
 
+/**
+ * This file defines the publisher responsible for emitting the "assignment.created"
+ * event to the NATS JetStream system. It is used to notify downstream services
+ * that a responder has been assigned to a fire event.
+ */
+
 export async function publishAssignmentCreated(data) {
+
+    /**
+     * Publish an assignment.created event.
+     *
+     * PRE-CONDITIONS:
+     * - data must include assignment_id, assignment_status, fire_id, and responder_id.
+     * - NATS connection must be initialized.
+     *
+     * POST-CONDITIONS:
+     * - Encodes and publishes the assignment.created event to JetStream.
+     * - Triggers downstream subscribers (e.g., assignment notification logic).
+     * - Throws error if publishing fails.
+     */
+
     try {
         const js = getJetStream();
 

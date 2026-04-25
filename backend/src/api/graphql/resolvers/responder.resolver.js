@@ -1,8 +1,24 @@
 // src/api/graphql/resolvers/responder.resolver.js
 import { updateLocationViaGrpc } from '../../../grpc/clients/location.grpc.client.js';
 
+/**
+ * This file defines GraphQL resolvers for Responder operations.
+ * It manages responder-related queries and mutations and integrates
+ * with responderService and a gRPC client for location updates.
+ */
+
 export const responderResolvers = {
   Query: {
+    /**
+     * Retrieve all responders.
+     * 
+     * PRE-CONDITIONS:
+     * - dataSources.responderService must be available
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of responders
+     * - Throws error if operation fails
+     */
     // Fetch all responders
     getAllResponders: async (_, __, { dataSources }) => {
       try {
@@ -12,6 +28,16 @@ export const responderResolvers = {
       }
     },
 
+    /**
+     * Retrieve a responder by ID.
+     * 
+     * PRE-CONDITIONS:
+     * - responder_id must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns responder if found
+     * - Throws error if not found or fails
+     */
     // Fetch responder by ID
     getResponderById: async (_, { responder_id }, { dataSources }) => {
       try {
@@ -23,6 +49,16 @@ export const responderResolvers = {
       }
     },
 
+    /**
+     * Retrieve responders by unit number.
+     * 
+     * PRE-CONDITIONS:
+     * - unit_nb must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of responders
+     * - Throws error if operation fails
+     */
     // Fetch responders by unit number
     getRespondersByUnitNb: async (_, { unit_nb }, { dataSources }) => {
       try {
@@ -32,6 +68,16 @@ export const responderResolvers = {
       }
     },
 
+    /**
+     * Retrieve responders by unit location.
+     * 
+     * PRE-CONDITIONS:
+     * - unit_location must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of responders
+     * - Throws error if operation fails
+     */
     // Fetch responders by unit location
     getRespondersByUnitLocation: async (_, { unit_location }, { dataSources }) => {
       try {
@@ -41,6 +87,16 @@ export const responderResolvers = {
       }
     },
 
+    /**
+     * Retrieve responders by assigned region.
+     * 
+     * PRE-CONDITIONS:
+     * - assigned_region must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of responders
+     * - Throws error if operation fails
+     */
     // Fetch responders by assigned region
     getRespondersByAssignedRegion: async (_, { assigned_region }, { dataSources }) => {
       try {
@@ -50,6 +106,16 @@ export const responderResolvers = {
       }
     },
 
+    /**
+     * Retrieve responders by status.
+     * 
+     * PRE-CONDITIONS:
+     * - responder_status must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of responders
+     * - Throws error if operation fails
+     */
     // Fetch responders by status
     getRespondersByResponderStatus: async (_, { responder_status }, { dataSources }) => {
       try {
@@ -59,6 +125,16 @@ export const responderResolvers = {
       }
     },
 
+    /**
+     * Retrieve responders by last known location.
+     * 
+     * PRE-CONDITIONS:
+     * - last_known_location must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of responders
+     * - Throws error if operation fails
+     */
     // Fetch responders by last known location
     getRespondersByLastKnownLocation: async (_, { last_known_location }, { dataSources }) => {
       try {
@@ -68,6 +144,16 @@ export const responderResolvers = {
       }
     },
 
+    /**
+     * Retrieve a responder by email.
+     * 
+     * PRE-CONDITIONS:
+     * - user_email must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns responder if found
+     * - Throws error if not found or fails
+     */
     // Fetch responder by email
     getResponderByEmail: async (_, { user_email }, { dataSources }) => {
       try {
@@ -79,6 +165,16 @@ export const responderResolvers = {
       }
     },
 
+    /**
+     * Retrieve a responder by phone.
+     * 
+     * PRE-CONDITIONS:
+     * - user_phone must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns responder if found
+     * - Throws error if not found or fails
+     */
     // Fetch responder by phone
     getResponderByPhone: async (_, { user_phone }, { dataSources }) => {
       try {
@@ -90,6 +186,16 @@ export const responderResolvers = {
       }
     },
 
+    /**
+     * Retrieve the nearest responder to a fire location.
+     * 
+     * PRE-CONDITIONS:
+     * - fire_location must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns nearest responder
+     * - Throws error if none found or fails
+     */
     // Fetch nearest responder to a fire location
     getNearestResponder: async (_, { fire_location }, { dataSources }) => {
       try {
@@ -103,6 +209,16 @@ export const responderResolvers = {
   },
 
   Mutation: {
+    /**
+     * Create a new responder.
+     * 
+     * PRE-CONDITIONS:
+     * - input must contain valid responder data
+     * 
+     * POST-CONDITIONS:
+     * - Returns created responder
+     * - Throws error if creation fails
+     */
     // Create a new responder
     createResponder: async (_, { input }, { dataSources }) => {
       try {
@@ -112,6 +228,17 @@ export const responderResolvers = {
       }
     },
 
+    /**
+     * Update responder details.
+     * 
+     * PRE-CONDITIONS:
+     * - responder_id must be provided
+     * - input must be valid
+     * 
+     * POST-CONDITIONS:
+     * - Returns updated responder
+     * - Throws error if update fails
+     */
     // Update responder details
     updateResponder: async (_, { responder_id, input }, { dataSources }) => {
       try {
@@ -123,6 +250,16 @@ export const responderResolvers = {
       }
     },
 
+    /**
+     * Update responder status.
+     * 
+     * PRE-CONDITIONS:
+     * - responder_id and responder_status must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns updated responder
+     * - Throws error if update fails
+     */
     // Update responder status
     updateResponderStatus: async (_, { responder_id, responder_status }, { dataSources }) => {
       try {
@@ -134,6 +271,17 @@ export const responderResolvers = {
       }
     },
 
+    /**
+     * Update responder location using gRPC.
+     * 
+     * PRE-CONDITIONS:
+     * - responder_id, latitude, longitude must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Updates location via gRPC
+     * - Returns updated responder
+     * - Throws error if operation fails
+     */
     // Update responder location
     updateResponderLocation: async (_, { responder_id, latitude, longitude }, { dataSources }) => {
       try {
@@ -159,6 +307,16 @@ export const responderResolvers = {
       }
     },
 
+    /**
+     * Deactivate a responder.
+     * 
+     * PRE-CONDITIONS:
+     * - responder_id must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns result of deactivation
+     * - Throws error if operation fails
+     */
     // Deactivate a responder
     deactivateResponder: async (_, { responder_id }, { dataSources }) => {
       try {

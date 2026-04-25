@@ -2,7 +2,22 @@
 
 import { FireEvent } from '../domain/entities/fire.entity.js';
 
+/**
+ * This file defines the FireService class.
+ * It orchestrates the full fire lifecycle including detection,
+ * AI validation, responder dispatching, evacuation generation,
+ * alert triggering, and system cleanup.
+ */
 export class FireService {
+    /**
+     * Initialize FireService.
+     *
+     * PRE-CONDITIONS:
+     * - All required repositories, services, engines, and publisher must be provided.
+     *
+     * POST-CONDITIONS:
+     * - FireService is fully initialized and ready to manage fire workflows.
+     */
     constructor(
         fireRepository,
         residentRepository,
@@ -27,20 +42,21 @@ export class FireService {
         this.natsPublisher = natsPublisher;
     }
 
-    // CORE ORCHESTRATION METHOD
-    //
-    // Full fire lifecycle trigger - called when a new fire is detected.
-    // Steps:
-    //   1. Save fire to DB
-    //   2. Run infrared analysis to validate authenticity
-    //   3. Run fire prediction engine
-    //   4. Auto-verify fire if infrared confirms it
-    //   5. Dispatch nearest available responder
-    //   6. Create fire assignment
-    //   7. Generate evacuation route
-    //   8. Broadcast alert to all roles
-    //   9. Publish NATS event
-    //
+    /**
+     * Create fire and trigger full system workflow.
+     *
+     * PRE-CONDITIONS:
+     * - fire_source, fire_location, and fire_severitylevel must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Fire is stored in the database.
+     * - Infrared and prediction engines are executed.
+     * - Fire may be auto-verified.
+     * - Responder is dispatched and assignment created.
+     * - Evacuation route is generated.
+     * - Alerts are triggered via NATS events.
+     * - Returns created fire DTO.
+     */
     async createFireAndTriggerSystem(data) {
         try {
             if (!data.fire_source) throw new Error("Missing required field: Fire Source");
@@ -146,6 +162,16 @@ export class FireService {
         }
     }
 
+    /**
+     * Create a fire without triggering system orchestration.
+     *
+     * PRE-CONDITIONS:
+     * - fire_source and fire_location must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Fire is stored in the database.
+     * - Returns fire DTO.
+     */
     async createFire(data) {
         try {
             // Validate required fields
@@ -169,6 +195,15 @@ export class FireService {
         }
     }
 
+    /**
+     * Retrieve all fires.
+     *
+     * PRE-CONDITIONS:
+     * - fireRepository must be available.
+     *
+     * POST-CONDITIONS:
+     * - Returns list of fire DTOs.
+     */
     async getAllFires() {
         try {
             // Fetch all fires from repository
@@ -179,6 +214,16 @@ export class FireService {
         }
     }
 
+    /**
+     * Retrieve fire by ID.
+     *
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns fire DTO if found.
+     * - Returns null if not found.
+     */
     async getFireById(fire_id) {
         try {
             // Fetch fire by ID
@@ -190,6 +235,15 @@ export class FireService {
         }
     }
 
+    /**
+     * Retrieve active fires.
+     *
+     * PRE-CONDITIONS:
+     * - fireRepository must be available.
+     *
+     * POST-CONDITIONS:
+     * - Returns list of active fire DTOs.
+     */
     async getActiveFires() {
         try {
             // Fetch active fires from repository
@@ -200,6 +254,16 @@ export class FireService {
         }
     }
 
+    /**
+     * Retrieve fires by status.
+     *
+     * PRE-CONDITIONS:
+     * - fire_status must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns list of matching fire DTOs.
+     * - Returns empty array if none found.
+     */
     async getFiresByStatus(fire_status) {
         try {
             // Fetch fires by status from repository
@@ -211,6 +275,15 @@ export class FireService {
         }
     }
 
+    /**
+     * Retrieve fires by municipality.
+     *
+     * PRE-CONDITIONS:
+     * - municipality_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns list of fire DTOs.
+     */
     async getFiresByMunicipality(municipality_id) {
         try {
             // Fetch fires by municipality from repository
@@ -222,6 +295,15 @@ export class FireService {
         }
     }
 
+    /**
+     * Retrieve fires within radius.
+     *
+     * PRE-CONDITIONS:
+     * - lat and lng must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns fires within radius.
+     */
     async getFiresRadius(lat, lng, radiusMeters) {
         try {
             if (lat === undefined || lng === undefined) throw new Error("Missing required fields: lat and lng");
@@ -234,6 +316,15 @@ export class FireService {
         }
     }
 
+    /**
+     * Retrieve fires within polygon.
+     *
+     * PRE-CONDITIONS:
+     * - polygonGeoJSON must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns fires inside polygon.
+     */
     async getFiresWithinPolygon(polygonGeoJSON) {
         try {
             if (!polygonGeoJSON) throw new Error("Missing required field: Polygon GeoJSON");
@@ -246,6 +337,15 @@ export class FireService {
         }
     }
 
+    /**
+     * Retrieve recent fires.
+     *
+     * PRE-CONDITIONS:
+     * - limit may be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns recent fires.
+     */
     async getRecentFires(limit) {
         try {
             // Fetch recent fires from repository
@@ -257,6 +357,15 @@ export class FireService {
         }
     }
 
+    /**
+     * Retrieve fires by date range.
+     *
+     * PRE-CONDITIONS:
+     * - startDate and endDate must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns fires within date range.
+     */
     async getFiresByDate(startDate, endDate) {
         try {
             //  Fetch fires by date range from repository
@@ -268,6 +377,15 @@ export class FireService {
         }
     }
 
+    /**
+     * Retrieve fire statistics.
+     *
+     * PRE-CONDITIONS:
+     * - startDate and endDate must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns aggregated fire statistics.
+     */
     async getFireStatistics(startDate, endDate) {
         try {
             // Fetch fire statistics from repository
@@ -277,6 +395,15 @@ export class FireService {
         }
     }
 
+    /**
+     * Retrieve fires by location and time.
+     *
+     * PRE-CONDITIONS:
+     * - lat and lng must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns fires matching criteria.
+     */
     async getFiresByLocationAndTime(lat, lng, startDate, endDate, radiusMeters) {
         try {
             if (lat === undefined || lng === undefined) throw new Error("Missing required fields: lat and lng");
@@ -289,6 +416,16 @@ export class FireService {
         }
     }
 
+    /**
+     * Verify a fire.
+     *
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Fire is marked as verified.
+     * - Returns updated fire DTO.
+     */
     async verifyFire(fire_id) {
         try {
             const fire = await this.fireRepository.updateFire(fire_id, { is_verified: true });
@@ -299,6 +436,19 @@ export class FireService {
         }
     }
 
+    /**
+     * Extinguish a fire and clean system.
+     *
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Fire is marked as extinguished.
+     * - Assignments are completed.
+     * - Responders moved to Standby.
+     * - Evacuations and alerts are deleted.
+     * - NATS event is published.
+     */
     async extinguishFire(fire_id) {
         try {
             // Mark fire as extinguished
@@ -367,6 +517,17 @@ export class FireService {
         }
     }
 
+    /**
+     * Dispatch nearest responder to a fire.
+     *
+     * PRE-CONDITIONS:
+     * - fire_id must exist.
+     *
+     * POST-CONDITIONS:
+     * - Nearest responder is assigned.
+     * - Responder status updated if needed.
+     * - Returns assignment.
+     */
     async dispatchClosestResponder(fire_id) {
         try {
             const fire = await this.fireRepository.getFireById(fire_id);
@@ -398,6 +559,16 @@ export class FireService {
         }
     }
 
+    /**
+     * Update fire details.
+     *
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Fire is updated.
+     * - Returns updated DTO.
+     */
     async updateFire(fire_id, data) {
         try {
             // Update fire details
@@ -409,6 +580,15 @@ export class FireService {
         }
     }
 
+    /**
+     * Update fire status.
+     *
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Fire status updated.
+     */
     async updateFireStatus(fire_id, fire_status) {
         try {
             // Update fire status
@@ -420,6 +600,15 @@ export class FireService {
         }
     }
 
+    /**
+     * Update fire severity.
+     *
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Fire severity updated.
+     */
     async updateFireSeverity(fire_id, severityLevel) {
         try {
             // Update fire severity level
@@ -431,6 +620,15 @@ export class FireService {
         }
     }
 
+    /**
+     * Delete fire.
+     *
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Fire deleted from database.
+     */
     async deleteFire(fire_id) {
         try {
             // Delete fire by ID
@@ -440,6 +638,15 @@ export class FireService {
         }
     }
 
+    /**
+     * Count fires.
+     *
+     * PRE-CONDITIONS:
+     * - filters may be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns number of fires.
+     */
     async countFires(filters) {
         try {
             // Count fires based on filters
@@ -449,6 +656,15 @@ export class FireService {
         }
     }
 
+    /**
+     * Get nearby fires.
+     *
+     * PRE-CONDITIONS:
+     * - latitude and longitude must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns fires within dynamic danger radius.
+     */
     async getNearbyFires(latitude, longitude) {
         try {
             if (latitude === undefined || longitude === undefined) {
@@ -478,6 +694,15 @@ export class FireService {
 
     // Find all residents located near a specific fire.
     // radiusMeters defaults to 1km around the fire's location.
+    /**
+     * Find residents near a fire.
+     *
+     * PRE-CONDITIONS:
+     * - fire_id must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns residents within radius of fire.
+     */
     async findResidentsNearFire(fire_id, radiusMeters = 1000) {
         try {
             if (!fire_id) throw new Error("Missing required field: Fire ID");
@@ -505,6 +730,15 @@ export class FireService {
         }
     }
 
+    /**
+     * Determine fire danger radius based on severity.
+     *
+     * PRE-CONDITIONS:
+     * - severity level must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns radius in meters.
+     */
     _getFireZoneRadiusMeters(level) {
         if (level >= 8) return 1000;
         if (level >= 6) return 800;
@@ -512,6 +746,15 @@ export class FireService {
         return 400;
     }
 
+    /**
+     * Calculate distance between two coordinates.
+     *
+     * PRE-CONDITIONS:
+     * - coordinates must be valid.
+     *
+     * POST-CONDITIONS:
+     * - Returns distance in meters.
+     */
     _distanceInMeters(a, b) {
         if (!a || !b) return Infinity;
 
@@ -532,6 +775,15 @@ export class FireService {
         return R * y;
     }
 
+    /**
+     * Parse fire location.
+     *
+     * PRE-CONDITIONS:
+     * - raw location must be provided.
+     *
+     * POST-CONDITIONS:
+     * - Returns coordinates or null.
+     */
     _parseFireLocation(raw) {
         if (!raw) return null;
 
@@ -550,6 +802,15 @@ export class FireService {
         return this._parseWKTPoint(raw);
     }
 
+    /**
+     * Parse WKT POINT.
+     *
+     * PRE-CONDITIONS:
+     * - wkt must be valid.
+     *
+     * POST-CONDITIONS:
+     * - Returns coordinates or null.
+     */
     _parseWKTPoint(wkt) {
         const match = wkt?.match(/POINT\(([^\s]+)\s+([^\)]+)\)/i);
         if (!match) return null;

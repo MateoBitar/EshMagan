@@ -1,7 +1,23 @@
 // src/api/graphql/resolvers/user.resolver.js
 
+/**
+ * This file defines GraphQL resolvers for User operations.
+ * It manages user-related queries and mutations and delegates
+ * all logic to userService through dataSources.
+ */
+
 export const userResolvers = {
   Query: {
+    /**
+     * Retrieve all users.
+     * 
+     * PRE-CONDITIONS:
+     * - dataSources.userService must be available
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of users
+     * - Throws error if operation fails
+     */
     // Fetch all users
     getAllUsers: async (_, __, { dataSources }) => {
       try {
@@ -11,6 +27,16 @@ export const userResolvers = {
       }
     },
 
+    /**
+     * Retrieve a user by ID.
+     * 
+     * PRE-CONDITIONS:
+     * - user_id must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns user if found
+     * - Throws error if not found or fails
+     */
     // Fetch a single user by ID
     getUserById: async (_, { user_id }, { dataSources }) => {
       try {
@@ -22,6 +48,16 @@ export const userResolvers = {
       }
     },
 
+    /**
+     * Retrieve a user by email.
+     * 
+     * PRE-CONDITIONS:
+     * - user_email must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns user if found
+     * - Throws error if not found or fails
+     */
     // Fetch user by email
     getUserByEmail: async (_, { user_email }, { dataSources }) => {
       try {
@@ -33,6 +69,16 @@ export const userResolvers = {
       }
     },
 
+    /**
+     * Retrieve a user by phone.
+     * 
+     * PRE-CONDITIONS:
+     * - user_phone must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns user if found
+     * - Throws error if not found or fails
+     */
     // Fetch user by phone
     getUserByPhone: async (_, { user_phone }, { dataSources }) => {
       try {
@@ -44,6 +90,16 @@ export const userResolvers = {
       }
     },
 
+    /**
+     * Retrieve users by role.
+     * 
+     * PRE-CONDITIONS:
+     * - user_role must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of users
+     * - Throws error if operation fails
+     */
     // Fetch users by role
     getUsersByRole: async (_, { user_role }, { dataSources }) => {
       try {
@@ -53,6 +109,16 @@ export const userResolvers = {
       }
     },
 
+    /**
+     * Retrieve active users.
+     * 
+     * PRE-CONDITIONS:
+     * - userService must be available
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of active users
+     * - Throws error if operation fails
+     */
     // Fetch active users
     getActiveUsers: async (_, __, { dataSources }) => {
       try {
@@ -62,6 +128,16 @@ export const userResolvers = {
       }
     },
 
+    /**
+     * Retrieve inactive users.
+     * 
+     * PRE-CONDITIONS:
+     * - userService must be available
+     * 
+     * POST-CONDITIONS:
+     * - Returns list of inactive users
+     * - Throws error if operation fails
+     */
     // Fetch inactive users
     getInActiveUsers: async (_, __, { dataSources }) => {
       try {
@@ -71,6 +147,16 @@ export const userResolvers = {
       }
     },
 
+    /**
+     * Retrieve an active user by email.
+     * 
+     * PRE-CONDITIONS:
+     * - user_email must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns user if found
+     * - Throws error if not found or fails
+     */
     // Fetch active user by email
     getUserByEmailAndActive: async (_, { user_email }, { dataSources }) => {
       try {
@@ -82,6 +168,16 @@ export const userResolvers = {
       }
     },
 
+    /**
+     * Filter users with pagination.
+     * 
+     * PRE-CONDITIONS:
+     * - filters and pagination must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns filtered users
+     * - Throws error if operation fails
+     */
     // Filter users with pagination
     filterUsers: async (_, { filters, pagination }, { dataSources }) => {
       try {
@@ -91,6 +187,16 @@ export const userResolvers = {
       }
     },
 
+    /**
+     * Count users based on filters.
+     * 
+     * PRE-CONDITIONS:
+     * - filters must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns count of users
+     * - Throws error if operation fails
+     */
     // Count users with filters
     countUsers: async (_, { filters }, { dataSources }) => {
       try {
@@ -102,6 +208,16 @@ export const userResolvers = {
   },
 
   Mutation: {
+    /**
+     * Create a new user.
+     * 
+     * PRE-CONDITIONS:
+     * - input must contain valid user data
+     * 
+     * POST-CONDITIONS:
+     * - Returns created user
+     * - Throws error if creation fails
+     */
     // Create a new user
     createUser: async (_, { input }, { dataSources }) => {
       try {
@@ -111,6 +227,16 @@ export const userResolvers = {
       }
     },
 
+    /**
+     * Update user details.
+     * 
+     * PRE-CONDITIONS:
+     * - user_id must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns updated user
+     * - Throws error if update fails
+     */
     // Update user
     updateUser: async (_, { user_id, input }, { dataSources }) => {
       try {
@@ -122,6 +248,16 @@ export const userResolvers = {
       }
     },
 
+    /**
+     * Update user role.
+     * 
+     * PRE-CONDITIONS:
+     * - user_id and user_role must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns updated user
+     * - Throws error if update fails
+     */
     // Update user role
     updateUserRole: async (_, { user_id, user_role }, { dataSources }) => {
       try {
@@ -133,6 +269,16 @@ export const userResolvers = {
       }
     },
 
+    /**
+     * Update user status.
+     * 
+     * PRE-CONDITIONS:
+     * - user_id and user_status must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns updated user
+     * - Throws error if update fails
+     */
     // Update user status
     updateUserStatus: async (_, { user_id, user_status }, { dataSources }) => {
       try {
@@ -144,6 +290,16 @@ export const userResolvers = {
       }
     },
 
+    /**
+     * Deactivate a user.
+     * 
+     * PRE-CONDITIONS:
+     * - user_id must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Returns result of deactivation
+     * - Throws error if operation fails
+     */
     // Deactivate user
     deactivateUser: async (_, { user_id }, { dataSources }) => {
       try {
@@ -153,11 +309,28 @@ export const userResolvers = {
       }
     },
 
-    
+    /**
+     * Save FCM token for a user.
+     * 
+     * PRE-CONDITIONS:
+     * - user_id and fcm_token must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Stores token for notifications
+     */
     saveFcmToken: async (_, { user_id, fcm_token }, { dataSources }) => {
       return await dataSources.userService.saveFcmToken(user_id, fcm_token);
     },
 
+    /**
+     * Clear FCM token for a user.
+     * 
+     * PRE-CONDITIONS:
+     * - user_id must be provided
+     * 
+     * POST-CONDITIONS:
+     * - Removes token from storage
+     */
     clearFcmToken: async (_, { user_id }, { dataSources }) => {
       return await dataSources.userService.clearFcmToken(user_id);
     },
