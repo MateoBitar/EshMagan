@@ -66,6 +66,12 @@ const ASSETS = {
     ios: { uri: 'shield' },
     default: { uri: 'shield' },
   }),
+  siren: Platform.select({
+    web: { uri: '/siren.png' },
+    android: { uri: 'siren' },
+    ios: { uri: 'siren' },
+    default: { uri: 'siren' },
+  }),
 };
 
 const QUICK_ACTIONS = [
@@ -311,7 +317,7 @@ export default function ResidentHomeScreen({ navigation }) {
             <View style={styles.statusRow}>
               <View style={hasActiveThreat ? styles.statusIconWrapDanger : styles.statusIconWrapSafe}>
                 <Image
-                  source={hasActiveThreat ? ASSETS.alert : ASSETS.shield}
+                  source={hasActiveThreat ? ASSETS.siren : ASSETS.shield}
                   style={styles.statusIconImage}
                   resizeMode="contain"
                 />
