@@ -69,6 +69,12 @@ const ASSETS = {
     ios: { uri: 'siren' },
     default: { uri: 'siren' },
   }),
+  phone: Platform.select({
+    web: { uri: '/phone.png' },
+    android: { uri: 'phone' },
+    ios: { uri: 'phone' },
+    default: { uri: 'phone' },
+  }),
 };
 
 const QUICK_ACTIONS = [
@@ -108,7 +114,7 @@ function parsePoint(raw) {
       if (g.type === 'Point' && Array.isArray(g.coordinates)) {
         return { longitude: g.coordinates[0], latitude: g.coordinates[1] };
       }
-    } catch {}
+    } catch { }
     return null;
   }
   const wkt = raw.match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
@@ -432,7 +438,11 @@ export default function ResidentHomeScreen({ navigation }) {
               <View style={styles.contactRight}>
                 <Text style={styles.contactNumber}>{contact.number}</Text>
                 <View style={styles.contactPhoneBtn}>
-                  <Text>📞</Text>
+                  <Image
+                    source={ASSETS.phone}
+                    style={styles.contactPhoneImage}
+                    resizeMode="contain"
+                  />
                 </View>
               </View>
             </TouchableOpacity>
