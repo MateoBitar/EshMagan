@@ -144,23 +144,19 @@ export default function ResidentMapScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.topBar}>
-        <View style={styles.logoIcon}>
-          <Image
-            source={logoSource}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-        </View>
+      <View style={styles.header}>
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            onPress={() => navigation?.goBack?.()}
+            style={styles.backButton}
+          >
+            <Text style={styles.backButtonText}>‹ Back</Text>
+          </TouchableOpacity>
 
-        <View style={{ flex: 1 }}>
-          <Text style={styles.appName}>EshMagan</Text>
-          <Text style={styles.portalLabel}>Resident Live Map</Text>
+          <View style={styles.headerTextWrap}>
+            <Text style={styles.title}>Your Map</Text>
+          </View>
         </View>
-
-        <TouchableOpacity style={styles.logoutBtn} onPress={() => navigation?.goBack?.()}>
-          <Text style={styles.logoutBtnText}>Back</Text>
-        </TouchableOpacity>
       </View>
 
       <View style={[styles.mapTabContainer, { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 }]}>

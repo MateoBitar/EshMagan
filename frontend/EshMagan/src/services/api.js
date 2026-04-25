@@ -37,7 +37,7 @@ const storage = {
 // ─── API Base URL ─────────────────────────────────────────────────────────────
 export const API_BASE =
   Platform.OS === 'android'
-    ? 'http://192.168.1.9:5000'
+    ? 'http://192.168.1.12:5000'
     : 'http://localhost:5000';
 
 // ─── GraphQL Client (gqlFetch only) ──────────────────────────────────────────

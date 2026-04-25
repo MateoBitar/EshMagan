@@ -24,60 +24,47 @@ export default StyleSheet.create({
     backgroundColor: C.bg,
   },
 
-  topBar: {
-    backgroundColor: C.bg,
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(236,119,66,0.2)',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    backgroundColor: C.bg,
+  },
+
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
   },
 
-  logoIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
+  backButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
 
-  logoImage: {
-    width: 50,
-    height: 50,
+  backButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.tangerine,
   },
 
-  appName: {
+  headerTextWrap: {
+    flex: 1,
+  },
+
+  title: {
     color: C.text,
     fontSize: 20,
     fontWeight: '800',
-  },
-
-  portalLabel: {
-    color: C.textMuted,
-    fontSize: 12,
-    marginTop: 2,
-  },
-
-  logoutBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: C.scarlet,
-    backgroundColor: 'transparent',
-  },
-
-  logoutBtnText: {
-    color: C.scarlet,
-    fontSize: 12,
-    fontWeight: '700',
+    letterSpacing: -0.3,
   },
 
   mapTabContainer: {
     flex: 1,
-    backgroundColor: C.bg, 
+    backgroundColor: C.bg,
     minHeight: '91.5vh',
     maxHeight: '91.5vh',
   },
