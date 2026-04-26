@@ -29,6 +29,11 @@ export const fireTypeDefs = gql`
     updated_at: String
   }
 
+  type PredictionPublishResult {
+    success: Boolean!
+    message: String!
+  }
+
   # -----------------------------
   # Input Types
   # -----------------------------
@@ -44,6 +49,7 @@ export const fireTypeDefs = gql`
     fire_severitylevel: Int
     is_extinguished: Boolean = false
     is_verified: Boolean = false
+    evacuation_routes: [AI_EvacuationRouteInput!]
   }
 
   # Input structure for updating a fire
@@ -57,6 +63,31 @@ export const fireTypeDefs = gql`
     fire_severitylevel: Int
     is_extinguished: Boolean
     is_verified: Boolean
+  }
+
+  # Input structure for AI-generated evacuation route
+  # PRE-CONDITIONS:
+  # - All fields must be provided
+  # POST-CONDITIONS:
+  # - Used to create evacuation routes based on AI analysis
+  input AI_EvacuationRouteInput {
+    route_status: String!
+    route_priority: Int!
+    route_path: String!
+    safe_zone: String!
+    distance_km: Float!
+    estimated_time: String!
+  }
+
+  # Input structure for fire risk prediction event
+  # PRE-CONDITIONS:
+  # - zone_location and risk_level must be provided
+  # POST-CONDITIONS:
+  # - Used to publish fire risk prediction events to NATS
+  input FireRiskPredictionInput {
+    zone_location: String!
+    risk_level: String!
+    fire_id: ID
   }
 
   # -----------------------------
@@ -208,7 +239,14 @@ export const fireTypeDefs = gql`
     # - input must be valid
     # POST-CONDITIONS:
     # - Returns created fire
-    createFireAndTriggerSystem(input: CreateFireInput!): Fire! 
+    createFireAndTriggerSystem(input: CreateFireInput!): Fire!
+    
+    # Publish fire risk prediction event
+    # PRE-CONDITIONS:
+    # - input must be valid
+    # POST-CONDITIONS:
+    # - Returns result of publish action
+    publishFireRiskPrediction(input: FireRiskPredictionInput!): PredictionPublishResult!
 
     # Verify fire
     # PRE-CONDITIONS:

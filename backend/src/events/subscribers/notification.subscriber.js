@@ -21,6 +21,8 @@ import { UserService } from '../../services/user.service.js';
 import { UserRepository } from '../../domain/repositories/user.repository.js';
 
 const CONSUMER_NAME = 'notification-consumer';
+const PREDICTION_NOTIFICATION_COOLDOWN_MS = 6 * 24 * 60 * 60 * 1000; // 6 days
+const recentPredictionNotifications = new Map();
 
 /**
  * This file defines the notification subscriber.
@@ -84,6 +86,18 @@ export async function startNotificationSubscriber() {
                         const expires_at = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000);
                         const fire_id = data.fire_id ?? null;
                         let total = 0;
+                        const dedupeLat = Math.round(coords.latitude * 10) / 10;
+                        const dedupeLon = Math.round(coords.longitude * 10) / 10;
+                        const dedupeKey = `${dedupeLat}:${dedupeLon}:${data.risk_level}`;
+                        const lastSentAt = recentPredictionNotifications.get(dedupeKey);
+
+                        if (lastSentAt && Date.now() - lastSentAt < PREDICTION_NOTIFICATION_COOLDOWN_MS) {
+                            console.log(`[NATS] Skipping duplicate fire risk prediction notification: ${dedupeKey}`);
+                            msg.ack();
+                            continue;
+                        }
+
+                        recentPredictionNotifications.set(dedupeKey, Date.now());
 
                         /**
                          * Notify residents near danger zone.
@@ -174,10 +188,23 @@ export async function startNotificationSubscriber() {
                         }
 
                         /**
-                         * Notify all municipalities.
+                         * Notify municipalities near danger zone.
                          */
-                        const municipalities = await municipalityRepository.getAllMunicipalities();
-                        for (const municipality of municipalities ?? []) {
+                        const allMunicipalities = await municipalityRepository.getAllMunicipalities();
+
+                        const municipalities = (allMunicipalities ?? []).filter(municipality => {
+                            const loc = municipality.municipality_location;
+                            if (!loc) return false;
+
+                            const dist = distanceInMeters(locationQuery, {
+                                latitude: loc.latitude,
+                                longitude: loc.longitude,
+                            });
+
+                            return dist <= 10000;
+                        });
+
+                        for (const municipality of municipalities) {
                             try {
                                 await notificationRepository.createNotification({
                                     target_role: 'Municipality',
@@ -245,4 +272,33 @@ function parseWKTPoint(wkt) {
         longitude: parseFloat(match[1]),
         latitude: parseFloat(match[2]),
     };
+}
+
+/**
+ * Calculate distance in meters between two coordinate pairs.
+ *
+ * PRE-CONDITIONS:
+ * - a and b must be objects with latitude and longitude properties.
+ *
+ * POST-CONDITIONS:
+ * - Returns distance in meters or Infinity if invalid.
+ */
+function distanceInMeters(a, b) {
+    if (!a || !b) return Infinity;
+
+    const toRad = deg => (deg * Math.PI) / 180;
+    const R = 6371000;
+
+    const dLat = toRad(b.latitude - a.latitude);
+    const dLng = toRad(b.longitude - a.longitude);
+    const lat1 = toRad(a.latitude);
+    const lat2 = toRad(b.latitude);
+
+    const x =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1) * Math.cos(lat2) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+    const y = 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+    return R * y;
 }

@@ -55,7 +55,7 @@ export default function ResidentNotificationsScreen({ navigation }) {
         user_id: user.id,
       });
 
-      const list = data?.getNotificationsByUser || [];
+      const list = data?.getNotificationsByUserId || [];
 
       const sorted = [...list].sort(
         (a, b) =>
@@ -105,7 +105,7 @@ export default function ResidentNotificationsScreen({ navigation }) {
       <View style={styles.contentContainer}>
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator color={styles.C ? styles.C.tangerine : '#EC7742'} />
+            <ActivityIndicator color={C.tangerine} />
             <Text style={styles.loadingText}>Loading notifications...</Text>
           </View>
         ) : (

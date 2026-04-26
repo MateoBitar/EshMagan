@@ -34,13 +34,36 @@ const ASSETS = {
 
 function parseGeoJSON(raw) {
   if (!raw) return null;
+
   try {
     const g = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    if (g.type === 'Point') return { lat: g.coordinates[1], lng: g.coordinates[0] };
+
+    if (g.type === 'Point') {
+      return { lat: g.coordinates[1], lng: g.coordinates[0] };
+    }
+
     if (g.type === 'LineString' && g.coordinates?.length) {
       const mid = Math.floor(g.coordinates.length / 2);
       return { lat: g.coordinates[mid][1], lng: g.coordinates[mid][0] };
     }
+
+    if (g.type === 'Polygon' && g.coordinates?.[0]?.length) {
+      const points = g.coordinates[0];
+
+      const sum = points.reduce(
+        (acc, [lng, lat]) => ({
+          lat: acc.lat + lat,
+          lng: acc.lng + lng,
+        }),
+        { lat: 0, lng: 0 }
+      );
+
+      return {
+        lat: sum.lat / points.length,
+        lng: sum.lng / points.length,
+      };
+    }
+
     return null;
   } catch {
     const m = typeof raw === 'string' && raw.match(/POINT\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
@@ -59,6 +82,33 @@ function parsePolygonCoords(raw) {
   } catch { }
 
   return [];
+}
+
+function parseLineCoords(raw) {
+  if (!raw) return [];
+
+  try {
+    const g = typeof raw === 'string' ? JSON.parse(raw) : raw;
+
+    if (g.type === 'LineString' && g.coordinates?.length) {
+      return g.coordinates.map(([lng, lat]) => [lat, lng]);
+    }
+  } catch { }
+
+  return [];
+}
+
+function getFireId(value) {
+  if (!value) return null;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return String(value);
+
+  return (
+    value.fire_id ||
+    value.fireId ||
+    value.id ||
+    null
+  );
 }
 
 function distanceInMeters(a, b) {
@@ -263,7 +313,7 @@ function WebMap({ safeCoords, safePolygonCoords, userCoords, polyline }) {
 
     const icon = L.divIcon({
       className: '',
-      html: `<div style="background:#DC2626;color:#fff;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.3)">⛺ Safe Zone</div>`,
+      html: `<div style="background:#DC2626;color:#fff;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.3)">Safe Zone</div>`,
       iconSize: [100, 28],
       iconAnchor: [50, 28],
     });
@@ -448,7 +498,7 @@ function NativeMap({ safeCoords, safePolygonCoords, userCoords, polylineCoords, 
             followUser = true;
             window.ReactNativeWebView.postMessage('FOLLOW_ON');
           } else if (followUser) {
-            map.panTo([userCoords.lat, userCoords.lng], {
+            map.panTo([lat, lng], {
               animate: true,
               duration: 0.5,
             });
@@ -694,17 +744,32 @@ export default function EvacuationScreen({ navigation, route }) {
       try {
         setRoutesLoading(true);
 
-        if (!fireId) {
+        const candidateFireIds = [
+          getFireId(fireId),
+          ...(Array.isArray(nearbyFireIds) ? nearbyFireIds.map(getFireId) : []),
+        ].filter(Boolean);
+
+        const uniqueFireIds = [...new Set(candidateFireIds)];
+        if (uniqueFireIds.length === 0) {
           if (mounted) setRoutes([]);
           return;
         }
 
-        const data = await gqlFetch(GET_EVACUATIONS_BY_FIRE, { fire_id: fireId });
+        let firstRoutesFound = [];
+
+        for (const id of uniqueFireIds) {
+          const data = await gqlFetch(GET_EVACUATIONS_BY_FIRE, { fire_id: id });
+          const list = data?.getEvacuationsByFireId || [];
+
+          if (list.length > 0) {
+            firstRoutesFound = list;
+            break;
+          }
+        }
 
         if (!mounted) return;
 
-        const list = data?.getEvacuationsByFire || [];
-        const sorted = [...list].sort(
+        const sorted = [...firstRoutesFound].sort(
           (a, b) => (a.route_priority ?? 999) - (b.route_priority ?? 999)
         );
 
@@ -722,7 +787,7 @@ export default function EvacuationScreen({ navigation, route }) {
     return () => {
       mounted = false;
     };
-  }, [fireId]);
+  }, [fireId, nearbyFireIds.join(',')]);
 
   useEffect(() => {
     if (userLocation?.lat != null && userLocation?.lng != null) {
@@ -736,7 +801,7 @@ export default function EvacuationScreen({ navigation, route }) {
   const selectedRoute = selectedIdx !== null ? (routes[selectedIdx] || null) : null;
   const safeCoords = selectedRoute ? parseGeoJSON(selectedRoute.safe_zone) : null;
   const safePolygonCoords = selectedRoute ? parsePolygonCoords(selectedRoute.safe_zone) : [];
-  const routeCoords = selectedRoute ? parseGeoJSON(selectedRoute.route_path) : null;
+  const routeCoords = selectedRoute ? parseLineCoords(selectedRoute.route_path) : [];
 
   const hasSelectedRoute = selectedIdx !== null;
   const shouldShowEvacuationMapData = isUnsafe || hasSelectedRoute;
@@ -758,15 +823,19 @@ export default function EvacuationScreen({ navigation, route }) {
   useEffect(() => {
     if (!selectedRoute || (!isUnsafe && selectedIdx === null)) return;
 
-    const from = userCoords || routeCoords;
-    const to = safeCoords || routeCoords;
+    const from = userCoords;
+    const to = safeCoords;
 
     if (!from || !to || (from.lat === to.lat && from.lng === to.lng)) {
       setDirections([]);
       setRoutingMeta(null);
-      setRoutePolyline([]);
+      setRoutePolyline(routeCoords);
       lastRerouteCoordsRef.current = null;
       return;
+    }
+
+    if (routeCoords.length > 0 && routePolyline.length === 0) {
+      setRoutePolyline(routeCoords);
     }
 
     const movedDistance = distanceInMeters(lastRerouteCoordsRef.current, from);
@@ -799,7 +868,7 @@ export default function EvacuationScreen({ navigation, route }) {
         } else {
           setDirections([]);
           setRoutingMeta(null);
-          setRoutePolyline([]);
+          setRoutePolyline(routeCoords);
         }
       } finally {
         if (activeRouteRequestRef.current === requestId) {
@@ -814,7 +883,7 @@ export default function EvacuationScreen({ navigation, route }) {
         rerouteTimeoutRef.current = null;
       }
     };
-  }, [selectedIdx, userCoords?.lat, userCoords?.lng, safeCoords?.lat, safeCoords?.lng, isUnsafe]);
+  }, [selectedIdx, userCoords?.lat, userCoords?.lng, safeCoords?.lat, safeCoords?.lng, routeCoords, isUnsafe]);
 
   useEffect(() => {
     return () => {
@@ -907,7 +976,7 @@ export default function EvacuationScreen({ navigation, route }) {
 
           {shouldShowEvacuationMapData && routingMeta && (
             <View style={[styles.mapOverlay, { pointerEvents: 'none' }]}>
-              <Image source={ASSETS.compass} style={{ width: 12, height: 12 }} resizeMode="contain" />
+              <Image source={ASSETS.compass} style={{ width: 12, height: 12, tintColor: '#fff' }} resizeMode="contain" />
               <Text style={styles.mapOverlayText}>
                 {routingMeta.totalKm} km  •  {routingMeta.totalTime}
               </Text>
@@ -941,7 +1010,6 @@ export default function EvacuationScreen({ navigation, route }) {
                 {routes.map((r, i) => {
                   const active = i === selectedIdx;
                   const ss = getStatusStyle(r.route_status);
-
                   return (
                     <TouchableOpacity
                       key={r.route_id}
@@ -963,7 +1031,11 @@ export default function EvacuationScreen({ navigation, route }) {
                       </Text>
 
                       <Text style={[styles.routePillKm, active && styles.routePillKmActive]}>
-                        {r.distance_km != null ? `${parseFloat(r.distance_km).toFixed(1)} km` : '—'}
+                        {active && routingMeta
+                          ? `${routingMeta.totalKm} km`
+                          : r.distance_km != null
+                            ? `${parseFloat(r.distance_km).toFixed(1)} km`
+                            : '—'}
                       </Text>
 
                       <View style={ss.view}>
@@ -1005,7 +1077,10 @@ export default function EvacuationScreen({ navigation, route }) {
 
         <View
           style={{
-            height: (isUnsafe || selectedIdx !== null) ? 225 : 290,
+            height:
+              Platform.OS === 'web'
+                ? ((isUnsafe || selectedIdx !== null) ? 290 : 290)
+                : ((isUnsafe || selectedIdx !== null) ? 225 : 290),
             overflow: 'hidden',
             flexShrink: 0,
           }}

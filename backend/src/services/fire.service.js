@@ -50,115 +50,207 @@ export class FireService {
      *
      * POST-CONDITIONS:
      * - Fire is stored in the database.
-     * - Infrared and prediction engines are executed.
-     * - Fire may be auto-verified.
-     * - Responder is dispatched and assignment created.
-     * - Evacuation route is generated.
-     * - Alerts are triggered via NATS events.
-     * - Returns created fire DTO.
+     * - If new fire, nearest responder is dispatched and assigned.
+     * - Evacuation routes are created or updated if provided.
+     * - NATS events are published for fire detection, assignment, and evacuation updates.
+     * - Returns created or updated fire DTO.
+     * - If any step fails, logs the error and continues with best effort to complete workflow.
      */
     async createFireAndTriggerSystem(data) {
         try {
+            // Validate required fields
             if (!data.fire_source) throw new Error("Missing required field: Fire Source");
             if (!data.fire_location) throw new Error("Missing required field: Fire Location");
             if (!data.fire_severitylevel) throw new Error("Missing required field: Fire Severity Level");
 
-            // Step 1: Save fire
-            const fire = new FireEvent({
-                fire_source: data.fire_source,
-                fire_location: data.fire_location,
-                fire_severitylevel: data.fire_severitylevel,
-                is_extinguished: false,
-                is_verified: false
-            });
-            const createdFire = await this.fireRepository.createFire(fire);
+            // Parse incoming fire location
+            const incomingCoords = this._parseFireLocation(data.fire_location);
+            if (!incomingCoords) throw new Error("Invalid fire_location format");
 
-            // Step 2: Run infrared analysis
-            let infraredResult = null;
-            try {
-                infraredResult = await this.infraredEngine.analyze(createdFire);
-            } catch (aiErr) {
-                console.warn(`Infrared analysis failed for fire ${createdFire.fire_id}: ${aiErr.message}`);
-            }
+            // Check for nearby active fires to determine if this is a new fire or an update to an existing fire
+            const nearbyActiveFires = await this.fireRepository.getFiresRadius(
+                incomingCoords.latitude,
+                incomingCoords.longitude,
+                100
+            );
 
-            // Step 3: Run fire prediction
-            let predictionResult = null;
-            try {
-                predictionResult = await this.firePredictionEngine.predict(createdFire);
-                if (predictionResult?.spread_prediction) {
-                    await this.fireRepository.updateFireSpreadPrediction(
-                        createdFire.fire_id,
-                        predictionResult.spread_prediction
-                    );
-                }
-            } catch (aiErr) {
-                console.warn(`Fire prediction failed for fire ${createdFire.fire_id}: ${aiErr.message}`);
-            }
+            // If there is an existing active fire nearby, we consider this an update to that fire rather than a new fire event
+            const existingFire = nearbyActiveFires.find(f => !f.is_extinguished);
 
-            // Step 4: Auto-verify if infrared confirms fire
-            if (infraredResult?.confirmed === true) {
-                await this.fireRepository.updateFire(createdFire.fire_id, { is_verified: true });
-                createdFire.is_verified = true;
-            }
+            let activeFire;
+            let isNewFire = false;
 
-            // Step 5: Dispatch nearest available responder
-            // Step 6: Publish assignment.created → fireAssignment.subscriber notifies the responder
-            let assignment = null;
-            try {
-                assignment = await this.dispatchClosestResponder(createdFire.fire_id);
-
-                await this.natsPublisher.publish('assignmentCreated', {
-                    assignment_id: assignment.assignment_id,
-                    assignment_status: assignment.assignment_status,
-                    fire_id: createdFire.fire_id,
-                    responder_id: assignment.responder_id
+            // If an existing fire is found, we update it with the new information. Otherwise, we create a new fire record.
+            if (existingFire) {
+                activeFire = await this.fireRepository.updateFire(existingFire.fire_id, {
+                    fire_source: data.fire_source,
+                    fire_location: data.fire_location,
+                    fire_severitylevel: Math.max(
+                        Number(existingFire.fire_severitylevel || 0),
+                        Number(data.fire_severitylevel || 0)
+                    ),
+                    is_verified: data.is_verified ?? existingFire.is_verified,
                 });
-            } catch (dispatchErr) {
-                console.warn(`Responder dispatch failed for fire ${createdFire.fire_id}: ${dispatchErr.message}`);
+            } else {
+                const fire = new FireEvent({
+                    fire_source: data.fire_source,
+                    fire_location: data.fire_location,
+                    fire_severitylevel: data.fire_severitylevel,
+                    is_extinguished: false,
+                    is_verified: data.is_verified ?? false
+                });
+
+                activeFire = await this.fireRepository.createFire(fire);
+                isNewFire = true;
             }
 
-            // Step 7: Generate evacuation route
-            // Step 8: Publish evacuation.updated → alert.subscriber creates EvacuationAlerts for all roles
-            try {
-                if (data) {
-                    const evacuation = await this.evacuationRepository.createEvacuation({
-                        route_status: 'Open',
-                        route_priority: createdFire.fire_severitylevel,
-                        route_geometry: data.suggested_route_path,
-                        safe_zone: data.suggested_safe_zone ?? null,
-                        distance_km: data.distance_km ?? 0,
-                        estimated_time: data.estimated_time ?? 0,
-                        fire_id: createdFire.fire_id
-                    });
+            let assignment = null;
+            // If this is a new fire, we attempt to dispatch the closest responder and create an assignment. If this fails, we log the error but continue with the workflow.
+            if (isNewFire) {
+                try {
+                    assignment = await this.dispatchClosestResponder(activeFire.fire_id);
 
-                    await this.natsPublisher.publish('evacuationUpdated', {
-                        route_id: evacuation.route_id,
-                        route_status: evacuation.route_status,
-                        route_priority: evacuation.route_priority,
-                        fire_id: createdFire.fire_id
+                    await this.natsPublisher.publish('assignmentCreated', {
+                        assignment_id: assignment.assignment_id,
+                        assignment_status: assignment.assignment_status,
+                        fire_id: activeFire.fire_id,
+                        responder_id: assignment.responder_id
                     });
+                } catch (dispatchErr) {
+                    console.warn(`Responder dispatch failed for fire ${activeFire.fire_id}: ${dispatchErr.message}`);
+                }
+            }
+            // If evacuation routes are provided in the input, we create or update them accordingly. If this fails, we log the error but continue with the workflow.
+            try {
+                const aiRoutes =
+                    Array.isArray(data.evacuation_routes)
+                        ? data.evacuation_routes
+                        : Array.isArray(data.routes)
+                            ? data.routes
+                            : [];
+
+                if (aiRoutes.length > 0) {
+                    const existingRoutes = await this.evacuationRepository.getEvacuationsByFireId(
+                        activeFire.fire_id
+                    );
+                    // If there are existing routes, we update them with the new information. Otherwise, we create new evacuation routes based on the AI-generated data.
+                    if (existingRoutes.length > 0) {
+                        for (let i = 0; i < Math.min(existingRoutes.length, aiRoutes.length); i++) {
+                            const route = aiRoutes[i];
+                            const existingRoute = existingRoutes[i];
+
+                            if (!route.route_path || !route.safe_zone) {
+                                console.warn(
+                                    `Skipping invalid evacuation route update for fire ${activeFire.fire_id}: missing route_path or safe_zone`
+                                );
+                                continue;
+                            }
+                            // Update geometry, status, and priority of existing evacuation route
+                            await this.evacuationRepository.updateEvacuationGeometry(
+                                existingRoute.route_id,
+                                route.route_path,
+                                route.safe_zone
+                            );
+                            // If the route status or priority is provided in the input, we update those as well. Otherwise, we keep the existing values.
+                            await this.evacuationRepository.updateEvacuationStatus(
+                                existingRoute.route_id,
+                                route.route_status || 'Open'
+                            );
+
+                            await this.evacuationRepository.updateEvacuationPriority(
+                                existingRoute.route_id,
+                                route.route_priority ?? activeFire.fire_severitylevel
+                            );
+                            // Publish NATS event for evacuation update
+                            await this.natsPublisher.publish('evacuationUpdated', {
+                                route_id: existingRoute.route_id,
+                                route_status: route.route_status || 'Open',
+                                route_priority: route.route_priority ?? activeFire.fire_severitylevel,
+                                fire_id: activeFire.fire_id,
+                            });
+                        }
+                    } else {
+                        // No existing routes, create new evacuation routes based on AI-generated data
+                        for (const route of aiRoutes) {
+                            if (!route.route_path || !route.safe_zone) {
+                                console.warn(
+                                    `Skipping invalid evacuation route for fire ${activeFire.fire_id}: missing route_path or safe_zone`
+                                );
+                                continue;
+                            }
+
+                            const evacuation = await this.evacuationRepository.createEvacuation({
+                                route_status: route.route_status || 'Open',
+                                route_priority: route.route_priority ?? activeFire.fire_severitylevel,
+                                route_path: route.route_path,
+                                safe_zone: route.safe_zone,
+                                distance_km: route.distance_km ?? 0,
+                                estimated_time: route.estimated_time ?? 0,
+                                fire_id: activeFire.fire_id,
+                            });
+
+                            await this.natsPublisher.publish('evacuationUpdated', {
+                                route_id: evacuation.route_id,
+                                route_status: evacuation.route_status,
+                                route_priority: evacuation.route_priority,
+                                fire_id: activeFire.fire_id,
+                            });
+                        }
+                    }
                 }
             } catch (evacErr) {
-                console.warn(`Evacuation route creation failed for fire ${createdFire.fire_id}: ${evacErr.message}`);
+                console.warn(`Evacuation route handling failed for fire ${activeFire.fire_id}: ${evacErr.message}`);
+            }
+            // If this is a new fire, we publish a NATS event to trigger downstream systems such as alerting and AI analysis. If this fails, we log the error but continue with the workflow.
+            if (isNewFire) {
+                try {
+                    await this.natsPublisher.publish('fireDetected', {
+                        fire_id: activeFire.fire_id,
+                        fire_location: activeFire.fire_location,
+                        fire_severitylevel: activeFire.fire_severitylevel,
+                        is_verified: activeFire.is_verified,
+                        assignment_id: assignment?.assignment_id ?? null,
+                        timestamp: new Date().toISOString()
+                    });
+                } catch (natsErr) {
+                    console.warn(`NATS publish failed for fire ${activeFire.fire_id}: ${natsErr.message}`);
+                }
             }
 
-            // Step 9: Publish fire.detected → fireDetected.subscriber → alert.created x3 → 3 FireAlerts in DB
-            try {
-                await this.natsPublisher.publish('fireDetected', {
-                    fire_id: createdFire.fire_id,
-                    fire_location: createdFire.fire_location,
-                    fire_severitylevel: createdFire.fire_severitylevel,
-                    is_verified: createdFire.is_verified,
-                    assignment_id: assignment?.assignment_id ?? null,
-                    timestamp: new Date().toISOString()
-                });
-            } catch (natsErr) {
-                console.warn(`NATS publish failed for fire ${createdFire.fire_id}: ${natsErr.message}`);
-            }
-
-            return createdFire.toDTO();
+            return activeFire.toDTO();
         } catch (err) {
             throw new Error(`Failed to create fire and trigger system: ${err.message}`);
+        }
+    }
+
+    /**
+     * Publish a fire risk prediction.
+     * 
+     * PRE-CONDITIONS:
+     * - zone_location and risk_level must be provided in the data.
+     * 
+     * POST-CONDITIONS:
+     * - Publishes a fire.risk.predicted event to NATS with the provided data.
+     */
+    async publishFireRiskPrediction(data) {
+        try {
+            if (!data.zone_location) throw new Error("Missing required field: Zone Location");
+            if (!data.risk_level) throw new Error("Missing required field: Risk Level");
+
+            // Publish fire risk prediction event to NATS
+            await this.natsPublisher.publish('fireRiskPredicted', {
+                zone_location: data.zone_location,
+                risk_level: data.risk_level,
+                fire_id: data.fire_id ?? null,
+                timestamp: new Date().toISOString()
+            });
+
+            return {
+                success: true,
+                message: "Fire risk prediction notification published"
+            };
+        } catch (err) {
+            throw new Error(`Failed to publish fire risk prediction: ${err.message}`);
         }
     }
 

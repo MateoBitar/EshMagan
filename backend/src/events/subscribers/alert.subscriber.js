@@ -1,4 +1,6 @@
 // src/events/subscribers/alert.subscriber.js
+//
+// This subscriber listens for "alert.created" events from NATS JetStream.
 
 import { getJetStream, sc, SUBJECTS } from '../../config/nats.js';
 import { AlertRepository } from '../../domain/repositories/alert.repository.js';
@@ -92,7 +94,7 @@ function parsePoint(value) {
             const lng = Number(geo.coordinates[0]);
             if (isValidCoordPair(lat, lng)) return { lat, lng };
         }
-    } catch {}
+    } catch { }
 
     const match = String(value).match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
     if (match) {
@@ -229,7 +231,7 @@ export async function startAlertSubscriber() {
                                 body: data.alert_message || 'Fire detected near you',
                                 data: {
                                     fire_id: data.fire_id,
-                                    type: 'FireAlert',
+                                    type: data.alert_type || 'FireAlert',
                                 },
                             });
                         } else {

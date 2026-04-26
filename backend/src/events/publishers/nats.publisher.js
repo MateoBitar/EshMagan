@@ -13,6 +13,7 @@ import { publishFireDetected }      from './fireDetected.publisher.js';
 import { publishAssignmentCreated } from './fireAssignment.publisher.js';
 import { publishAlertCreated }      from './alertCreated.publisher.js';
 import { publishEvacuationUpdated } from './evacuationUpdated.publisher.js';
+import { publishFireRiskPredicted } from './fireRiskPredicted.publisher.js';
 import { getJetStream, sc, SUBJECTS } from '../../config/nats.js';
 
 /**
@@ -52,6 +53,9 @@ export const natsPublisher = {
 
             case 'evacuationUpdated':
                 return await publishEvacuationUpdated(data);
+
+            case 'fireRiskPredicted':
+                return await publishFireRiskPredicted(data);
 
             default:
                 console.warn(`[NATS] Unknown event: ${event}`);

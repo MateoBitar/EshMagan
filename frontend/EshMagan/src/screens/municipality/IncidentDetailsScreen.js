@@ -488,8 +488,8 @@ export default function IncidentDetailsScreen({ navigation, route }) {
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.topBar}>
-          <View style={styles.topBarRow}>
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => nav?.goBack?.()} style={styles.backButton}>
               <Text style={styles.backButtonText}>‹ Back to Dashboard</Text>
             </TouchableOpacity>
@@ -509,8 +509,8 @@ export default function IncidentDetailsScreen({ navigation, route }) {
   if (!fire) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.topBar}>
-          <View style={styles.topBarRow}>
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => nav?.goBack?.()} style={styles.backButton}>
               <Text style={styles.backButtonText}>‹ Back to Dashboard</Text>
             </TouchableOpacity>

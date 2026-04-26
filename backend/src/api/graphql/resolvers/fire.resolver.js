@@ -303,6 +303,18 @@ export const fireResolvers = {
     },
 
     /**
+     * Publishes a fire risk prediction event to NATS.
+     */
+    // Publish fire risk prediction event
+    publishFireRiskPrediction: async (_, { input }, { dataSources }) => {
+      try {
+        return await dataSources.fireService.publishFireRiskPrediction(input);
+      } catch (err) {
+        throw new Error(`GraphQL Error - publishFireRiskPrediction: ${err.message}`);
+      }
+    },
+
+    /**
      * Updates an existing fire.
      */
     // Update fire
