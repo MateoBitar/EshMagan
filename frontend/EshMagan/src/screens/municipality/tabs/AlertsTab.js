@@ -75,7 +75,7 @@ export default function AlertsTab({
         {sorted.length} nearby alert{sorted.length !== 1 ? 's' : ''} • municipality coverage
       </Text>
 
-      <View style={{ flex: 1, minHeight: '83vh', maxHeight: '83vh', overflow: 'hidden' }}>
+      <View style={{ flex: 1, minHeight: '81vh', maxHeight: '81vh', overflow: 'hidden' }}>
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ gap: 2, paddingBottom: 20 }}

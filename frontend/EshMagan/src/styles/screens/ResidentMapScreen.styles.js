@@ -65,8 +65,8 @@ export default StyleSheet.create({
   mapTabContainer: {
     flex: 1,
     backgroundColor: C.bg,
-    minHeight: '91.5vh',
-    maxHeight: '91.5vh',
+    minHeight: '93vh',
+    maxHeight: '93vh',
   },
 
   mapLayout: {

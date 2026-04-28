@@ -33,7 +33,8 @@ CREATE TABLE public.users (
     user_role character varying CHECK (user_role IN ('Resident', 'Responder', 'Municipality', 'Admin')),
     isactive boolean DEFAULT true,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone
+    updated_at timestamp without time zone,
+    fcm_token character varying
 );
 
 CREATE TABLE public.fireevents (
