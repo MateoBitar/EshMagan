@@ -15,6 +15,20 @@ import styles from '../../styles/screens/ARModeScreen.styles.js';
 const CONFIG = {
   ADVANCE_DISTANCE_METERS: 14,
   OFF_ROUTE_DISTANCE_METERS: 40,
+
+  HEADING_SENSOR_INTERVAL_MS: 80,
+  HEADING_SMOOTHING_ALPHA: 0.45,
+
+  FACING_ALIGNED_DEGREES: 6,
+  FACING_EXIT_DEGREES: 10,
+
+  LOOKAHEAD_DISTANCE_METERS: 24,
+  SEGMENT_ADVANCE_T: 0.82,
+
+  ROTATION_FIX_MIN_HEADING_CHANGE: 4,
+  ROTATION_FIX_MIN_ERROR_INCREASE: 5,
+
+  COMPASS_HEADING_OFFSET_DEGREES: 0,
 };
 
 function toRad(deg) {
@@ -42,21 +56,26 @@ function getBearing(lat1, lng1, lat2, lng2) {
     Math.cos(rlat1) * Math.sin(rlat2) -
     Math.sin(rlat1) * Math.cos(rlat2) * Math.cos(dLng);
 
-  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+  return normalize360((Math.atan2(y, x) * 180) / Math.PI);
 }
 
-function getRelativeAngle(fromHeading, toBearing) {
-  let rel = toBearing - fromHeading;
-  while (rel > 180) rel -= 360;
-  while (rel < -180) rel += 360;
-  return rel;
+function normalize360(angle) {
+  return ((angle % 360) + 360) % 360;
 }
 
 function normalizeAngle(angle) {
-  let a = angle;
-  while (a > 180) a -= 360;
-  while (a < -180) a += 360;
-  return a;
+  return ((angle + 540) % 360) - 180;
+}
+
+function getRelativeAngle(fromHeading, toBearing) {
+  return normalizeAngle(toBearing - fromHeading);
+}
+
+function smoothAngle(prev, next, alpha = CONFIG.HEADING_SMOOTHING_ALPHA) {
+  if (prev == null || Number.isNaN(prev)) return normalize360(next);
+
+  const delta = normalizeAngle(next - prev);
+  return normalize360(prev + delta * alpha);
 }
 
 function formatDistance(meters) {
@@ -67,7 +86,15 @@ function formatDistance(meters) {
 
 function getHeadingLabel(deg) {
   if (deg == null || Number.isNaN(deg)) return '—';
-  return ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(deg / 45) % 8];
+
+  const directions = [
+    'N', 'NNE', 'NE', 'ENE',
+    'E', 'ESE', 'SE', 'SSE',
+    'S', 'SSW', 'SW', 'WSW',
+    'W', 'WNW', 'NW', 'NNW',
+  ];
+
+  return directions[Math.round(normalize360(deg) / 22.5) % 16];
 }
 
 function parseSafeZone(raw) {
@@ -137,9 +164,38 @@ function parseRoutePath(raw) {
 
 function parseRoutePolyline(raw) {
   if (!Array.isArray(raw)) return [];
+
   return raw
     .filter(p => Array.isArray(p) && p.length >= 2)
-    .map(([lat, lng]) => ({ lat, lng }));
+    .map(([lat, lng]) => ({ lat, lng }))
+    .filter(p => !Number.isNaN(p.lat) && !Number.isNaN(p.lng));
+}
+
+function orientRoutePointsToSafeZone(routePoints, safeZone) {
+  if (!routePoints?.length || !safeZone) return routePoints;
+
+  const first = routePoints[0];
+  const last = routePoints[routePoints.length - 1];
+
+  const firstToSafe = getDistanceMeters(
+    first.lat,
+    first.lng,
+    safeZone.lat,
+    safeZone.lng
+  );
+
+  const lastToSafe = getDistanceMeters(
+    last.lat,
+    last.lng,
+    safeZone.lat,
+    safeZone.lng
+  );
+
+  if (firstToSafe < lastToSafe) {
+    return [...routePoints].reverse();
+  }
+
+  return routePoints;
 }
 
 function projectPointOnSegment(p, a, b) {
@@ -216,6 +272,58 @@ function getClosestRouteIndex(userPos, routePoints) {
   return bestIndex;
 }
 
+function getForwardTargetOnRoute(userPos, routePoints, currentIndex) {
+  if (!userPos || !routePoints || routePoints.length < 2) return null;
+
+  const nearest = getNearestPointOnRoute(userPos, routePoints);
+  if (!nearest) return null;
+
+  let index = Math.max(currentIndex, nearest.segmentIndex + 1);
+
+  if (
+    nearest.segmentIndex >= currentIndex - 1 &&
+    nearest.t >= CONFIG.SEGMENT_ADVANCE_T &&
+    nearest.segmentIndex + 2 < routePoints.length
+  ) {
+    index = nearest.segmentIndex + 2;
+  }
+
+  let distanceLeft = CONFIG.LOOKAHEAD_DISTANCE_METERS;
+  let startPoint = nearest.point;
+
+  for (let i = nearest.segmentIndex + 1; i < routePoints.length; i++) {
+    const nextPoint = routePoints[i];
+    const segmentDistance = getDistanceMeters(
+      startPoint.lat,
+      startPoint.lng,
+      nextPoint.lat,
+      nextPoint.lng
+    );
+
+    if (segmentDistance >= distanceLeft) {
+      const ratio = distanceLeft / segmentDistance;
+
+      return {
+        point: {
+          lat: startPoint.lat + (nextPoint.lat - startPoint.lat) * ratio,
+          lng: startPoint.lng + (nextPoint.lng - startPoint.lng) * ratio,
+        },
+        index,
+        nearest,
+      };
+    }
+
+    distanceLeft -= segmentDistance;
+    startPoint = nextPoint;
+  }
+
+  return {
+    point: routePoints[routePoints.length - 1],
+    index: routePoints.length - 1,
+    nearest,
+  };
+}
+
 function getOffRouteDistance(userPos, routePoints) {
   const nearest = getNearestPointOnRoute(userPos, routePoints);
   return nearest?.distance ?? Infinity;
@@ -253,6 +361,15 @@ function getTurnType(turnAngle) {
   if (abs <= 45) return a > 0 ? 'slight-right' : 'slight-left';
   if (abs <= 110) return a > 0 ? 'right' : 'left';
   return a > 0 ? 'sharp-right' : 'sharp-left';
+}
+
+function getFacingTurnType(relAngle) {
+  const a = normalizeAngle(relAngle);
+  const abs = Math.abs(a);
+
+  if (abs <= CONFIG.FACING_ALIGNED_DEGREES) return 'straight';
+  if (abs <= 45) return a > 0 ? 'slight-right' : 'slight-left';
+  return a > 0 ? 'right' : 'left';
 }
 
 function getTurnInstruction(turnType) {
@@ -359,8 +476,8 @@ function useLiveLocation(initialUserPos = null) {
   return userPos;
 }
 
-function useSmoothedHeading() {
-  const [heading, setHeading] = useState(null);
+function useCompassHeading() {
+  const [compassHeading, setCompassHeading] = useState(null);
   const smoothedRef = useRef(null);
 
   useEffect(() => {
@@ -374,26 +491,26 @@ function useSmoothedHeading() {
       const SensorTypes = sensors.SensorTypes;
       const map = operators.map;
 
-      setUpdateIntervalForType(SensorTypes.magnetometer, 250);
+      setUpdateIntervalForType(
+        SensorTypes.magnetometer,
+        CONFIG.HEADING_SENSOR_INTERVAL_MS
+      );
 
       subscription = magnetometer
         .pipe(
           map(({ x, y }) => {
             let angle = Math.atan2(y, x) * (180 / Math.PI);
             angle += 90;
-            if (angle < 0) angle += 360;
-            if (angle >= 360) angle -= 360;
-            angle = (360 - angle) % 360;
-            return angle;
+            angle += CONFIG.COMPASS_HEADING_OFFSET_DEGREES;
+            return normalize360(angle);
           })
         )
         .subscribe(deg => {
-          smoothedRef.current =
-            smoothedRef.current == null ? deg : smoothedRef.current * 0.85 + deg * 0.15;
-          setHeading(smoothedRef.current);
+          smoothedRef.current = smoothAngle(smoothedRef.current, deg);
+          setCompassHeading(smoothedRef.current);
         });
     } catch {
-      setHeading(null);
+      setCompassHeading(null);
     }
 
     return () => {
@@ -405,11 +522,11 @@ function useSmoothedHeading() {
     };
   }, []);
 
-  return heading;
+  return compassHeading;
 }
 
 function TurnArrow({ type }) {
-  const common = { color: '#fff', fontWeight: '900' };
+  const common = { color: '#DC2626', fontWeight: '900' };
 
   switch (type) {
     case 'slight-right':
@@ -432,7 +549,7 @@ function TurnArrow({ type }) {
 
 function CameraAssistOverlay({
   userPos,
-  heading,
+  compassHeading,
   routePoints,
   safeZone,
   directions,
@@ -443,10 +560,25 @@ function CameraAssistOverlay({
 }) {
   const routeIndexRef = useRef(0);
   const initializedRef = useRef(false);
+  const alignedRef = useRef(false);
+
+  const rotationFixRef = useRef({
+    sign: 1,
+    lastHeading: null,
+    lastRawRel: null,
+    lastInstructionSign: null,
+  });
 
   useEffect(() => {
     initializedRef.current = false;
     routeIndexRef.current = 0;
+    alignedRef.current = false;
+    rotationFixRef.current = {
+      sign: 1,
+      lastHeading: null,
+      lastRawRel: null,
+      lastInstructionSign: null,
+    };
   }, [routePoints]);
 
   const navState = useMemo(() => {
@@ -456,6 +588,8 @@ function CameraAssistOverlay({
         preformattedRouteLeft: routingMeta?.totalKm ? `${routingMeta.totalKm} km` : null,
         nextPointDistance: null,
         offRouteDistance: 0,
+        routeBearing: null,
+        routeRelativeAngle: null,
         turnType: directions?.[0]?.type === 'turn' ? 'right' : 'straight',
         instruction: directions?.[0]?.instruction || 'Waiting for your location…',
         facingInstruction: 'Waiting for your location…',
@@ -465,18 +599,36 @@ function CameraAssistOverlay({
 
     if (routePoints?.length) {
       if (!initializedRef.current) {
+        const nearest = getNearestPointOnRoute(userPos, routePoints);
         const closestIndex = getClosestRouteIndex(userPos, routePoints);
-        routeIndexRef.current = Math.min(closestIndex + 1, routePoints.length - 1);
+
+        routeIndexRef.current = nearest
+          ? Math.min(nearest.segmentIndex + 1, routePoints.length - 1)
+          : Math.min(closestIndex + 1, routePoints.length - 1);
+
         initializedRef.current = true;
       }
 
+      const forwardTarget = getForwardTargetOnRoute(
+        userPos,
+        routePoints,
+        routeIndexRef.current
+      );
+
+      if (forwardTarget) {
+        routeIndexRef.current = Math.max(
+          routeIndexRef.current,
+          forwardTarget.index
+        );
+      }
+
       while (routeIndexRef.current < routePoints.length - 1) {
-        const currentTarget = routePoints[routeIndexRef.current];
+        const currentTargetPoint = routePoints[routeIndexRef.current];
         const distToTarget = getDistanceMeters(
           userPos.lat,
           userPos.lng,
-          currentTarget.lat,
-          currentTarget.lng
+          currentTargetPoint.lat,
+          currentTargetPoint.lng
         );
 
         if (distToTarget <= CONFIG.ADVANCE_DISTANCE_METERS) {
@@ -486,7 +638,7 @@ function CameraAssistOverlay({
         }
       }
 
-      const currentTarget = routePoints[routeIndexRef.current];
+      const currentTarget = forwardTarget?.point ?? routePoints[routeIndexRef.current];
       const nextPointDistance = currentTarget
         ? getDistanceMeters(userPos.lat, userPos.lng, currentTarget.lat, currentTarget.lng)
         : null;
@@ -496,21 +648,74 @@ function CameraAssistOverlay({
       const maneuver = computeManeuver(routePoints, routeIndexRef.current);
 
       let facingInstruction = 'Follow the next route step';
+      let facingTurnType = maneuver.turnType;
+      let routeBearing = null;
+      let routeRelativeAngle = null;
 
       if (offRouteDistance > CONFIG.OFF_ROUTE_DISTANCE_METERS) {
         facingInstruction = 'Move back to the selected route';
-      } else if (heading != null && currentTarget) {
-        const bearing = getBearing(userPos.lat, userPos.lng, currentTarget.lat, currentTarget.lng);
-        const rel = getRelativeAngle(heading, bearing);
-        const abs = Math.abs(rel);
+        alignedRef.current = false;
+        rotationFixRef.current.lastInstructionSign = null;
+      } else if (compassHeading != null && currentTarget) {
+        routeBearing = getBearing(
+          userPos.lat,
+          userPos.lng,
+          currentTarget.lat,
+          currentTarget.lng
+        );
 
-        if (abs <= 15) {
-          facingInstruction = 'Phone is aligned with route';
-        } else if (rel > 0) {
-          facingInstruction = `Rotate ${Math.round(abs)}° right`;
-        } else {
-          facingInstruction = `Rotate ${Math.round(abs)}° left`;
+        const rawRel = getRelativeAngle(compassHeading, routeBearing);
+        const rawAbs = Math.abs(rawRel);
+        const previous = rotationFixRef.current;
+
+        if (
+          previous.lastHeading != null &&
+          previous.lastRawRel != null &&
+          previous.lastInstructionSign != null
+        ) {
+          const headingDelta = normalizeAngle(compassHeading - previous.lastHeading);
+          const errorDelta = rawAbs - Math.abs(previous.lastRawRel);
+
+          const userAppearsToFollowInstruction =
+            Math.sign(headingDelta) === previous.lastInstructionSign &&
+            Math.abs(headingDelta) >= CONFIG.ROTATION_FIX_MIN_HEADING_CHANGE;
+
+          const errorGotWorse =
+            errorDelta >= CONFIG.ROTATION_FIX_MIN_ERROR_INCREASE;
+
+          if (userAppearsToFollowInstruction && errorGotWorse) {
+            rotationFixRef.current.sign *= -1;
+          }
         }
+
+        const displayRel = rawRel * rotationFixRef.current.sign;
+        const displayAbs = Math.abs(rawRel);
+        const instructionSign = displayRel > 0 ? 1 : -1;
+
+        routeRelativeAngle = rawRel;
+        facingTurnType = getFacingTurnType(displayRel);
+
+        if (displayAbs <= CONFIG.FACING_ALIGNED_DEGREES) {
+          alignedRef.current = true;
+          facingInstruction = 'Phone is aligned with route';
+          rotationFixRef.current.lastInstructionSign = null;
+        } else if (alignedRef.current && displayAbs <= CONFIG.FACING_EXIT_DEGREES) {
+          facingInstruction = 'Phone is aligned with route';
+          rotationFixRef.current.lastInstructionSign = null;
+        } else {
+          alignedRef.current = false;
+
+          if (displayRel > 0) {
+            facingInstruction = `Rotate ${Math.round(displayAbs)}° right`;
+          } else {
+            facingInstruction = `Rotate ${Math.round(displayAbs)}° left`;
+          }
+
+          rotationFixRef.current.lastInstructionSign = instructionSign;
+        }
+
+        rotationFixRef.current.lastHeading = compassHeading;
+        rotationFixRef.current.lastRawRel = rawRel;
       }
 
       const arrived =
@@ -522,6 +727,8 @@ function CameraAssistOverlay({
           routeLeft: 0,
           nextPointDistance: 0,
           offRouteDistance,
+          routeBearing,
+          routeRelativeAngle,
           turnType: 'straight',
           instruction: 'You arrived at the safe zone',
           facingInstruction: 'Destination reached',
@@ -534,6 +741,8 @@ function CameraAssistOverlay({
           routeLeft,
           nextPointDistance,
           offRouteDistance,
+          routeBearing,
+          routeRelativeAngle,
           turnType: maneuver.turnType,
           instruction: 'Off route — return to the selected path',
           facingInstruction,
@@ -545,7 +754,9 @@ function CameraAssistOverlay({
         routeLeft,
         nextPointDistance,
         offRouteDistance,
-        turnType: maneuver.turnType,
+        routeBearing,
+        routeRelativeAngle,
+        turnType: facingTurnType,
         instruction:
           nextPointDistance != null
             ? `${maneuver.instruction} in ${formatDistance(nextPointDistance)}`
@@ -557,12 +768,22 @@ function CameraAssistOverlay({
 
     if (safeZone) {
       const dist = getDistanceMeters(userPos.lat, userPos.lng, safeZone.lat, safeZone.lng);
+      const routeBearing =
+        compassHeading != null
+          ? getBearing(userPos.lat, userPos.lng, safeZone.lat, safeZone.lng)
+          : null;
+      const routeRelativeAngle =
+        compassHeading != null && routeBearing != null
+          ? getRelativeAngle(compassHeading, routeBearing)
+          : null;
 
       return {
         routeLeft: dist,
         nextPointDistance: dist,
         offRouteDistance: 0,
-        turnType: 'straight',
+        routeBearing,
+        routeRelativeAngle,
+        turnType: routeRelativeAngle != null ? getFacingTurnType(routeRelativeAngle) : 'straight',
         instruction: `Continue to safe zone in ${formatDistance(dist)}`,
         facingInstruction: 'Keep moving forward',
         arrived: false,
@@ -573,23 +794,25 @@ function CameraAssistOverlay({
       routeLeft: null,
       nextPointDistance: null,
       offRouteDistance: 0,
+      routeBearing: null,
+      routeRelativeAngle: null,
       turnType: 'straight',
       instruction: 'No route found',
       facingInstruction: 'Return to map',
       arrived: false,
     };
-  }, [userPos, heading, routePoints, safeZone, directions, routingMeta]);
+  }, [userPos, compassHeading, routePoints, safeZone, directions, routingMeta]);
 
   if (permDenied) {
     return (
       <View style={styles.permDenied}>
-        <Text style={{ fontSize: 40, marginBottom: 16 }}>📷</Text>
+        <Text style={styles.permIcon}>Camera</Text>
         <Text style={styles.permTitle}>Camera Access Required</Text>
         <Text style={styles.permDesc}>
           Please allow camera access to use camera guidance.
         </Text>
         <TouchableOpacity onPress={onExit} style={styles.exitBtnSolid}>
-          <Text style={styles.exitBtnSolidText}>← Back to Map</Text>
+          <Text style={styles.exitBtnSolidText}>Back to Map</Text>
         </TouchableOpacity>
       </View>
     );
@@ -616,7 +839,9 @@ function CameraAssistOverlay({
 
         <View style={styles.compassChip}>
           <Text style={styles.compassText}>
-            {heading != null ? `${Math.round(heading)}°` : '—°'}
+            {compassHeading != null
+              ? `${Math.round(compassHeading)}° ${getHeadingLabel(compassHeading)}`
+              : '—°'}
           </Text>
         </View>
       </View>
@@ -642,8 +867,8 @@ function CameraAssistOverlay({
           </View>
 
           <View style={styles.infoChip}>
-            <Text style={styles.infoLabel}>HEADING</Text>
-            <Text style={styles.infoValue}>{getHeadingLabel(heading)}</Text>
+            <Text style={styles.infoLabel}>COMPASS</Text>
+            <Text style={styles.infoValue}>{getHeadingLabel(compassHeading)}</Text>
           </View>
 
           <View style={styles.infoChip}>
@@ -674,7 +899,7 @@ function CameraAssistOverlay({
 
 function NativeCameraAssist({
   userPos,
-  heading,
+  compassHeading,
   routePoints,
   safeZone,
   directions,
@@ -692,7 +917,7 @@ function NativeCameraAssist({
       <View style={styles.fallback}>
         <Text style={styles.fallbackText}>react-native-vision-camera is not installed</Text>
         <TouchableOpacity onPress={onExit} style={styles.fallbackBtn}>
-          <Text style={styles.fallbackBtnText}>← Back</Text>
+          <Text style={styles.fallbackBtnText}>Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -711,7 +936,7 @@ function NativeCameraAssist({
   if (!hasPermission) {
     return (
       <View style={styles.permDenied}>
-        <Text style={{ fontSize: 40, marginBottom: 16 }}>📷</Text>
+        <Text style={styles.permIcon}>Camera</Text>
         <Text style={styles.permTitle}>Camera Permission Needed</Text>
         <Text style={styles.permDesc}>
           Please allow camera access on your phone to use camera guidance.
@@ -726,7 +951,7 @@ function NativeCameraAssist({
           <Text style={styles.fallbackBtnText}>Open Settings</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={onExit} style={[styles.fallbackBtn, { marginTop: 12 }]}>
-          <Text style={styles.fallbackBtnText}>← Back</Text>
+          <Text style={styles.fallbackBtnText}>Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -754,7 +979,7 @@ function NativeCameraAssist({
 
       <CameraAssistOverlay
         userPos={userPos}
-        heading={heading}
+        compassHeading={compassHeading}
         routePoints={routePoints}
         safeZone={safeZone}
         directions={directions}
@@ -781,7 +1006,7 @@ export default function ARModeScreen() {
   } = routeParams;
 
   const userPos = useLiveLocation(initialUserPos);
-  const heading = useSmoothedHeading();
+  const compassHeading = useCompassHeading();
 
   const safeZone = useMemo(
     () => (selectedRoute ? parseSafeZone(selectedRoute.safe_zone ?? selectedRoute.safeZone) : null),
@@ -790,12 +1015,15 @@ export default function ARModeScreen() {
 
   const routePoints = useMemo(() => {
     const polylinePoints = parseRoutePolyline(routePolyline);
-    if (polylinePoints.length) return polylinePoints;
 
-    return selectedRoute
-      ? parseRoutePath(selectedRoute.route_path ?? selectedRoute.routePath)
-      : [];
-  }, [selectedRoute, routePolyline]);
+    const parsedPoints = polylinePoints.length
+      ? polylinePoints
+      : selectedRoute
+        ? parseRoutePath(selectedRoute.route_path ?? selectedRoute.routePath)
+        : [];
+
+    return orientRoutePointsToSafeZone(parsedPoints, safeZone);
+  }, [selectedRoute, routePolyline, safeZone]);
 
   const handleExit = () => {
     if (navigation?.canGoBack?.()) navigation.goBack();
@@ -811,7 +1039,7 @@ export default function ARModeScreen() {
           Open camera guidance from the selected route in the evacuation screen.
         </Text>
         <TouchableOpacity onPress={handleExit} style={styles.fallbackBtn}>
-          <Text style={styles.fallbackBtnText}>← Back</Text>
+          <Text style={styles.fallbackBtnText}>Back</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -822,7 +1050,7 @@ export default function ARModeScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       <NativeCameraAssist
         userPos={userPos}
-        heading={heading}
+        compassHeading={compassHeading}
         routePoints={routePoints}
         safeZone={safeZone}
         directions={directions}
