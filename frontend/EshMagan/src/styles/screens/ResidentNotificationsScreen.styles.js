@@ -215,10 +215,22 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
 
-  notificationDateText: {
-    color: C.textDim,
-    fontSize: 11,
-    marginTop: 8,
+  notificationFireIdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+
+  notificationFireIcon: {
+    width: 14,
+    height: 14,
+  },
+
+  notificationTapHint: {
+    color: C.tangerine,
+    fontSize: 10,
+    fontWeight: '600',
+    marginLeft: 'auto',
   },
 });
 

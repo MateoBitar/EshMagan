@@ -7,24 +7,25 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Platform,
+  Image,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
-import { gqlFetch, GET_NOTIFICATIONS_BY_USER } from '../../services/api';
+import {
+  gqlFetch,
+  GET_NOTIFICATIONS_BY_USER,
+  UPDATE_NOTIFICATION_STATUS,
+} from '../../services/api';
 import styles, { C } from '../../styles/screens/ResidentNotificationsScreen.styles';
 
-function formatDate(value) {
-  if (!value) return 'Unknown date';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return 'Unknown date';
-
-  return d.toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
+const ASSETS = {
+  fire: Platform.select({
+    web: { uri: '/fire.png' },
+    android: { uri: 'fire' },
+    ios: { uri: 'fire' },
+    default: { uri: 'fire' },
+  }),
+};
 
 function getReadableStatus(status) {
   if (status === 'Sent') return 'Unread';
@@ -81,8 +82,28 @@ export default function ResidentNotificationsScreen({ navigation }) {
     const unsub = navigation?.addListener?.('focus', () => {
       loadNotifications(true);
     });
+
     return unsub;
   }, [navigation, loadNotifications]);
+
+  const handleMarkNotifRead = async notificationId => {
+    try {
+      await gqlFetch(UPDATE_NOTIFICATION_STATUS, {
+        notification_id: notificationId,
+        notification_status: 'Delivered',
+      });
+
+      setNotifications(prev =>
+        prev.map(n =>
+          n.notification_id === notificationId
+            ? { ...n, notification_status: 'Delivered' }
+            : n
+        )
+      );
+    } catch (e) {
+      console.error('Failed to mark resident notification as read:', e);
+    }
+  };
 
   const unreadNotifs = notifications.filter(
     n => n.notification_status !== 'Delivered'
@@ -98,6 +119,7 @@ export default function ResidentNotificationsScreen({ navigation }) {
           >
             <Text style={styles.backBtnText}>{'‹ Back'}</Text>
           </TouchableOpacity>
+
           <Text style={styles.headerTitle}>Notifications</Text>
         </View>
       </View>
@@ -117,7 +139,7 @@ export default function ResidentNotificationsScreen({ navigation }) {
             <View style={styles.tabScrollContainer}>
               <View style={styles.tabScrollViewport}>
                 <ScrollView
-                  style={{ flex: 1 }}
+                  style={styles.fullFlex || { flex: 1 }}
                   contentContainerStyle={styles.tabScrollContent}
                   showsVerticalScrollIndicator={false}
                   refreshControl={
@@ -142,14 +164,17 @@ export default function ResidentNotificationsScreen({ navigation }) {
                       return (
                         <TouchableOpacity
                           key={n.notification_id}
-                          activeOpacity={1}
+                          onPress={() => isUnread && handleMarkNotifRead(n.notification_id)}
+                          activeOpacity={isUnread ? 0.7 : 1}
                           style={[
                             styles.notificationCard,
-                            isUnread ? styles.notificationCardUnread : styles.notificationCardRead,
+                            isUnread
+                              ? styles.notificationCardUnread
+                              : styles.notificationCardRead,
                           ]}
                         >
                           <View style={styles.notificationCardContent}>
-                            {isUnread ? <View style={styles.notificationUnreadDot} /> : null}
+                            {isUnread && <View style={styles.notificationUnreadDot} />}
 
                             <View style={styles.notificationInfo}>
                               <Text
@@ -185,15 +210,24 @@ export default function ResidentNotificationsScreen({ navigation }) {
                                 </View>
 
                                 {!!n.fire_id && (
-                                  <Text style={styles.notificationFireId}>
-                                    🔥#{String(n.fire_id).slice(0, 8)}
+                                  <View style={styles.notificationFireIdRow}>
+                                    <Image
+                                      source={ASSETS.fire}
+                                      style={styles.notificationFireIcon}
+                                      resizeMode="contain"
+                                    />
+                                    <Text style={styles.notificationFireId}>
+                                      #{String(n.fire_id).slice(0, 8)}
+                                    </Text>
+                                  </View>
+                                )}
+
+                                {n.notification_status === 'Sent' && (
+                                  <Text style={styles.notificationTapHint}>
+                                    Tap to mark read
                                   </Text>
                                 )}
                               </View>
-
-                              <Text style={styles.notificationDateText}>
-                                {formatDate(n.created_at || n.notification_created_at)}
-                              </Text>
                             </View>
                           </View>
                         </TouchableOpacity>
