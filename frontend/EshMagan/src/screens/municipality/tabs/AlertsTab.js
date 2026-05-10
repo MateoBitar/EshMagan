@@ -28,15 +28,19 @@ const ASSETS = {
 
 export default function AlertsTab({
   alerts = [],
+  fires = [],
   loading,
   fmtDate,
+  navigation,
 }) {
-  let nav = null;
+  let nav = navigation;
 
-  try {
-    const { useNavigation } = require('@react-navigation/native');
-    nav = useNavigation();
-  } catch {}
+  if (!nav && Platform.OS !== 'web') {
+    try {
+      const { useNavigation } = require('@react-navigation/native');
+      nav = useNavigation();
+    } catch { }
+  }
 
   const sorted = [...alerts].sort(
     (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
@@ -45,9 +49,12 @@ export default function AlertsTab({
   const handleOpenIncident = alert => {
     if (!alert?.fire_id) return;
 
+    const relatedFire = fires.find(f => f.fire_id === alert.fire_id) || null;
+
     nav?.navigate?.('IncidentDetails', {
       fireId: alert.fire_id,
       alert,
+      fire: relatedFire,
       source: 'MunicipalityAlerts',
     });
   };

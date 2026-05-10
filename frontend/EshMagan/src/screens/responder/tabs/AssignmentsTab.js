@@ -27,10 +27,10 @@ export default function AssignmentsTab({
         {activeAssignments.length} active • {myAssignments.length} total
       </Text>
 
-      <View style={styles.responderTabListFrame}>
+      <View style={{ flex: 1, minHeight: '75.1vh', maxHeight: '75.1vh', overflow: 'hidden' }}>
         <ScrollView
-          style={styles.fullFlex}
-          contentContainerStyle={styles.responderTabScrollContent}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ gap: 2, paddingBottom: 20 }}
           showsVerticalScrollIndicator={false}
         >
           {myAssignments.length === 0 ? (

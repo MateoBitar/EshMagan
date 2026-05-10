@@ -3,12 +3,12 @@ import { View, Text, TouchableOpacity, Platform, ScrollView, Image } from 'react
 import styles from '../../../styles/screens/ResponderCommandView.styles';
 
 const ASSETS = {
-  fire: Platform.select({
-    web: { uri: '/fire.png' },
-    android: { uri: 'fire' },
-    ios: { uri: 'fire' },
-    default: { uri: 'fire' },
-  }),
+    fire: Platform.select({
+        web: { uri: '/fire.png' },
+        android: { uri: 'fire' },
+        ios: { uri: 'fire' },
+        default: { uri: 'fire' },
+    }),
 };
 
 export default function NotificationsTab({
@@ -21,10 +21,10 @@ export default function NotificationsTab({
             <Text style={styles.sectionHeader}>
                 {unreadNotifs.length} unread • {notifications.length} total
             </Text>
-            <View style={styles.responderTabListFrame}>
+            <View style={{ flex: 1, minHeight: '75.1vh', maxHeight: '75.1vh', overflow: 'hidden' }}>
                 <ScrollView
-                    style={styles.fullFlex}
-                    contentContainerStyle={styles.responderTabScrollContent}
+                    style={{ flex: 1 }}
+                    contentContainerStyle={{ gap: 2, paddingBottom: 20 }}
                     showsVerticalScrollIndicator={false}
                 >
                     {notifications.length === 0 ? (

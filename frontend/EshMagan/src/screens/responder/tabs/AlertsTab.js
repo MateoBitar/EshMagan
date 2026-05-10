@@ -29,16 +29,20 @@ const ASSETS = {
 export default function AlertsTab({
   alerts,
   activeAlerts,
+  allFires = [],
   myLocation,
   alertRadiusMeters,
   fmtDate,
+  navigation,
 }) {
-  let nav = null;
+  let nav = navigation;
 
-  try {
-    const { useNavigation } = require('@react-navigation/native');
-    nav = useNavigation();
-  } catch { }
+  if (!nav && Platform.OS !== 'web') {
+    try {
+      const { useNavigation } = require('@react-navigation/native');
+      nav = useNavigation();
+    } catch { }
+  }
 
   if (!myLocation) {
     return (
@@ -47,7 +51,7 @@ export default function AlertsTab({
           0 nearby alerts • locating...
         </Text>
 
-        <View style={styles.responderTabListFrame}>
+        <View style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
           <View style={styles.emptyWrap}>
             <ActivityIndicator color={C.tangerine} />
             <Text style={styles.emptyDesc}>Getting your location to filter nearby alerts.</Text>
@@ -64,9 +68,12 @@ export default function AlertsTab({
   const handleOpenIncident = alert => {
     if (!alert?.fire_id) return;
 
+    const relatedFire = allFires.find(f => f.fire_id === alert.fire_id) || null;
+
     nav?.navigate?.('IncidentDetails', {
       fireId: alert.fire_id,
       alert,
+      fire: relatedFire,
       source: 'ResponderAlerts',
     });
   };
@@ -77,10 +84,10 @@ export default function AlertsTab({
         {sorted.length} nearby alert{sorted.length !== 1 ? 's' : ''} • {alertRadiusMeters / 1000} km radius
       </Text>
 
-      <View style={styles.responderTabListFrame}>
+      <View style={{ flex: 1, minHeight: '75.1vh', maxHeight: '75.1vh', overflow: 'hidden' }}>
         <ScrollView
-          style={styles.fullFlex}
-          contentContainerStyle={styles.responderTabScrollContent}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ gap: 2, paddingBottom: 20 }}
           showsVerticalScrollIndicator={false}
         >
           {sorted.length === 0 ? (

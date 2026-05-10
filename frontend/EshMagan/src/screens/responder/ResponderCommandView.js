@@ -367,9 +367,11 @@ export default function ResponderCommandView({ navigation }) {
         <AlertsTab
           alerts={alerts}
           activeAlerts={activeAlerts}
+          allFires={allFires}
           myLocation={myLocation}
           alertRadiusMeters={ALERT_RADIUS_METERS}
           fmtDate={fmtDate}
+          navigation={navigation}
         />
       )}
 

@@ -1,7 +1,7 @@
 import { StyleSheet, Dimensions, Platform } from 'react-native';
 
 const { width } = Dimensions.get('window');
-const isDesktop = Platform.OS === 'web' && width >= 1180;
+const isDesktop = Platform.OS === 'web' && width >= 900;
 
 export const C = {
   bg: '#FFF1D6',
@@ -23,15 +23,18 @@ export const C = {
 };
 
 export default StyleSheet.create({
+  // ── Layout ─────────────────────────────────────────────────────────────────
+
   safeArea: {
     flex: 1,
     backgroundColor: C.bg,
-    minHeight: '100vh',
-  },
-
-  container: {
-    flex: 1,
-    backgroundColor: C.bg,
+    ...(Platform.OS === 'web'
+      ? {
+        height: '100vh',
+        maxHeight: '100vh',
+        overflow: 'hidden',
+      }
+      : {}),
   },
 
   header: {
@@ -41,13 +44,19 @@ export default StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(236,119,66,0.2)',
     backgroundColor: C.bg,
+    zIndex: 10,
+    ...(Platform.OS === 'web'
+      ? {
+        flexShrink: 0,
+      }
+      : {}),
   },
 
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 8,
+    marginBottom: 4,
   },
 
   backButton: {
@@ -76,12 +85,44 @@ export default StyleSheet.create({
     color: C.textMuted,
     fontSize: 12,
     marginTop: 2,
-    marginLeft: -4,
   },
 
   pageScroll: {
     flex: 1,
+    minHeight: 0,
     backgroundColor: C.bg,
+    ...(Platform.OS === 'web'
+      ? {
+        maxHeight: 'calc(100vh - 67px)',
+        overflow: 'hidden',
+      }
+      : {}),
+  },
+
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+
+  desktopLayout: {
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    gap: 14,
+    alignItems: 'flex-start',
+    flexWrap: Platform.OS === 'web' ? 'nowrap' : 'wrap',
+  },
+
+  leftColumn: {
+    width: Platform.OS === 'web' ? '62%' : '100%',
+    minWidth: Platform.OS === 'web' ? 0 : '100%',
+    gap: 14,
+  },
+
+  rightColumn: {
+    width: Platform.OS === 'web' ? '38%' : '100%',
+    minWidth: Platform.OS === 'web' ? 0 : '100%',
+    gap: 7,
+    paddingRight: Platform.OS === 'web' ? 10 : 0,
   },
 
   loader: {
@@ -104,294 +145,110 @@ export default StyleSheet.create({
     fontWeight: '600',
   },
 
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 26,
-  },
+  // ── Map card ───────────────────────────────────────────────────────────────
 
-  desktopLayout: {
-    flexDirection: isDesktop ? 'row' : 'column',
-    gap: 14,
-    alignItems: 'flex-start',
-  },
-
-  leftColumn: {
-    width: isDesktop ? '62%' : '100%',
-  },
-
-  leftColumnStack: {
-    marginTop: 14,
-    gap: 14,
-    width: '100%',
-  },
-
-  rightColumn: {
-    width: isDesktop ? '38%' : '100%',
-    gap: 14,
-  },
-
-  predictionMapCard: {
+  mapCard: {
     backgroundColor: C.card,
     borderRadius: 24,
     borderWidth: 1,
     borderColor: C.cardBorder,
     padding: 18,
+    overflow: 'hidden',
   },
 
-  predictionMapHeader: {
+  mapCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
     marginBottom: 14,
   },
 
-  predictionTitle: {
+  mapCardTitle: {
     fontSize: 16,
     fontWeight: '800',
     color: C.text,
   },
 
-  predictionSub: {
+  mapCardSub: {
     fontSize: 12,
     color: C.textMuted,
-    marginTop: 4,
+    marginTop: 3,
   },
 
-  predictionChip: {
-    backgroundColor: 'rgba(168,85,247,0.12)',
+  severityChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     borderWidth: 1,
-    borderColor: 'rgba(168,85,247,0.22)',
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
 
-  predictionChipText: {
-    color: C.purple,
+  severityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+
+  severityChipText: {
     fontSize: 11,
     fontWeight: '800',
   },
 
   mapViewport: {
     width: '100%',
-    height: isDesktop ? 500 : 360,
-    borderRadius: 22,
+    height: isDesktop ? 515 : 340,
+    borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: 'rgba(59,130,246,0.10)',
-    position: 'relative',
   },
 
-  mapCanvas: {
-    flex: 1,
-    position: 'relative',
-    justifyContent: 'center',
+  mapPlaceholder: {
+    width: '100%',
+    height: isDesktop ? 480 : 340,
+    borderRadius: 20,
+    backgroundColor: '#f1f5f9',
     alignItems: 'center',
-  },
-
-  fireGlowOuter: {
-    position: 'absolute',
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: 'rgba(239,68,68,0.10)',
-    left: '26%',
-    top: '25%',
-  },
-
-  fireGlowMiddle: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(244,63,94,0.16)',
-    left: '31%',
-    top: '32%',
-  },
-
-  predictionCone: {
-    position: 'absolute',
-    width: 240,
-    height: 155,
-    backgroundColor: 'rgba(251,146,60,0.10)',
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: 'rgba(239,68,68,0.55)',
-    right: '18%',
-    top: '31%',
-    transform: [{ skewY: '-16deg' }, { rotate: '-8deg' }],
-  },
-
-  predictionConeOutline: {
-    position: 'absolute',
-    width: 180,
-    height: 120,
-    backgroundColor: 'rgba(248,113,113,0.08)',
-    right: '22%',
-    top: '35%',
-    transform: [{ skewY: '-16deg' }, { rotate: '-8deg' }],
-  },
-
-  windInfoBadge: {
-    position: 'absolute',
-    top: 22,
-    right: 22,
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: C.cardBorder,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    zIndex: 6,
   },
 
-  windInfoBadgeValue: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: C.text,
-  },
-
-  windInfoBadgeSub: {
+  mapPlaceholderText: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#64748b',
-    marginTop: 2,
+    color: C.textMuted,
+    fontWeight: '600',
   },
 
-  coordinatesBadge: {
-    position: 'absolute',
-    left: 18,
-    bottom: 18,
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: C.cardBorder,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    zIndex: 6,
-  },
-
-  coordinatesBadgeText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#475569',
-  },
-
-  directionArrowWrap: {
-    position: 'absolute',
-    width: 180,
-    height: 24,
-    left: '39%',
-    top: '48%',
-    zIndex: 7,
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-  },
-
-  directionArrowShaft: {
-    position: 'absolute',
-    left: 0,
-    width: 140,
-    height: 3,
-    backgroundColor: '#2563eb',
-    borderRadius: 999,
-  },
-
-  directionArrowHead: {
-    position: 'absolute',
-    right: 0,
-    width: 0,
-    height: 0,
-    borderTopWidth: 8,
-    borderBottomWidth: 8,
-    borderLeftWidth: 18,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderLeftColor: '#2563eb',
-  },
-
-  fireCore: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    borderWidth: 6,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 8,
-  },
-
-  fireCoreIcon: {
-    fontSize: 34,
-  },
-
-  timelineCard: {
-    marginTop: 16,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(168,85,247,0.18)',
-    backgroundColor: 'rgba(168,85,247,0.06)',
-    padding: 16,
-  },
-
-  timelineHeader: {
+  mapLegendRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    gap: 16,
+    marginTop: 12,
+    flexWrap: 'wrap',
   },
 
-  timelineTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: C.text,
-  },
-
-  timelineFocus: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: C.purple,
-  },
-
-  timelineTrack: {
-    height: 12,
-    marginTop: 14,
-    marginBottom: 10,
-    borderRadius: 999,
-    backgroundColor: '#e5e7eb',
-    position: 'relative',
-  },
-
-  timelineFill: {
-    width: '22%',
-    height: 12,
-    borderRadius: 999,
-    backgroundColor: '#111827',
-  },
-
-  timelineThumb: {
-    position: 'absolute',
-    left: '20%',
-    top: -4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#cbd5e1',
-  },
-
-  timelineScale: {
+  mapLegendItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 6,
   },
 
-  timelineTick: {
+  mapLegendSwatch: {
+    width: 16,
+    height: 10,
+    borderRadius: 4,
+    borderWidth: 1.5,
+  },
+
+  mapLegendLabel: {
     fontSize: 11,
     color: C.textMuted,
-    fontWeight: '700',
+    fontWeight: '600',
   },
+
+  // ── Side card (generic) ────────────────────────────────────────────────────
 
   sideCard: {
     backgroundColor: C.card,
@@ -408,58 +265,35 @@ export default StyleSheet.create({
     marginBottom: 14,
   },
 
-  confidenceRingWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
+  // ── Detail rows ────────────────────────────────────────────────────────────
+
+  detailList: {
+    gap: 2,
   },
 
-  confidenceRingOuter: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    borderWidth: 8,
-    borderColor: C.purple,
-    alignItems: 'center',
-    justifyContent: 'center',
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: C.line,
   },
 
-  confidenceRingInner: {
-    width: 102,
-    height: 102,
-    borderRadius: 51,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+  detailLabel: {
+    fontSize: 13,
+    color: C.textMuted,
   },
 
-  confidenceValue: {
-    fontSize: 30,
-    fontWeight: '900',
-    color: C.purple,
-  },
-
-  confidenceLabel: {
-    textAlign: 'center',
-    marginTop: 12,
-    fontSize: 14,
+  detailValue: {
+    fontSize: 13,
     fontWeight: '700',
     color: C.text,
+    flexShrink: 1,
+    textAlign: 'right',
   },
 
-  confidenceDesc: {
-    textAlign: 'center',
-    marginTop: 10,
-    fontSize: 12,
-    lineHeight: 18,
-    color: C.textMuted,
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: C.cardBorder,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
+  // ── Quick facts chips ──────────────────────────────────────────────────────
 
   quickFactsGrid: {
     flexDirection: 'row',
@@ -489,31 +323,132 @@ export default StyleSheet.create({
     fontWeight: '800',
   },
 
-  detailList: {
-    gap: 2,
+  // ── Carousel ───────────────────────────────────────────────────────────────
+
+  carouselCard: {
+    width: '100%',
+    height: isDesktop ? 160 : undefined,
+    backgroundColor: C.card,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    padding: 16,
+    overflow: 'hidden',
   },
 
-  detailRow: {
+  carouselHeader: {
+    minHeight: 28,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: C.line,
+    marginBottom: 8,
+    gap: 10,
   },
 
-  detailLabel: {
-    fontSize: 13,
+  carouselTitle: {
+    flexShrink: 1,
+    fontSize: 15,
+    fontWeight: '800',
+    color: C.text,
+  },
+
+  carouselBadge: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    flexShrink: 0,
+  },
+
+  carouselBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+
+  carouselTrack: {
+    gap: 10,
+    paddingRight: 4,
+    minHeight: 90,
+    alignItems: 'center',
+  },
+
+  carouselState: {
+    height: 90,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+
+  carouselStateText: {
+    fontSize: 12,
+    color: C.textMuted,
+    fontWeight: '700',
+  },
+
+  metricCard: {
+    width: 160,
+    height: 90,
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 12,
+    justifyContent: 'space-between',
+  },
+
+  metricLabel: {
+    fontSize: 10,
+    fontWeight: '700',
     color: C.textMuted,
   },
 
-  detailValue: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: C.text,
-    flexShrink: 1,
-    textAlign: 'right',
+  metricValue: {
+    fontSize: 16,
+    fontWeight: '900',
   },
+
+  metricSub: {
+    fontSize: 10,
+    lineHeight: 14,
+    color: C.textMuted,
+  },
+
+  // ── Actions ────────────────────────────────────────────────────────────────
+
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    flexWrap: 'wrap',
+    marginTop: 2,
+  },
+
+  actionButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+
+  actionButtonVerify: {
+    backgroundColor: 'rgba(16,185,129,0.10)',
+    borderColor: 'rgba(16,185,129,0.40)',
+  },
+
+  actionButtonDispatch: {
+    backgroundColor: 'rgba(37,99,235,0.10)',
+    borderColor: 'rgba(37,99,235,0.40)',
+  },
+
+  actionButtonExtinguish: {
+    backgroundColor: 'rgba(220,38,38,0.10)',
+    borderColor: 'rgba(220,38,38,0.40)',
+  },
+
+  actionButtonText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: C.text,
+  },
+
+  // ── Accordion ─────────────────────────────────────────────────────────────
 
   accordionHeader: {
     minHeight: 52,
@@ -571,11 +506,10 @@ export default StyleSheet.create({
   },
 
   accordionChevron: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
     color: C.textMuted,
     marginLeft: 10,
-    bottom: 4,
   },
 
   accordionBodyWrapper: {
@@ -592,6 +526,8 @@ export default StyleSheet.create({
     paddingTop: 2,
     gap: 8,
   },
+
+  // ── Entity items (responders) ──────────────────────────────────────────────
 
   entityItem: {
     borderWidth: 1,
@@ -686,59 +622,7 @@ export default StyleSheet.create({
     color: C.textMuted,
   },
 
-  rightBottomRow: {
-    flexDirection: isDesktop ? 'row' : 'column',
-    gap: 14,
-  },
-
-  carouselCard: {
-    flex: 1,
-    backgroundColor: C.card,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: C.cardBorder,
-    padding: 16,
-    minWidth: 0,
-  },
-
-  carouselTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: C.text,
-    marginBottom: 12,
-  },
-
-  carouselTrack: {
-    gap: 10,
-    paddingRight: 6,
-  },
-
-  metricCard: {
-    width: 210,
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 14,
-  },
-
-  metricLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: C.textMuted,
-    marginBottom: 18,
-  },
-
-  metricValue: {
-    fontSize: 18,
-    fontWeight: '900',
-    marginBottom: 10,
-    color: C.text,
-  },
-
-  metricSub: {
-    fontSize: 11,
-    lineHeight: 16,
-    color: C.textMuted,
-  },
+  // ── Alerts list ────────────────────────────────────────────────────────────
 
   alertsList: {
     gap: 10,
@@ -777,5 +661,243 @@ export default StyleSheet.create({
     fontSize: 12,
     color: C.textMuted,
     lineHeight: 18,
+  },
+
+  // ── FireLab ────────────────────────────────────────────────────────────────
+
+  firelabCard: {
+    backgroundColor: C.card,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    padding: 16,
+    overflow: 'hidden',
+  },
+
+  firelabHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 12,
+  },
+
+  firelabTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: C.text,
+  },
+
+  firelabSub: {
+    fontSize: 12,
+    color: C.textMuted,
+    marginTop: 3,
+    fontWeight: '600',
+  },
+
+  firelabBadge: {
+    borderWidth: 1,
+    borderColor: 'rgba(124,58,237,0.22)',
+    backgroundColor: 'rgba(124,58,237,0.08)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+
+  firelabBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: C.purple,
+  },
+
+  govTabsTrack: {
+    gap: 8,
+    paddingRight: 8,
+    paddingBottom: 10,
+  },
+
+  govTab: {
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    backgroundColor: '#fff',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+
+  govTabActive: {
+    borderColor: 'rgba(236,119,66,0.45)',
+    backgroundColor: 'rgba(236,119,66,0.12)',
+  },
+
+  govTabText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: C.textMuted,
+  },
+
+  govTabTextActive: {
+    color: C.tangerine,
+  },
+
+  firelabLoading: {
+    minHeight: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+
+  firelabLoadingText: {
+    fontSize: 12,
+    color: C.textMuted,
+    fontWeight: '700',
+  },
+
+  firelabEmpty: {
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 14,
+    marginTop: 4,
+  },
+
+  firelabEmptyText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: C.textMuted,
+    fontWeight: '600',
+  },
+
+  firelabRetryBtn: {
+    alignSelf: 'flex-start',
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(236,119,66,0.36)',
+    backgroundColor: 'rgba(236,119,66,0.10)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+
+  firelabRetryBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: C.tangerine,
+  },
+
+  firelabDaysGrid: {
+    flexDirection: isDesktop ? 'row' : 'column',
+    gap: 10,
+    marginTop: 4,
+  },
+
+  firelabDayCard: {
+    flex: 1,
+    minWidth: isDesktop ? 0 : '100%',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 12,
+    backgroundColor: '#fff',
+  },
+
+  firelabDayLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: C.textMuted,
+    marginBottom: 8,
+  },
+
+  firelabDaySub: {
+    fontSize: 11,
+    color: C.textMuted,
+    marginTop: 6,
+    fontWeight: '600',
+  },
+
+  firelabRiskCode: {
+    fontSize: 18,
+    fontWeight: '900',
+    marginBottom: 3,
+  },
+
+  firelabRiskLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+
+  firelabAreaList: {
+    marginTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: C.line,
+    paddingTop: 12,
+  },
+
+  firelabAreaListTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: C.text,
+    marginBottom: 10,
+  },
+
+  firelabAreaScroll: {
+    maxHeight: 220,
+  },
+
+  firelabAreaScrollContent: {
+    gap: 8,
+  },
+
+  firelabAreaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+
+  firelabAreaName: {
+    flex: 1,
+    fontSize: 12,
+    color: C.text,
+    fontWeight: '700',
+  },
+
+  firelabAreaChip: {
+    minWidth: 26,
+    height: 24,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+
+  firelabAreaCode: {
+    fontSize: 10,
+    fontWeight: '900',
+  },
+
+  firelabNotice: {
+    marginTop: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.28)',
+    backgroundColor: 'rgba(245,158,11,0.10)',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+
+  firelabNoticeText: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: C.textMuted,
+    fontWeight: '700',
   },
 });

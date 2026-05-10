@@ -138,7 +138,7 @@ function timeAgo(iso) {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
-export default function MunicipalityDashboard() {
+export default function MunicipalityDashboard({ navigation }) {
   const { user, logout } = useAuth();
 
   const municipalityId = user?.id;
@@ -547,7 +547,13 @@ export default function MunicipalityDashboard() {
 
       {activeTab === 'alerts' ? (
         <View style={styles.tabContent}>
-          <AlertsTab alerts={activeAlerts} loading={loading} fmtDate={fmtDate} />
+          <AlertsTab
+            alerts={activeAlerts}
+            fires={fires}
+            loading={loading}
+            fmtDate={fmtDate}
+            navigation={navigation}
+          />
         </View>
       ) : null}
 
