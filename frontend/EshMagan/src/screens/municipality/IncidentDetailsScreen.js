@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 import styles, { C } from '../../styles/screens/IncidentDetailsScreen.styles';
 import {
   gqlFetch,
@@ -25,10 +26,22 @@ const ASSETS = {
   }),
 }
 
+const flameSrc = Platform.select({
+  web: '/flame_solid.png',
+
+  // Android: image must be in android/app/src/main/res/drawable/flame_solid.png
+  android: 'file:///android_res/drawable/flame_solid.png',
+
+  // iOS: image must be added to Xcode Copy Bundle Resources as flame_solid.png
+  ios: 'flame_solid.png',
+
+  default: 'flame_solid.png',
+});
+
 // ---------------------------------------------------------------------------
 // UPDATE THIS when your Cloudflare tunnel restarts
 // ---------------------------------------------------------------------------
-const COLAB_BASE_URL = 'https://quotations-actual-handmade-garmin.trycloudflare.com';
+const COLAB_BASE_URL = 'https://madrid-industries-sim-establishing.trycloudflare.com';
 
 // ---------------------------------------------------------------------------
 // FireLab
@@ -632,18 +645,7 @@ function WebIncidentMap({ coords, radiusM, spreadDeg, severityColor }) {
   );
 }
 
-function NativeIncidentMap({ coords, radiusM, severityColor }) {
-  let MapView;
-  let Circle;
-  let Marker;
-
-  try {
-    const m = require('react-native-maps');
-    MapView = m.default;
-    Circle = m.Circle;
-    Marker = m.Marker;
-  } catch { }
-
+function NativeIncidentMap({ coords, radiusM, spreadDeg, severityColor }) {
   if (!coords) {
     return (
       <View style={styles.mapPlaceholder}>
@@ -652,44 +654,175 @@ function NativeIncidentMap({ coords, radiusM, severityColor }) {
     );
   }
 
-  if (!MapView) {
-    return (
-      <View style={styles.mapPlaceholder}>
-        <Text style={styles.mapPlaceholderText}>
-          {coords.lat.toFixed(4)} N, {coords.lng.toFixed(4)} E
-        </Text>
-      </View>
-    );
-  }
+  const lat = Number(coords.lat);
+  const lng = Number(coords.lng);
+  const radius = Number(radiusM || 300);
+  const spread = Number.isFinite(Number(spreadDeg)) ? Number(spreadDeg) : null;
+
+  const mapHTML = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      />
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+      <style>
+        html, body {
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+          background: #f8fafc;
+        }
+
+        #map {
+          width: 100%;
+          height: 100%;
+        }
+
+        .leaflet-control-attribution {
+          font-size: 10px !important;
+        }
+
+        .incident-flame-marker {
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          background: #ffffff;
+          border: 4px solid ${severityColor};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 14px rgba(0,0,0,0.22);
+        }
+
+        .incident-flame-inner {
+          width: 20px;
+          height: 20px;
+          background: #f97316;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          position: relative;
+        }
+
+        .incident-flame-inner:after {
+          content: "";
+          position: absolute;
+          width: 10px;
+          height: 10px;
+          background: #ffffff;
+          border-radius: 50% 50% 50% 0;
+          left: 5px;
+          top: 5px;
+        }
+      </style>
+    </head>
+
+    <body>
+      <div id="map"></div>
+
+      <script>
+        const lat = ${lat};
+        const lng = ${lng};
+        const radius = ${radius};
+        const spreadDeg = ${spread === null ? 'null' : spread};
+        const severityColor = "${severityColor}";
+
+        const map = L.map('map', {
+          zoomControl: true,
+          attributionControl: true,
+          dragging: false,
+          scrollWheelZoom: false,
+          doubleClickZoom: false,
+          boxZoom: false,
+          keyboard: false,
+          tap: false,
+          touchZoom: false
+        }).setView([lat, lng], 14);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+          attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+          subdomains: 'abcd',
+          maxZoom: 20,
+          detectRetina: true
+        }).addTo(map);
+
+        L.circle([lat, lng], {
+          radius: radius,
+          color: severityColor,
+          fillColor: severityColor,
+          fillOpacity: 0.12,
+          weight: 2,
+          dashArray: '6 4'
+        }).addTo(map);
+
+        if (spreadDeg !== null && Number.isFinite(spreadDeg)) {
+          const halfAngle = 30;
+          const coneLen = radius * 2.4;
+
+          function pointOnBearing(bearing, dist) {
+            const b = bearing * Math.PI / 180;
+            const cosLat = Math.cos(lat * Math.PI / 180);
+
+            return [
+              lat + (dist / 111320) * Math.cos(b),
+              lng + (dist / (111320 * cosLat)) * Math.sin(b)
+            ];
+          }
+
+          const arc = [];
+
+          for (let a = spreadDeg - halfAngle; a <= spreadDeg + halfAngle; a += 3) {
+            arc.push(pointOnBearing(a, coneLen));
+          }
+
+          L.polygon([[lat, lng], ...arc, [lat, lng]], {
+            color: '#f97316',
+            fillColor: '#f97316',
+            fillOpacity: 0.2,
+            weight: 2
+          }).addTo(map);
+        }
+
+        const icon = L.divIcon({
+          className: '',
+          html: '<div style="width:38px;height:38px;border-radius:50%;background:#fff;border:4px solid ${severityColor};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 14px rgba(0,0,0,0.22);"><img src="${flameSrc}" style="width:20px;height:20px;object-fit:contain;display:block;" /></div>',
+          iconSize: [14, 14],
+          iconAnchor: [22, 22]
+        });
+
+        L.marker([lat, lng], { icon }).addTo(map);
+
+        setTimeout(function() {
+          map.invalidateSize();
+        }, 250);
+      </script>
+    </body>
+    </html>
+  `;
 
   return (
     <View style={styles.mapViewport}>
-      <MapView
-        style={{ flex: 1, borderRadius: 20 }}
-        initialRegion={{
-          latitude: coords.lat,
-          longitude: coords.lng,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
+      <WebView
+        originWhitelist={['*']}
+        source={{
+          html: mapHTML,
+          baseUrl: Platform.OS === 'ios' ? '' : undefined,
         }}
-      >
-        <Circle
-          center={{
-            latitude: coords.lat,
-            longitude: coords.lng,
-          }}
-          radius={radiusM}
-          strokeColor={severityColor}
-          fillColor={`${severityColor}28`}
-          strokeWidth={2}
-        />
-        <Marker
-          coordinate={{
-            latitude: coords.lat,
-            longitude: coords.lng,
-          }}
-        />
-      </MapView>
+        javaScriptEnabled
+        domStorageEnabled
+        scrollEnabled={false}
+        nestedScrollEnabled={false}
+        mixedContentMode="always"
+        allowFileAccess
+        allowUniversalAccessFromFileURLs
+        style={{ flex: 1, backgroundColor: 'transparent' }}
+      />
     </View>
   );
 }
