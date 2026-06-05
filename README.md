@@ -3,9 +3,9 @@
 ## Table of Contents
 1. [Project Overview](#project-overview)
 2. [Problem Statement & Objectives](#problem-statement--objectives)
-3. [Key Features](#key-features)
-4. [User Roles & Permissions](#user-roles--permissions)
-5. [System Architecture](#system-architecture)
+3. [System Architecture](#system-architecture)
+4. [Key Features](#key-features)
+5. [User Roles & Permissions](#user-roles--permissions)
 6. [Technology Stack](#technology-stack)
 7. [Folder Structure](#folder-structure)
 8. [Frontend Overview](#frontend-overview)
@@ -14,17 +14,24 @@
 11. [API Documentation](#api-documentation)
 12. [Real-time Communication](#real-time-communication)
 13. [Authentication & Authorization](#authentication--authorization)
-14. [Installation Guide](#installation-guide)
-15. [Environment Configuration](#environment-configuration)
-16. [Running the Application](#running-the-application)
-17. [Thermal Camera & AI Integration](#thermal-camera--ai-integration)
-18. [Example Data Flows](#example-data-flows)
-19. [Important Implementation Details](#important-implementation-details)
-20. [Security Considerations](#security-considerations)
-21. [Error Handling](#error-handling)
-22. [Known Limitations](#known-limitations)
-23. [Future Improvements](#future-improvements)
-24. [License](#license)
+14. [System Requirements](#system-requirements)
+15. [Installation Guide](#installation-guide)
+16. [Python Dependencies](#python-dependencies)
+17. [Environment Configuration](#environment-configuration)
+18. [Frontend API Configuration](#frontend-api-configuration)
+19. [Running the Application](#running-the-application)
+20. [Thermal Camera & AI Integration](#thermal-camera--ai-integration)
+21. [Ngrok Configuration](#ngrok-configuration)
+22. [Google Colab AI Setup](#google-colab-ai-setup)
+23. [Example Data Flows](#example-data-flows)
+24. [Complete System Startup Sequence](#complete-system-startup-sequence)
+25. [Demo Accounts](#demo-accounts)
+26. [Verification & Testing](#verification--testing)
+27. [Important Implementation Details](#important-implementation-details)
+28. [Security Considerations](#security-considerations)
+29. [Known Limitations](#known-limitations)
+30. [Future Improvements](#future-improvements)
+31. [License](#license)
 
 ---
 
@@ -58,6 +65,116 @@ Wildfires represent a critical threat requiring rapid detection, immediate coord
 4. **Live Situational Awareness** through integrated dashboards for all stakeholder roles
 5. **Multi-Platform Accessibility** across mobile, web, and desktop environments
 6. **Reliable Communication** through multiple channels (push notifications, in-app alerts, SMS-like notifications)
+
+---
+
+## System Architecture
+
+### High-Level Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    FRONTEND LAYER                               │
+├─────────────────────────────────────────────────────────────────┤
+│  React Native        Web (React)        Electron Desktop         │
+│  ├─ iOS             ├─ Browser          ├─ Windows              │
+│  └─ Android         └─ Web Build        └─ macOS                │
+└─────────────────┬───────────────────────────────────────────────┘
+                  │
+        ┌─────────┴────────┬────────────┬──────────────┐
+        │                  │            │              │
+    REST API        GraphQL API      gRPC        Firebase
+   /api/auth/      /eshmagan        50051        Messaging
+                                                  (FCM)
+        │                  │            │              │
+└────────────────────┬─────────────────┴────────┬──────┴──────┐
+                     │                          │             │
+        ┌────────────────────────────────────┐  │     Firebase
+        │   EXPRESS.JS BACKEND               │  │     Cloud
+        │   ─────────────────────────────    │  │
+        │  • REST Routes (Auth)              │  │
+        │  • GraphQL Server (Apollo)         │  │
+        │  • Middleware (Auth, Validation)   │  │
+        │  • Services & Repositories         │  │
+        │  • gRPC Server (Location Stream)   │  │
+        └────────────────┬────────────────┬─┘  │
+                         │                │     │
+        ┌────────────────────────────────────┐  │
+        │         NATS JetStream             │◄─┘
+        │  Event-Driven Messaging            │
+        │  ────────────────────────────────  │
+        │  • fire.detected                   │
+        │  • fire.spread                     │
+        │  • fire.extinguished               │
+        │  • fire.risk.predicted             │
+        │  • alert.created                   │
+        │  • assignment.created              │
+        │  • evacuation.updated              │
+        └────────┬───────────────────────┬──┘
+                 │                       │
+    ┌────────────────────────┐  ┌────────────────────┐
+    │ POSTGRESQL DATABASE    │  │  RASPBERRY PI PICO │
+    │ + PostGIS             │  │  MLX90640 Thermal  │
+    │ ──────────────────    │  │  Camera (UART)     │
+    │ • Users               │  │ ────────────────── │
+    │ • Fire Events         │  │ Thermal Frames     │
+    │ • Alerts              │  │ (→ Google Colab AI)│
+    │ • Evacuation Routes   │  │                    │
+    │ • Assignments         │  │ Fire Detection     │
+    │ • Notifications       │  │ (Confirmed → gQL) │
+    │ • Geographic Data     │  │                    │
+    └────────────────────────┘  └────────────────────┘
+                 │
+    ┌────────────────────────────────────┐
+    │   GOOGLE COLAB AI SERVER           │
+    │   ──────────────────────────────── │
+    │   • Thermal Frame Processing       │
+    │   • Fire Detection Model           │
+    │   • Fire Spread Prediction         │
+    │   • Evacuation Route Generation    │
+    │   • Calls GraphQL API (Backend)    │
+    └────────────────────────────────────┘
+```
+
+---
+
+### Data Flow: Fire Detection to Evacuation
+
+```
+Thermal Camera (Pico)
+    ↓
+    [USB Serial → Laptop]
+    ↓
+thermal_dashboard_ai.py (Laptop Gateway)
+    ├─ Reads frames from Pico serial
+    ├─ Gets laptop geolocation
+    └─ Sends frames to Google Colab
+        ↓
+        [Google Colab AI Server]
+        ├─ Processes thermal frames
+        ├─ Runs fire detection model
+        ├─ Identifies fire hotspots
+        └─ If fire confirmed:
+            ↓
+            GraphQL Mutation: createFireAndTriggerSystem()
+                ├─ Create fire record
+                ├─ Generate evacuation routes
+                ├─ Publish NATS: fire.detected
+                └─ Publish NATS: evacuation.updated
+                    ↓
+                    [Backend NATS Consumers]
+                    ├─ fireDetected subscriber
+                    │   └─ Create/broadcast alerts
+                    │
+                    └─ evacuationUpdated subscriber
+                        └─ Notify affected residents
+                            ↓
+                            Firebase Messaging
+                                ↓
+                            Mobile Push Notifications
+                                ↓
+                            Resident Evacuation Alerts
+```
 
 ---
 
@@ -221,114 +338,6 @@ Wildfires represent a critical threat requiring rapid detection, immediate coord
 
 **Restrictions**:
 - Typically used by system operators only
-
----
-
-## System Architecture
-
-### High-Level Architecture Diagram
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    FRONTEND LAYER                               │
-├─────────────────────────────────────────────────────────────────┤
-│  React Native        Web (React)        Electron Desktop         │
-│  ├─ iOS             ├─ Browser          ├─ Windows              │
-│  └─ Android         └─ Web Build        └─ macOS                │
-└─────────────────┬───────────────────────────────────────────────┘
-                  │
-        ┌─────────┴────────┬────────────┬──────────────┐
-        │                  │            │              │
-    REST API        GraphQL API      gRPC        Firebase
-   /api/auth/      /eshmagan        50051        Messaging
-                                                  (FCM)
-        │                  │            │              │
-└────────────────────┬─────────────────┴────────┬──────┴──────┐
-                     │                          │             │
-        ┌────────────────────────────────────┐  │     Firebase
-        │   EXPRESS.JS BACKEND               │  │     Cloud
-        │   ─────────────────────────────    │  │
-        │  • REST Routes (Auth)              │  │
-        │  • GraphQL Server (Apollo)         │  │
-        │  • Middleware (Auth, Validation)   │  │
-        │  • Services & Repositories         │  │
-        │  • gRPC Server (Location Stream)   │  │
-        └────────────────┬────────────────┬─┘  │
-                         │                │     │
-        ┌────────────────────────────────────┐  │
-        │         NATS JetStream             │◄─┘
-        │  Event-Driven Messaging            │
-        │  ────────────────────────────────  │
-        │  • fire.detected                   │
-        │  • fire.spread                     │
-        │  • fire.extinguished               │
-        │  • fire.risk.predicted             │
-        │  • alert.created                   │
-        │  • assignment.created              │
-        │  • evacuation.updated              │
-        └────────┬───────────────────────┬──┘
-                 │                       │
-    ┌────────────────────────┐  ┌────────────────────┐
-    │ POSTGRESQL DATABASE    │  │  RASPBERRY PI PICO │
-    │ + PostGIS             │  │  MLX90640 Thermal  │
-    │ ──────────────────    │  │  Camera (UART)     │
-    │ • Users               │  │ ────────────────── │
-    │ • Fire Events         │  │ Thermal Frames     │
-    │ • Alerts              │  │ (→ Google Colab AI)│
-    │ • Evacuation Routes   │  │                    │
-    │ • Assignments         │  │ Fire Detection     │
-    │ • Notifications       │  │ (Confirmed → gQL) │
-    │ • Geographic Data     │  │                    │
-    └────────────────────────┘  └────────────────────┘
-                 │
-    ┌────────────────────────────────────┐
-    │   GOOGLE COLAB AI SERVER           │
-    │   ──────────────────────────────── │
-    │   • Thermal Frame Processing       │
-    │   • Fire Detection Model           │
-    │   • Fire Spread Prediction         │
-    │   • Evacuation Route Generation    │
-    │   • Calls GraphQL API (Backend)    │
-    └────────────────────────────────────┘
-```
-
-### Data Flow: Fire Detection to Evacuation
-
-```
-Thermal Camera (Pico)
-    ↓
-    [USB Serial → Laptop]
-    ↓
-thermal_dashboard_ai.py (Laptop Gateway)
-    ├─ Reads frames from Pico serial
-    ├─ Gets laptop geolocation
-    └─ Sends frames to Google Colab
-        ↓
-        [Google Colab AI Server]
-        ├─ Processes thermal frames
-        ├─ Runs fire detection model
-        ├─ Identifies fire hotspots
-        └─ If fire confirmed:
-            ↓
-            GraphQL Mutation: createFireWithEvacuation()
-                ├─ Create fire record
-                ├─ Generate evacuation routes
-                ├─ Publish NATS: fire.detected
-                └─ Publish NATS: evacuation.updated
-                    ↓
-                    [Backend NATS Consumers]
-                    ├─ fireDetected subscriber
-                    │   └─ Create/broadcast alerts
-                    │
-                    └─ evacuationUpdated subscriber
-                        └─ Notify affected residents
-                            ↓
-                            Firebase Messaging
-                                ↓
-                            Mobile Push Notifications
-                                ↓
-                            Resident Evacuation Alerts
-```
 
 ---
 
@@ -562,13 +571,19 @@ Single codebase for mobile (iOS/Android), web, and desktop:
 ## Real-time Communication
 
 ### NATS JetStream Events
+The system uses an event-driven architecture built on NATS JetStream.
+However, some events are fully implemented while others are currently reserved for future enhancements.
+
+### Events Fully Implemented
 - `fire.detected` - Fire confirmed by AI
-- `fire.spread` - Fire severity/spread update
-- `fire.extinguished` - Fire extinguished
 - `fire.risk.predicted` - AI prediction alert
 - `alert.created` - Alert broadcast
 - `assignment.created` - Responder assignment
 - `evacuation.updated` - Route updates
+
+### Events Partially Implemented
+- `fire.spread` - Fire severity/spread update
+- `fire.extinguished` - Fire extinguished
 
 ### Firebase Cloud Messaging
 - Push notification delivery
@@ -597,6 +612,37 @@ Enforced at:
 - GraphQL resolvers (check context.user.user_role)
 - REST route handlers
 - Frontend navigation logic
+
+---
+
+## System Requirements
+
+### Hardware
+
+- Raspberry Pi Pico
+- MLX90640 Thermal Camera
+- USB Connection to Host Computer
+- Internet Connection for Google Colab Communication
+
+### Software
+
+- Node.js >= 22
+- npm >= 10
+- PostgreSQL >= 16
+- PostGIS Extension
+- NATS Server with JetStream
+- Python >= 3.10
+- Ngrok
+- Git
+
+### Supported Platforms
+
+- Windows 10 / 11
+- macOS
+- Linux
+- Android
+- iOS
+- Modern Web Browsers
 
 ---
 
@@ -643,6 +689,55 @@ npm run ios
 
 ---
 
+## Python Dependencies
+
+The thermal gateway and AI communication layer require Python packages.
+
+### Install Dependencies
+
+```bash
+pip install pyserial requests geocoder numpy opencv-python matplotlib
+```
+
+### Using a Virtual Environment (Recommended)
+
+```bash
+python -m venv venv
+```
+
+Windows:
+
+```bash
+venv\Scripts\activate
+```
+
+Linux / macOS:
+
+```bash
+source venv/bin/activate
+```
+
+Install packages:
+
+```bash
+pip install pyserial requests geocoder numpy opencv-python matplotlib
+```
+
+### Verify Installation
+
+```bash
+python --version
+pip list
+```
+
+Ensure all required packages are installed before launching:
+
+```bash
+python thermal_dashboard_ai.py
+```
+
+---
+
 ## Environment Configuration
 
 Create `backend/.env`:
@@ -657,6 +752,42 @@ FIREBASE_PROJECT_ID=your_project_id
 FIREBASE_PRIVATE_KEY=your_private_key
 FIREBASE_CLIENT_EMAIL=your_email
 ```
+
+---
+
+## Frontend API Configuration
+
+Before launching the frontend applications, ensure the correct backend endpoint is configured.
+
+### Local Development
+
+Replace the GraphQL endpoint with your machine's local IP address:
+
+```javascript
+const GRAPHQL_URL = "http://192.168.1.10:5000/eshmagan";
+```
+
+Example:
+
+```text
+http://192.168.1.10:5000/eshmagan
+```
+
+### Ngrok Development
+
+When using Google Colab or testing on external devices, use the Ngrok URL:
+
+```javascript
+const GRAPHQL_URL =
+  "https://abcd-1234.ngrok-free.app/eshmagan";
+```
+
+### Important Notes
+
+- Mobile devices cannot access `localhost`.
+- Android emulators may require `10.0.2.2`.
+- Physical devices must use the host machine's IP address or Ngrok URL.
+- Ensure backend, GraphQL, and NATS services are running before launching the frontend.
 
 ---
 
@@ -721,6 +852,120 @@ GY-MCU90640 RX  → Pico GP0 (UART0 TX)
 
 ---
 
+## Ngrok Configuration
+
+Google Colab cannot directly access services running on localhost.
+
+Ngrok creates a secure public tunnel to the backend.
+
+### Installation
+
+Download and install Ngrok.
+
+### Authenticate
+
+```bash
+ngrok config add-authtoken YOUR_TOKEN
+```
+
+### Expose Backend
+
+```bash
+ngrok http 5000
+```
+
+Example:
+
+```text
+https://abcd-1234.ngrok-free.app
+```
+
+Use this URL inside Google Colab when configuring GraphQL communication.
+
+### Verification
+
+Open the generated URL in a browser.
+
+You should receive a backend response.
+
+If inaccessible:
+
+* Verify backend is running
+* Verify port number
+* Restart Ngrok
+
+---
+
+## Google Colab AI Setup
+
+The AI subsystem is responsible for:
+
+* Thermal frame processing
+* Fire verification
+* Fire spread prediction
+* Evacuation route generation
+
+### Opening the Notebook
+
+Open:
+
+```text
+EshMagan_Ai.ipynb
+```
+
+in Google Colab.
+
+### Runtime
+
+Select:
+
+```text
+Runtime → Run All
+```
+
+### Configure Backend Endpoint
+
+Replace the backend URL with the Ngrok URL.
+
+Example:
+
+```python
+BACKEND_URL = "https://abcd-1234.ngrok-free.app"
+```
+
+### Startup Validation
+
+Verify:
+
+* Notebook starts without errors
+* GraphQL connection established
+* AI model loaded
+* Route generation available
+
+### Fire Creation Pipeline
+
+```text
+Thermal Frame
+    ↓
+AI Processing
+    ↓
+Fire Verification
+    ↓
+GraphQL Mutation
+    ↓
+Fire Record Creation
+    ↓
+NATS Publication
+    ↓
+Alerts
+    ↓
+Firebase Notifications
+    ↓
+Resident & Responder Applications
+```
+
+---
+
 ## Example Data Flows
 
 ### Fire Detection → Evacuation Alert (30 seconds)
@@ -743,128 +988,467 @@ GY-MCU90640 RX  → Pico GP0 (UART0 TX)
 
 ---
 
+## Complete System Startup Sequence
+
+To ensure all platform components communicate correctly, start services in the following order.
+
+### Step 0 — Configure Environment Variables
+
+Verify:
+
+- backend/.env
+- Firebase credentials
+- Database credentials
+- JWT secrets
+- NATS URL
+
+The backend will not start correctly unless all required environment variables are configured.
+
+### Step 1 — PostgreSQL + PostGIS
+
+Verify PostgreSQL is running.
+
+```bash
+createdb eshmagan
+psql -d eshmagan -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+```
+
+Load schema:
+
+```bash
+psql -d eshmagan -f EshMagan.sql
+```
+
+Verify connectivity:
+
+```bash
+curl http://localhost:5000/db-test
+```
+
+---
+
+### Step 2 — Start NATS JetStream
+
+Open Terminal 1:
+
+```bash
+nats-server -js
+```
+
+Expected output:
+
+```text
+Server is ready
+JetStream is enabled
+```
+
+NATS is responsible for:
+
+* fire.detected
+* fire.spread
+* fire.extinguished
+* fire.risk.predicted
+* alert.created
+* assignment.created
+* evacuation.updated
+
+Without NATS, alerts and assignments will not propagate.
+
+---
+
+### Step 3 — Start Backend
+
+Open Terminal 2:
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+Expected services:
+
+* Express API
+* Apollo GraphQL
+* gRPC Location Service
+* Firebase Integration
+* NATS Consumers
+
+Verify:
+
+```bash
+curl http://localhost:5000/
+```
+
+---
+
+### Step 4 — Expose Backend with Ngrok
+
+Open Terminal 3:
+
+```bash
+ngrok http 5000
+```
+
+Example output:
+
+```text
+https://abcd-1234.ngrok-free.app
+```
+
+Copy this URL.
+
+The AI server running in Google Colab requires this public URL to communicate with the backend.
+
+---
+
+### Step 5 — Launch Google Colab AI
+
+Open:
+
+```text
+EshMagan_Ai.ipynb
+```
+
+Update the backend endpoint using the Ngrok URL.
+
+Run all notebook cells in order.
+
+Verify:
+
+* AI model loads successfully
+* GraphQL endpoint reachable
+* Fire creation mutation available
+* Evacuation generation operational
+
+---
+
+### Step 6 — Connect MLX90640 Thermal Camera
+
+Connect Raspberry Pi Pico via USB.
+
+Flash:
+
+```text
+main.py
+```
+
+onto the Pico.
+
+Verify thermal frames are transmitted.
+
+---
+
+### Step 7 — Launch Thermal Gateway
+
+Open Terminal 4:
+
+```bash
+cd backend/src/eshmagan_mlx
+python thermal_dashboard_ai.py
+```
+
+This service:
+
+* Reads thermal frames
+* Retrieves laptop geolocation
+* Sends data to Google Colab
+* Displays thermal analysis results
+
+---
+
+### Step 8 — Launch Frontend
+
+Open Terminal 5:
+
+```bash
+cd frontend/EshMagan
+npm install
+```
+
+Web:
+
+```bash
+npm run web
+```
+
+Desktop:
+
+```bash
+npm run electron
+```
+
+Android:
+
+```bash
+npm run android
+```
+
+iOS:
+
+```bash
+npm run ios
+```
+
+---
+
+### Step 9 — Login and Verify
+
+Use test accounts for:
+
+* Resident
+* Responder
+* Municipality
+* Administrator
+
+Confirm:
+
+* GraphQL queries succeed
+* Notifications are received
+* Maps render correctly
+* Fire events appear
+* Assignments update
+* Evacuation routes load
+
+---
+
+## Demo Accounts
+
+The following accounts can be used for testing and demonstration purposes.
+
+### Resident
+
+```text
+Email: resident@test.com
+Password: password123
+```
+
+### Responder
+
+```text
+Email: responder@test.com
+Password: password123
+```
+
+### Municipality
+
+```text
+Email: municipality@test.com
+Password: password123
+```
+
+### Administrator
+
+```text
+Email: admin@test.com
+Password: password123
+```
+
+> Replace these credentials with the actual seeded accounts available in your database.
+
+---
+
+## Verification & Testing
+
+### Backend Health
+
+```bash
+curl http://localhost:5000/
+```
+
+Expected:
+
+```text
+Backend running
+```
+
+### Database Connectivity
+
+```bash
+curl http://localhost:5000/db-test
+```
+
+Expected:
+
+```text
+Database connected
+```
+
+### GraphQL Endpoint
+
+Open:
+
+```text
+http://localhost:5000/eshmagan
+```
+
+Verify schema loads.
+
+### NATS Connectivity
+
+Verify subscribers start without errors.
+
+Expected subjects:
+
+* fire.detected
+* fire.spread
+* fire.extinguished
+* alert.created
+* assignment.created
+
+### Firebase Verification
+
+Send a test notification.
+
+Expected:
+
+* Android receives push notification
+* iOS receives push notification
+* Web receives notification
+
+### AI Verification
+
+Introduce a heat source near the MLX90640.
+
+Verify:
+
+1. Thermal frame detected
+2. AI processes frame
+3. Fire created
+4. NATS event published
+5. Alert generated
+6. Notification delivered
+7. Incident appears on dashboards
+
+### End-to-End Success Criteria
+
+A complete system test is successful when:
+
+* Fire appears in Municipality Dashboard
+* Residents receive evacuation alerts
+* Responders receive assignments
+* Evacuation routes are generated
+* Notification delivery status updates
+* Fire status changes propagate in real time
+* All dashboards remain synchronized
+
+---
+
 ## Important Implementation Details
 
-### Location Handling
-- PostGIS geography (WGS84/EPSG:4326)
-- Format: `POINT(longitude latitude)` or `{latitude, longitude}`
-- Reverse geocoding cached to 4 decimal places (~11 meters)
+### Event-Driven Architecture
+- All critical system actions are propagated through **NATS JetStream**
+- Fire lifecycle is fully event-driven:
+  - Detection → Assignment → Evacuation → Resolution
+- Ensures decoupling between backend services
 
-### Fire Severity (1-5 Scale)
-- Level 1-2: Contained, <50 hectares
-- Level 3: Moderate, 50-500 hectares
-- Level 4-5: Severe, >500 hectares
+### Real-Time Systems
+- gRPC is used for live responder location streaming
+- Firebase handles push notification delivery
+- GraphQL handles complex relational queries
+- REST is strictly used for authentication
 
-### Evacuation Routes
-- AI generates 5 routes per fire
-- Properties: path, safe zone, distance, time, priority
-- Dynamically updated as fire spreads
+### AI Integration Pattern
+- AI does NOT directly modify the database
+- Instead:
+  1. Detects fire
+  2. Calls GraphQL mutation
+  3. Backend handles persistence and event publishing
 
-### Database Pooling
-- 2-10 connections
-- 30 second idle timeout
-- 10 second query timeout
+### Geospatial Logic
+- PostGIS is used for:
+  - Fire radius calculations
+  - Evacuation route generation
+  - Safe zone proximity checks
 
 ---
 
 ## Security Considerations
 
-✓ **Implemented**:
-- Bcrypt password hashing (10 rounds)
-- JWT with strong secrets
-- Token revocation on logout
-- CORS for frontend origin
-- Input validation
+### Authentication Security
+- JWT access tokens expire after 15 minutes
+- Refresh tokens are securely stored and rotated
+- Passwords are hashed using bcrypt (10 rounds minimum)
 
-⚠ **Gaps**:
-- No rate limiting
-- No field-level encryption (encryption_key unused)
-- No API key for service-to-service auth
-- Firebase credentials not encrypted in config
+### API Protection
+- All protected routes use authentication middleware
+- Role-based access control enforced at:
+  - REST layer
+  - GraphQL resolvers
+  - Frontend route guards
 
-### Recommendations
-1. Add rate limiting (express-rate-limit)
-2. Implement HTTPS/TLS for production
-3. Encrypt sensitive fields (phone, ID numbers)
-4. Add password complexity requirements
-5. Implement comprehensive audit logging
-6. Regular security dependency audits
+### Data Protection
+- Sensitive data is filtered based on user role
+- Fire and evacuation data is restricted per permissions
 
----
-
-## Error Handling
-
-**HTTP Status Codes**:
-- 400: Validation failed
-- 401: Unauthorized/expired token
-- 403: Insufficient permissions
-- 404: Not found
-- 500: Server error
-- 503: Service unavailable (NATS/DB down)
-
-**GraphQL**: Returns errors in response, not HTTP status
-
-**Resilience**: Failed notifications don't break flow, logged instead
+### Communication Security
+- Ngrok is strictly for development use only
+- Firebase tokens required for push notifications
+- Environment variables must never be committed
 
 ---
 
 ## Known Limitations
 
-1. **No Automated Testing** - Manual testing only
-2. **Single Production Server** - No horizontal scaling
-3. **Colab AI** - Not suitable for production (queue delays)
-4. **No Offline Support** - Requires constant connectivity
-5. **No Monitoring** - Limited production visibility
-6. **Basic Assignment** - No sophisticated routing optimization
-7. **Firebase Only** - Single notification provider
-8. **No SMS/Email** - Limited communication channels
-9. **Limited Documentation** - Minimal inline comments
-10. **Scalability Limits** - Single database, single server
+### AI Limitations
+- Fire detection depends on thermal camera accuracy and environmental conditions
+- False positives may occur in high-heat environments
+- AI model requires stable internet connection via Colab
+
+### Infrastructure Limitations
+- NATS must remain running for event propagation
+- System depends on stable PostgreSQL + PostGIS setup
+- Ngrok required for external AI communication (dev mode only)
+
+### Mobile Limitations
+- AR mode only available on supported mobile devices
+- Background GPS tracking may vary by OS restrictions
+- Push notifications depend on Firebase delivery success
+
+### Network Limitations
+- Real-time features require stable internet connection
+- gRPC streaming may drop under weak connectivity
 
 ---
 
 ## Future Improvements
 
-### High Priority
-- Automated testing suite (Jest)
-- Dedicated AI server (not Colab)
-- Real-time WebSocket dashboards
-- Mobile offline maps
-- Production monitoring (APM, errors, logs)
+### Full Fire Lifecycle Event System
+- Implement fire.spread publishing in real-time fire severity updates
+- Enable dynamic evacuation route recalculation based on spread events
+- Complete end-to-end fire lifecycle automation across all services
 
-### Medium Priority
-- Multi-factor authentication
-- Advanced resource management
-- Historical analytics
-- Multi-language support
-- SMS & Email integration
+### Event-Driven System Completion
+- Fully integrate fire.extinguished consumer logic
+- Ensure cleanup workflows (alerts, assignments, evacuation closure)
 
-### Lower Priority
-- Custom role system
-- Blockchain incident records
-- Weather data integration
-- ML route optimization
-- Inter-municipality coordination
+### AI Enhancements
+- Train local edge AI model (remove Colab dependency)
+- Improve fire spread prediction accuracy
+- Add smoke detection alongside thermal detection
+
+### System Improvements
+- Replace Ngrok with permanent cloud deployment
+- Add Kubernetes orchestration for backend scaling
+- Introduce Redis caching layer for performance
+
+### Feature Expansions
+- Satellite-based fire detection integration
+- Drone integration for live aerial monitoring
+- SMS fallback alerts (in case of no internet)
+- Offline-first mobile evacuation mode
+
+### Analytics & Reporting
+- Fire trend prediction dashboard
+- Heatmap-based risk analysis
+- Historical incident AI insights
 
 ---
 
 ## License
 
-ISC
+This project is developed for academic and demonstration purposes.
 
----
+All rights reserved © 2026 EshMagan Project Team.
 
-## Summary
-
-**EshMagan** is a sophisticated emergency management platform combining:
-- Real-time fire detection (thermal imaging + AI)
-- Intelligent evacuation coordination
-- Multi-role dashboards
-- Cross-platform support (mobile, web, desktop)
-- Event-driven architecture
-
-The system demonstrates professional software engineering with modular architecture, separation of concerns, comprehensive error handling, and security awareness.
-
-**Repository**: [GitHub - MateoBitar/EshMagan](https://github.com/MateoBitar/EshMagan)
-
-**Last Updated**: May 14, 2026 | **Version**: 1.0.0
+Unauthorized commercial use, redistribution, or modification without permission is prohibited.

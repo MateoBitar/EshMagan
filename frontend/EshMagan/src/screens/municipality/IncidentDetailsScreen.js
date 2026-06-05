@@ -41,7 +41,7 @@ const flameSrc = Platform.select({
 // ---------------------------------------------------------------------------
 // UPDATE THIS when your Cloudflare tunnel restarts
 // ---------------------------------------------------------------------------
-const COLAB_BASE_URL = 'https://madrid-industries-sim-establishing.trycloudflare.com';
+const COLAB_BASE_URL = 'https://blackjack-noble-tremendous-nail.trycloudflare.com';
 
 // ---------------------------------------------------------------------------
 // FireLab
