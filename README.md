@@ -1414,13 +1414,8 @@ A complete system test is successful when:
 ## Future Improvements
 
 ### Full Fire Lifecycle Event System
-- Implement fire.spread publishing in real-time fire severity updates
 - Enable dynamic evacuation route recalculation based on spread events
 - Complete end-to-end fire lifecycle automation across all services
-
-### Event-Driven System Completion
-- Fully integrate fire.extinguished consumer logic
-- Ensure cleanup workflows (alerts, assignments, evacuation closure)
 
 ### AI Enhancements
 - Train local edge AI model (remove Colab dependency)
