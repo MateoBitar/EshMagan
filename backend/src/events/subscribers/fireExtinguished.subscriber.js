@@ -14,8 +14,6 @@ import { ResponderRepository } from '../../domain/repositories/responder.reposit
 import { UserRepository } from '../../domain/repositories/user.repository.js';
 import { UserService } from '../../services/user.service.js';
 import { FireRepository } from '../../domain/repositories/fire.repository.js';
-import { EvacuationRepository } from '../../domain/repositories/evacuation.repository.js';
-import { publishEvacuationUpdated } from '../publishers/evacuationUpdated.publisher.js';
 import { sendPushToTokens } from '../../services/push.service.js';
 
 const CONSUMER_NAME = 'fireExtinguished-consumer';
@@ -44,7 +42,6 @@ export async function startFireExtinguishedSubscriber() {
         const userRepository = new UserRepository();
         const userService = new UserService(userRepository);
         const fireRepository = new FireRepository();
-        const evacuationRepository = new EvacuationRepository();
         const consumer = await js.consumers.get('ESHMAGAN', CONSUMER_NAME);
         const messages = await consumer.consume();
 
@@ -198,20 +195,10 @@ export async function startFireExtinguishedSubscriber() {
                         console.warn(`[NATS] Error while creating notifications for fire.extinguished: ${e.message}`);
                     }
 
-                    // Trigger evacuation.updated to clear evacuation state for this fire (best-effort)
-                    try {
-                        await publishEvacuationUpdated({
-                            fire_id: data.fire_id,
-                            update_type: 'cleared',
-                            message: 'Evacuation cleared; fire extinguished',
-                            timestamp: new Date().toISOString(),
-                        });
-                        console.log(`[NATS] Published evacuation.updated (cleared) for fire_id: ${data.fire_id}`);
-                    } catch (e) {
-                        console.warn(`[NATS] Failed to publish evacuation.updated for fire_id ${data.fire_id}: ${e.message}`);
-                    }
-
-                    msg.ack();
+                    // Evacuation routes are cleaned up by FireService.extinguishFire before publishing fire.extinguished.
+                    // To avoid excessive per-route notifications we do not publish evacuation.updated here.
+                    // This keeps behavior explicit: FireService handles route cleanup and this subscriber only notifies users.
+                    console.log(`[NATS] Evacuations handled by FireService for fire_id: ${data.fire_id}; skipping per-route evacuation.updated`);
                 } catch (err) {
                     console.error('[NATS] fireExtinguished processing error:', err.message);
                     // Acknowledge to avoid retry storms on malformed messages
