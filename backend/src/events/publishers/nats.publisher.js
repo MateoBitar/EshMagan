@@ -6,10 +6,12 @@
 // FireService calls:
 //   natsPublisher.publish('fireDetected', data)
 //   natsPublisher.publish('fireExtinguished', data)
+//   natsPublisher.publish('fireSpread', data)
 //
 // This maps those calls to the correct typed publisher functions.
 
 import { publishFireDetected }      from './fireDetected.publisher.js';
+import { publishFireSpread }        from './fireSpread.publisher.js';
 import { publishAssignmentCreated } from './fireAssignment.publisher.js';
 import { publishAlertCreated }      from './alertCreated.publisher.js';
 import { publishEvacuationUpdated } from './evacuationUpdated.publisher.js';
@@ -41,6 +43,9 @@ export const natsPublisher = {
         switch (event) {
             case 'fireDetected':
                 return await publishFireDetected(data);
+
+            case 'fireSpread':
+                return await publishFireSpread(data);
 
             case 'fireExtinguished':
                 return await publishFireExtinguished(data);

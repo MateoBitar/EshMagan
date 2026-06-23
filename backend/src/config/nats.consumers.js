@@ -13,6 +13,7 @@ import { startAlertSubscriber }           from '../events/subscribers/alert.subs
 import { startNotificationSubscriber }    from '../events/subscribers/notification.subscriber.js';
 import { startFireAssignmentSubscriber }  from '../events/subscribers/fireAssignment.subscriber.js';
 import { startEvacuationSubscriber }      from '../events/subscribers/evacuation.subscriber.js';
+import { startFireExtinguishedSubscriber } from '../events/subscribers/fireExtinguished.subscriber.js';
 import { AckPolicy, DeliverPolicy }       from 'nats';
 
 /**
@@ -53,6 +54,11 @@ const CONSUMERS = [
         // Listens to assignment.created + fire.spread
         name:            'fireAssignment-consumer',
         filter_subjects: [SUBJECTS.ASSIGNMENT_CREATED, SUBJECTS.FIRE_SPREAD],
+    },
+    {
+        // Listens to fire.extinguished → handles alert closure and notifications
+        name:            'fireExtinguished-consumer',
+        filter_subject:  SUBJECTS.FIRE_EXTINGUISHED,
     },
 ];
 
@@ -105,6 +111,7 @@ export async function setupNATSConsumers() {
     await startNotificationSubscriber();
     await startFireAssignmentSubscriber();
     await startEvacuationSubscriber();
+    await startFireExtinguishedSubscriber();
 
     console.log('[NATS] All subscribers started');
 }
