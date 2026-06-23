@@ -82,6 +82,7 @@ export class FireService {
 
             // If an existing fire is found, we update it with the new information. Otherwise, we create a new fire record.
             if (existingFire) {
+                // Update existing fire record
                 activeFire = await this.fireRepository.updateFire(existingFire.fire_id, {
                     fire_source: data.fire_source,
                     fire_location: data.fire_location,
@@ -91,6 +92,33 @@ export class FireService {
                     ),
                     is_verified: data.is_verified ?? existingFire.is_verified,
                 });
+
+                // Detect which fields changed (minimal: severity)
+                try {
+                    const updatedFields = [];
+                    const prevSeverity = Number(existingFire.fire_severitylevel || 0);
+                    const newSeverity = Number(data.fire_severitylevel || prevSeverity);
+                    if (newSeverity > prevSeverity) updatedFields.push('severity');
+
+                    // If fire_location string changed, mark location updated
+                    if (data.fire_location && data.fire_location !== existingFire.fire_location) {
+                        updatedFields.push('location');
+                    }
+
+                    if (updatedFields.length > 0) {
+                        // Best-effort publish fire.spread so subscribers react to the update
+                        await this.natsPublisher.publish('fireSpread', {
+                            fire_id: activeFire.fire_id,
+                            fire_location: activeFire.fire_location,
+                            fire_severitylevel: activeFire.fire_severitylevel,
+                            updated_fields: updatedFields,
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                } catch (spreadErr) {
+                    console.warn(`Failed to publish fire.spread for fire ${activeFire.fire_id}: ${spreadErr.message}`);
+                }
+
             } else {
                 const fire = new FireEvent({
                     fire_source: data.fire_source,

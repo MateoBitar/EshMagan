@@ -14,6 +14,7 @@ import { ResponderRepository } from '../../domain/repositories/responder.reposit
 import { UserRepository } from '../../domain/repositories/user.repository.js';
 import { UserService } from '../../services/user.service.js';
 import { FireRepository } from '../../domain/repositories/fire.repository.js';
+import { EvacuationRepository } from '../../domain/repositories/evacuation.repository.js';
 import { publishEvacuationUpdated } from '../publishers/evacuationUpdated.publisher.js';
 import { sendPushToTokens } from '../../services/push.service.js';
 
@@ -43,7 +44,7 @@ export async function startFireExtinguishedSubscriber() {
         const userRepository = new UserRepository();
         const userService = new UserService(userRepository);
         const fireRepository = new FireRepository();
-
+        const evacuationRepository = new EvacuationRepository();
         const consumer = await js.consumers.get('ESHMAGAN', CONSUMER_NAME);
         const messages = await consumer.consume();
 
@@ -94,18 +95,57 @@ export async function startFireExtinguishedSubscriber() {
                         const fire = await fireRepository.getFireById(data.fire_id);
                         const fireLocation = fire?.fire_location ?? data.fire_location ?? null;
 
-                        // Residents near the fire
-                        const residents = await residentRepository.getResidentsByLastKnownLocation(
-                            fireLocation ? { latitude: null, longitude: null } : {}
-                        ).catch(() => []);
+                        // Parse location into { latitude, longitude } if possible
+                        let coords = null;
+                        try {
+                            // Accept: WKT POINT('POINT(lng lat)') or GeoJSON string/object
+                            if (typeof fireLocation === 'string') {
+                                // Try JSON parse for GeoJSON
+                                try {
+                                    const parsed = JSON.parse(fireLocation);
+                                    if (parsed?.type === 'Point' && Array.isArray(parsed.coordinates)) {
+                                        coords = { latitude: parsed.coordinates[1], longitude: parsed.coordinates[0] };
+                                    }
+                                } catch { /* not JSON */ }
 
-                        // Responders near the fire
-                        const responders = await responderRepository.getRespondersByLastKnownLocation(
-                            fireLocation ? { latitude: null, longitude: null } : {}
-                        ).catch(() => []);
+                                // If still null, try WKT POINT(x y)
+                                if (!coords) {
+                                    const match = fireLocation.match(/POINT\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
+                                    if (match) {
+                                        coords = { longitude: parseFloat(match[1]), latitude: parseFloat(match[2]) };
+                                    }
+                                }
+                            } else if (typeof fireLocation === 'object' && fireLocation?.type === 'Point' && Array.isArray(fireLocation.coordinates)) {
+                                coords = { latitude: fireLocation.coordinates[1], longitude: fireLocation.coordinates[0] };
+                            }
+                        } catch (e) {
+                            console.warn(`[NATS] Could not parse fire location for notifications: ${e.message}`);
+                        }
 
                         const message = `Fire ${data.fire_id} has been extinguished. The area is now considered safe.`;
 
+                        // Determine lookup parameters: include radius (default 10km)
+                        const lookupParams = coords ? { latitude: coords.latitude, longitude: coords.longitude, radiusMeters: 10000 } : { radiusMeters: 10000 };
+
+                        // Residents near the fire
+                        let residents = [];
+                        try {
+                            residents = await residentRepository.getResidentsByLastKnownLocation(lookupParams);
+                        } catch (e) {
+                            console.warn(`[NATS] Failed to query residents for notifications: ${e.message}`);
+                            residents = [];
+                        }
+
+                        // Responders near the fire
+                        let responders = [];
+                        try {
+                            responders = await responderRepository.getRespondersByLastKnownLocation(lookupParams);
+                        } catch (e) {
+                            console.warn(`[NATS] Failed to query responders for notifications: ${e.message}`);
+                            responders = [];
+                        }
+
+                        // Notify residents
                         for (const resident of residents ?? []) {
                             try {
                                 await notificationRepository.createNotification({
@@ -130,6 +170,7 @@ export async function startFireExtinguishedSubscriber() {
                             }
                         }
 
+                        // Notify responders
                         for (const responder of responders ?? []) {
                             try {
                                 await notificationRepository.createNotification({
